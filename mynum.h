@@ -142,8 +142,11 @@ struct number_t: public _base_number_t
     void __reserve(slen_t units);
     void __release();
     void __trim();
-    void __mul(unit_t);
     void __add(unit_t);
+    void __mul(unit_t);
+    slen_t __abs_add_unit(unit_t);
+    slen_t __abs_sub_unit(unit_t);
+    slen_t __abs_mul_unit(unit_t);
     slen_t __bits_reserve(slen_t);
     slen_t __vbits_count() const;
 
@@ -268,6 +271,7 @@ struct string_t
     string_t& operator = (const char*);
     string_t& operator = (const string_t&);
     char operator [] (size_t x) const { return dat[x]; }
+    const char* c_str() const { return dat; }
 
     void __copy(const char* p, size_t l);
 };

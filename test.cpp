@@ -7,34 +7,68 @@
 
 using namespace mynum;
 
-typedef number_t NN;
+void basic_examples();
+void test_all();
 
-bool chance(int n)
+void basic_examples()
 {
-    return rand() % n == 1;
-}
-
-void random(number_t& a)
-{
-    if (a.len)
-    {
-        int i = 0;
-        while (i < a.len)
+    // Addition example: Fibonacci series summation
+    { 
+        number_t a, b = 0, c = 1;
+        for (int i = 0; i < 300; i++)
         {
-            a.dat[i++] = (unit_t)rand();
+            a = b; // a.steal(b) for higher efficiency
+            b = c;
+            add(a, b, c);
         }
-        if (a.dat[a.len - 1] == 0)
-        {
-            a.dat[a.len - 1] = 1;
-        }
+        assert(c == number_t("359579325206583560961765665172189099052367214309267232255589801"));
+    }
+    // Subtraction example: compute the average
+    { 
+        number_t a("314159265358979323846264338327950238"), b("2459045235360287471352662497757247093"), c;
+        c  = a - ((a - b) >> 1);
+        assert(c == number_t("1386602250359633397599463418042598665"));
     }
 }
 
-void create_big(NN& x, int size)
+void PI_example()
+{}
+
+int main(int argc, char* argv[])
 {
-    bits_reserve_1(x, size * sizeof(unit_t) * 8);
-    random(x);
+    basic_examples();
+    PI_example();
+
+    if (argc > 1)
+    {
+        int times = atoi(argv[1]);
+        if (times > 0)
+        {
+            puts("ready?[y/n]");
+            if (getchar() == 'y') for (int i = 0; i < times; i++)
+            {
+                test_all();
+            }
+        }
+        else
+        {
+            std::cout << "an integer greater than 0 required" << std::endl;
+        }
+    }
+    else
+    {
+        test_all();
+    }
+
+    std::cout << "OK!" << std::endl;
+    return 1;
 }
+
+typedef number_t NN;
+
+bool chance(int n);
+void random(NN& a);
+void create_big(NN& x, int size);
 
 void test_construct()
 {
@@ -1452,6 +1486,27 @@ void test_swap()
 void test_operators()
 {
     {
+        NN a, b(1), c("ffffffff", 16), d("ffffffffffffffff", 16);
+        --a; assert(a == -1);
+        ++a; assert(a == 0);
+        a++; assert(a == 1);
+        a--; assert(a == 0);
+        --a; assert(a == -1);
+        --a; assert(a == -2);
+        b++; assert(b == 2);
+        --b; assert(b == 1);
+        c++; assert(c == 0x100000000ULL);
+        c--; assert(c == 0xffffffff);
+        ++d; assert(d == NN("10000000000000000", 16));
+        --d; assert(d == NN("ffffffffffffffff", 16));
+        --d; assert(d == NN("fffffffffffffffe", 16));
+        NN e(5);
+        --e; --e; --e; e--; e--; assert(e == 0);
+        --e; --e; --e; e--; e--; assert(e == -5);
+        ++e; ++e; assert (e == -3); ++e; e++; e++; assert(e == 0);
+        ++e; ++e; assert (e == 2); ++e; e++; e++; assert(e == 5);
+    }
+    {
         NN a = (int)123, b = (short)-7, c = (char)-120, d = (long)780000, e = (long long)3;
         assert(a / b * c - d + e == -777957);
         assert(a + b - c * d / e == 31200116);
@@ -1535,7 +1590,7 @@ void test_string()
     assert(!c.valid());
 }
 
-void test()
+void test_all()
 {
     srand((unsigned int)time(NULL));
 
@@ -1569,30 +1624,29 @@ void test()
     test_string();
 }
 
-int main(int argc, char* argv[])
+bool chance(int n)
 {
-    if (argc > 1)
-    {
-        int times = atoi(argv[1]);
-        if (times > 0)
-        {
-            puts("ready?[y/n]");
-            if (getchar() == 'y') for (int i = 0; i < times; i++)
-            {
-                test();
-            }
-        }
-        else
-        {
-            std::cout << "an integer greater than 0 required" << std::endl;
-        }
-    }
-    else
-    {
-        test();
-    }
-
-    std::cout << "OK!" << std::endl;
-    return 1;
+    return rand() % n == 1;
 }
 
+void random(number_t& a)
+{
+    if (a.len)
+    {
+        int i = 0;
+        while (i < a.len)
+        {
+            a.dat[i++] = (unit_t)rand();
+        }
+        if (a.dat[a.len - 1] == 0)
+        {
+            a.dat[a.len - 1] = 1;
+        }
+    }
+}
+
+void create_big(NN& x, int size)
+{
+    bits_reserve_1(x, size * sizeof(unit_t) * 8);
+    random(x);
+}

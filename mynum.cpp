@@ -514,22 +514,52 @@ number_t& number_t::operator ~ ()
 
 number_t& number_t::operator ++ ()
 {
-    return this->add(number_t(1));
+    return this->operator ++ (0);
 }
 
 number_t& number_t::operator -- ()
 {
-    return this->sub(number_t(1));
+    return this->operator -- (0);
 }
 
 number_t& number_t::operator ++ (int)
 {
-    return this->add(number_t(1));
+    if (len > 0)
+    {
+        len = __abs_add_unit(1);
+    }
+    else if (len == 0)
+    {
+        __release();
+        __reserve(1);
+        *dat = 1;
+        len = 1;
+    }
+    else
+    {
+        len = 0 - __abs_sub_unit(1);
+    }
+    return *this;
 }
 
 number_t& number_t::operator -- (int)
 {
-    return this->sub(number_t(1));
+    if (len > 0)
+    {
+        len = __abs_sub_unit(1);
+    }
+    else if (len == 0)
+    {
+        __release();
+        __reserve(1);
+        *dat = 1;
+        len = -1;
+    }
+    else
+    {
+        len = 0 - __abs_add_unit(1);
+    }
+    return *this;
 }
 
 number_t& number_t::operator += (const number_t& x)
@@ -629,6 +659,9 @@ void number_t::__release()
     len = 0;
 }
 
+/**
+ *  Only can be used in the process of constructing object
+ */
 void number_t::__add(unit_t x)
 {
     if (len)
@@ -654,6 +687,9 @@ void number_t::__add(unit_t x)
     }
 }
 
+/**
+ *  Only can be used in the process of constructing object
+ */
 void number_t::__mul(unit_t x)
 {
     unit_t* p = dat;
@@ -669,6 +705,87 @@ void number_t::__mul(unit_t x)
         *p++ = carry & MASK;
     }
     len = slen_t(p - dat);
+}
+
+slen_t number_t::__abs_add_unit(unit_t x)
+{
+    assert(len != 0);
+
+    slen_t l = __abs(len);
+    dunit_t carry = 0;
+    unit_t* p = dat;
+    unit_t* e = dat + l;
+ 
+    carry = (dunit_t)*p + x;
+    *p = carry & MASK;
+    carry >>= SHIFT;
+    while (++p != e && carry)
+    {
+        carry += *p;
+        *p = carry & MASK;
+        carry >>= SHIFT;
+    }
+    if (carry)
+    {
+        unit_t* tmp = __allocate_units(l + 1);
+        __copy_units(tmp, dat, l);
+        tmp[l++] = carry & MASK;
+        __deallocate_units(dat);
+        dat = tmp;
+    }
+    return l;
+}
+
+slen_t number_t::__abs_sub_unit(unit_t x)
+{
+    assert(len != 0);
+
+    dunit_t borrow = 0;
+    unit_t* p = dat;
+    unit_t* e = dat + __abs(len);
+ 
+    borrow = (dunit_t)*p - x;
+    *p = borrow & MASK;
+    borrow >>= SHIFT;
+    borrow &= 1;
+    while (++p != e && borrow)
+    {
+        borrow = (dunit_t)*p - borrow;
+        *p = borrow & MASK;
+        borrow >>= SHIFT;
+        borrow &= 1;
+    }
+    while (e != dat && !*(e - 1))
+    {
+        e--;
+    }
+    return e - dat;
+}
+
+slen_t number_t::__abs_mul_unit(unit_t x)
+{
+    assert(len != 0);
+
+    dunit_t carry = 0;
+    slen_t l = __abs(len);
+    unit_t* p = dat;
+    unit_t* e = dat + l;
+
+    while (p != e)
+    {
+        carry += (dunit_t)*p * x;
+        *p++ = carry & MASK;
+        carry >>= SHIFT;
+    }
+    if (carry)
+    {
+        unit_t* tmp = __allocate_units(l + 1);
+        __copy_units(tmp, dat, l);
+        tmp[l++] = carry & MASK;
+        __deallocate_units(dat);
+        dat = tmp;
+    }
+    return l;
 }
 
 static __always_inline(unit_t) __strbin_to_unit(const char* p, int l)
@@ -1809,17 +1926,6 @@ bool is_even(const number_t& a)
     return !is_odd(a);
 }
 
-void __sub(const number_t& a, const number_t& b, number_t& res)
-{
-    assert(cmp(a, b) >= 0);
-
-    unit_t* tmp = __allocate_units(a.len);
-    slen_t lr = __sub_core(a.dat, a.len, b.dat, b.len, tmp);
-    res.__release();
-    res.dat = tmp;
-    res.len = lr;
-}
-
 void __mul(const unit_t* x, slen_t lx, const unit_t* y, slen_t ly, number_t& res)
 {
     assert (lx >= 0 && ly >= 0);
@@ -2086,6 +2192,17 @@ void __shl_units(number_t& a, int b)
     a.dat = tmp;
     a.len = a.len + b;
     a.__trim();
+}
+
+void __sub(const number_t& a, const number_t& b, number_t& res)
+{
+    assert(cmp(a, b) >= 0);
+
+    unit_t* tmp = __allocate_units(a.len);
+    slen_t lr = __sub_core(a.dat, a.len, b.dat, b.len, tmp);
+    res.__release();
+    res.dat = tmp;
+    res.len = lr;
 }
 
 void __guess_sqrt(const number_t& a, number_t& res)

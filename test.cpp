@@ -7,37 +7,297 @@
 
 using namespace mynum;
 
-void basic_examples();
-void test_all();
+/** examples and test cases */
 
+void basic_examples();
+void PI_example();
+void E_example();
+void gcd_example();
+void radix_example();
+void test_detail();
+
+/*
+ * The basic usage of mynum algorithm library
+ */
 void basic_examples()
 {
-    // Addition example: Fibonacci series summation
+    /** Initialization example: */
+    {
+        number_t a;    // initialize an object without parameters, the object is zero
+        number_t b(-123);    // use a variable of the basic integer type to initialize the object
+        number_t c("abcdef", 16);  // use a string to initialize the object, 16 is the base
+        number_t d(a);   // use an object to initialize another object
+    }
+
+    /** Addition example: Fibonacci series summation */
     { 
         number_t a, b = 0, c = 1;
         for (int i = 0; i < 300; i++)
         {
-            a = b; // a.steal(b) for higher efficiency
+            a = b;
             b = c;
-            add(a, b, c);
+            c = a + b; // use add(a, b, c) for higher efficiency
         }
         assert(c == number_t("359579325206583560961765665172189099052367214309267232255589801"));
     }
-    // Subtraction example: compute the average
+
+    /** Subtraction example: compute the average */
     { 
-        number_t a("314159265358979323846264338327950238"), b("2459045235360287471352662497757247093"), c;
+        number_t a("314159265358979323846264338327950238");
+        number_t b("2459045235360287471352662497757247093"), c;
         c  = a - ((a - b) >> 1);
         assert(c == number_t("1386602250359633397599463418042598665"));
+
+        // this is just an example of subtraction, in practical application you should use addition for higher efficiency:
+        add(a, b, c);
+        c.shr(1);
+        assert(c == number_t("1386602250359633397599463418042598665"));
+    }
+
+    /** Multiplication example: compute the factorial of 64 */
+    {
+        number_t a = 1;
+        for (int i = 2; i <= 64; i++)
+        {
+            a.mul(i);
+        }
+        assert(a == number_t("126886932185884164103433389335161480802865516174545192198801894375214704230400000000000000"));
+    }
+
+    /** Square root example: */
+    {
+        number_t a = 2, b = 100000000;
+        a.mul(b.pow(16));
+        a.sqrt();
+        assert(a == number_t("14142135623730950488016887242096980785696718753769480731766797379"));
     }
 }
 
+/*
+ * rearctan1 and rearctan2 have the same function,
+ * they use Maclaurin expansion to get the product of arctan(1/x) and the n-th power of 10
+ *
+ * rearctan1 uses the overloaded operators, rearctan1 uses the normal APIs
+ * operator overloading makes the source code briefer, but the efficiency is slightly lower
+ * the two functions are used by PI_example() to compute the circumference ratio PI
+ * the example obtaines 100 decimal places of PI, readers can set n to their interested value,
+ * and get the result
+ */
+void rearctan1(int x, int n, number_t& res)
+{
+    int k = 1;
+    number_t u, v, xx(x * x);
+
+    res = 10;
+    res.pow(n).div(x);
+    u = res;
+
+    do
+    {
+        u /= xx;
+        v = u / (2 * k + 1);
+        v *= ((k & 1) * -1) | 1;
+        res += v;
+        k++;
+    } while (v);
+}
+
+void rearctan2(int x, int n, number_t& res)
+{
+    int k = 1;
+    number_t u, v, xx(x * x);
+
+    res = 10;
+    res.pow(n).div(x);
+    u = res;
+
+    do
+    {
+        u.div(xx);
+        div(u, 2 * k + 1, v);
+        v.set_sign(0 - (k & 1));
+        res.add(v);
+        k++;
+    } while (v);
+}
+
+/*
+ *  Use Machin's formula to compute PI
+ *  PI = 16 * arctan(1/5) - 4 * arctan(1/239)
+ *  The last few decimal places may be wrong, increase n to obtain higher accuracy
+ */
 void PI_example()
-{}
+{
+    int n = 100;
+    number_t t0, t1;
+
+    rearctan1(5, n, t0);
+    t0 <<= 2;
+    rearctan2(239, n, t1);
+    t0 -= t1;
+    t0 <<= 2;
+
+    // the result
+    assert (t0.to_dec_string() == "31415926535897932384626433832795028841971693993751058209749445923078164062862089986280348253421170712");
+}
+
+/*
+ *  This example computes the decimal places of the natural logarithms base E
+ *  The last few decimal places may be wrong, increase n to obtain higher accuracy
+ */
+void E_example()
+{
+    // unit_t is the basic computing unit type of mynum
+    // on 64bit systems, unit_t is unsigned int
+    // on 32bit systems, unit_t is unsigned short
+    // so the value of the unit_t type variable is between [0, 4294967295] on 64bit systems,
+    // or [0, 65535] on 32bits systems
+    // when the computing relates to small integers which can be hold by unit_t,
+    // unit_t operations will be more efficient
+
+    unit_t n = 100, i = 2;
+    number_t x = 10, e;
+    x.pow(n);
+
+    while (x)
+    {
+        x.div_unit(i++);  // faster than x.div(i++)
+        e.add(x);
+    }
+
+    // the result
+    assert(e.to_string() == "7182818284590452353602874713526624977572470936999595749669676277240766303535475945713821785251664238");
+
+    // other unit_t operations:
+    // add_unit(unit_t x)
+    // sub_unit(unit_t x)
+    // mul_unit(unit_t x)
+    // mod_unit(unit_t x)
+
+    // the macro UNITBITS indcates how many bits are in the unit_t 
+    // use precompiled instructions to determine the range of unit_t variable values
+    //
+    // #if UNITBITS == 16
+    // max 65535
+    // #elif UNITBITS == 32
+    // max 4294967295
+    // #endif
+}
+
+/*
+ * compute the common denominator with division algorithm
+ */
+void gcd_example()
+{
+    number_t m("3149916521386303663457"), n("97950481"), t;
+
+    while (m % n != 0)
+    {
+        mod(m, n, t);
+        m.steal(n);
+        n.steal(t);
+    }
+    assert(n == 19937);
+}
+
+/*
+ * show how to convert a number_t object to string, the base can be specified
+ */
+void radix_example()
+{
+    number_t m = (number_t(1) << 107) - 1; // m is a Mersenne prime
+
+    assert(m.to_string(36) == "c4zaoiznmaffyd6jzqygv");                // convert m to base-36 string, a stands for 10, b stands for 12, and so on, z stands for 35
+    assert(m.to_string(19) == "1e26446i4fb4d551a9bi03h3i9");           // convert m to base-19 string
+    assert(m.to_string(16) == "7ffffffffffffffffffffffffff");          // convert m to base-16 string
+    assert(m.to_string(10) == "162259276829213363391578010288127");    // convert m to base-10 string
+    assert(m.to_string(8) == "377777777777777777777777777777777777");  // convert m to base-8 string
+    assert(m.to_string(2) == "11111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111");  // convert m to base-2 string
+
+    // Use follow methods for higher efficiency:
+    // to_bin_string() to get base-2 string
+    // to_oct_string() to get base-8 string
+    // to_dec_string() to get base-10 string
+    // to_hex_string() to get base-16 string
+    // in the above method, the efficiency of to_hex_string() is the highest.
+
+    // Currently, the max base supported is 36, it will be extended in the subsequent version,
+    // you can use max_base() to obtain the max base supported
+    //
+    // NOTICE!! never use m.to_string(0), m.to_string(1) and a base larger than max_base() returned
+    //
+}
+
+/*
+ *  for further test
+ */
+void test_construct();
+void test_string_convertion();
+void test_abs();
+void test_zero();
+void test_cmp();
+void test_mul();
+void test_sqr();
+void test_sqrt();
+void test_kmul();
+void test_add();
+void test_sub();
+void test_div();
+void test_and();
+void test_or();
+void test_xor();
+void test_not();
+void test_shl();
+void test_shr();
+void test_pow();
+void test_pom();
+void test_bits();
+void test_property();
+void test_swap();
+void test_operators();
+void test_string();
+
+void test_detail()
+{
+    srand((unsigned int)time(NULL));
+
+    test_construct();
+    test_string_convertion();
+
+    test_abs();
+    test_zero();
+    test_cmp();
+    test_mul();
+    test_sqr();
+    test_sqrt();
+
+    test_kmul();
+    test_add();
+    test_sub();
+
+    test_div();
+    test_and();
+    test_or();
+    test_xor();
+    test_not();
+    test_shl();
+    test_shr();
+    test_pow();
+    test_pom();
+    test_bits();
+    test_property();
+    test_swap();
+    test_operators();
+    test_string();
+}
 
 int main(int argc, char* argv[])
 {
     basic_examples();
     PI_example();
+    E_example();
+    radix_example();
+    gcd_example();
 
     if (argc > 1)
     {
@@ -47,7 +307,7 @@ int main(int argc, char* argv[])
             puts("ready?[y/n]");
             if (getchar() == 'y') for (int i = 0; i < times; i++)
             {
-                test_all();
+                test_detail();
             }
         }
         else
@@ -57,7 +317,7 @@ int main(int argc, char* argv[])
     }
     else
     {
-        test_all();
+        test_detail();
     }
 
     std::cout << "OK!" << std::endl;
@@ -1588,40 +1848,6 @@ void test_string()
     assert(a.valid());
     assert(d.valid());
     assert(!c.valid());
-}
-
-void test_all()
-{
-    srand((unsigned int)time(NULL));
-
-    test_construct();
-    test_string_convertion();
-
-    test_abs();
-    test_zero();
-    test_cmp();
-    test_mul();
-    test_sqr();
-    test_sqrt();
-
-    test_kmul();
-    test_add();
-    test_sub();
-
-    test_div();
-    test_and();
-    test_or();
-    test_xor();
-    test_not();
-    test_shl();
-    test_shr();
-    test_pow();
-    test_pom();
-    test_bits();
-    test_property();
-    test_swap();
-    test_operators();
-    test_string();
 }
 
 bool chance(int n)

@@ -83,8 +83,11 @@ struct number_t: public _base_number_t
     void set_zero();
     void steal(number_t&);
 
-    number_t& abs();
-    number_t& neg();
+    number_t abs();
+    number_t neg();
+    number_t& set_abs();
+    number_t& set_neg();
+    number_t& set_sign(int sign);
     number_t& add(const number_t&);
     number_t& sub(const number_t&);
     number_t& mul(const number_t&);
@@ -103,6 +106,12 @@ struct number_t: public _base_number_t
     number_t& sqrt();
     number_t& pow(const number_t&);
     number_t& pom(const number_t&, const number_t&);
+
+    number_t& add_unit(unit_t);
+    number_t& sub_unit(unit_t);
+    number_t& mul_unit(unit_t);
+    number_t& div_unit(unit_t);
+    number_t& mod_unit(unit_t);
 
     int bit_at(size_t) const;
     size_t bits_count() const;
@@ -146,7 +155,6 @@ struct number_t: public _base_number_t
     void __mul(unit_t);
     slen_t __abs_add_unit(unit_t);
     slen_t __abs_sub_unit(unit_t);
-    slen_t __abs_mul_unit(unit_t);
     slen_t __bits_reserve(slen_t);
     slen_t __vbits_count() const;
 
@@ -203,6 +211,7 @@ void shl(const number_t& a, size_t b, number_t& res);
 void pow(const number_t& a, const number_t& b, number_t& res);
 int  div(const number_t& a, const number_t& b, number_t& q, number_t& r);
 int  div(const number_t& a, const number_t& b, number_t& q);
+int  mod(const number_t& a, const number_t& b, number_t& r);
 int  pom(const number_t& a, const number_t& b, const number_t& c, number_t& res);
 int  floor_div(const number_t& a, const number_t& b, number_t& q, number_t& r);
 
@@ -220,6 +229,10 @@ void bits_reserve_max(number_t& a, int n);
 bool is_power2(const number_t& a);
 bool is_odd(const number_t& a);
 bool is_even(const number_t& a);
+
+number_t& set_abs(number_t&);
+number_t& set_neg(number_t&);
+number_t& set_sign(number_t&, int sign);
 
 number_t abs(const number_t& a);
 number_t neg(const number_t& a);

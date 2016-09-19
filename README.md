@@ -3,6 +3,7 @@ MYNUM LIBARAY
 
 This C++ library provides operations of big integers, include:
 
+ * [Initialization](#initialization)
  * [Addition](#addition)
  * [Subtraction](#subtraction)
  * [Multiplication](#multiplication)
@@ -12,6 +13,7 @@ This C++ library provides operations of big integers, include:
  * [Root](#root)
  * [Comparison](#comparison)
  * [Bits operations](#bits-operations)
+ * [String convertion](#string-convertion)
 
 and other utilities:
 
@@ -28,7 +30,7 @@ if you have any questions, please contact <brotherbeer@163.com>
 
 ##Addition
 ```C++
-mynum::number_t a, b, c;
+number_t a,b,c;
 c = a + b;
 c += a;
 c = a + 6;
@@ -36,20 +38,21 @@ c += 6;
 ```
 ##Subtraction
 ```C++
-mynum::mynum a, b, c;
+number_t a,b,c;
 c = a - b;
 c -= a;
 ```
 ##Multiplication
 ```C++
-mynum::number_t a, b, c;
+number_t a,b,c;
 c = a * b;
 c *= a;
 c = a * 6;
 c *= 6;
 ```
-##Comparison
+##Bits operations
 ```C++
-mynum::number_t a(123), b(456);
-int r = cmp(a, b);
+number_t a,b,c;
+a << 3;
+b >> 4;
 ```

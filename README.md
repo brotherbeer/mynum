@@ -10,6 +10,7 @@ This C++ library provides operations of big integers, include:
  * [Division](#division)
  * [Modulo](#modulo)
  * [Power](#power)
+ * [Power modulo](#power-modulo)
  * [Root](#root)
  * [Comparison](#comparison)
  * [Bits operations](#bits-operations)
@@ -17,9 +18,9 @@ This C++ library provides operations of big integers, include:
 
 and other utilities:
 
- * [abs](#abs)
- * [neg](#neg)
- * [to_string](#to_string)
+ * [absolute value](#absolute-value)
+ * [negative value](#negative-value)
+ * [number property](#number-property)
 
 No restrictions on the dissemination and modification of this source code,
 but should accord with socially beneficial purpose. 
@@ -28,31 +29,3 @@ if you have any questions, please contact <brotherbeer@163.com>
 
 `NOTICE!! This library is currently only available on the LITTLE-ENDIAN machines.`
 
-##Addition
-```C++
-number_t a,b,c;
-c = a + b;
-c += a;
-c = a + 6;
-c += 6;
-```
-##Subtraction
-```C++
-number_t a,b,c;
-c = a - b;
-c -= a;
-```
-##Multiplication
-```C++
-number_t a,b,c;
-c = a * b;
-c *= a;
-c = a * 6;
-c *= 6;
-```
-##Bits operations
-```C++
-number_t a,b,c;
-a << 3;
-b >> 4;
-```

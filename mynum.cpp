@@ -1381,20 +1381,35 @@ int cmp(const string_t& a, const string_t& b)
 int check(const char* p, int base)
 {
     const char* q = p;
-    while (*p != '\0' && __char_digit_valid(*p, base)) p++;
+    while (*p != '\0')
+    {
+        if (__char_digit_valid(*p, base))
+        {
+            p++;
+        }
+        else
+        {
+            return 0;
+        }
+    }
     return p - q;
 }
 
 int check(const char* p, const char* e, int base)
 {
     const char* q = p;
-    while (p != e && __char_digit_valid(*p, base)) p++;
+    while (p != e)
+    {
+        if (__char_digit_valid(*p, base))
+        {
+            p++;
+        }
+        else
+        {
+            return 0;
+        }
+    }
     return p - q;
-}
-
-const char* find_valid(const char* p, const char* e, int base, size_t* size)
-{
-    return NULL;
 }
 
 /** algorithms implementation */
@@ -2891,13 +2906,13 @@ static __always_inline(int) __bsr32(unsigned int bb)
     int result = 0;
     if (bb > 0xFFFF)
     {
-		bb >>= 16;
-		result += 16;
+        bb >>= 16;
+        result += 16;
     }
     if (bb > 0xFF)
     {
-		bb >>= 8;
-		result += 8;
+        bb >>= 8;
+        result += 8;
     }
     return (result + __msb_256_table[bb]);
 }

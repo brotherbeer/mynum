@@ -4,6 +4,7 @@
 #include <ctime>
 #include <string>
 #include <iostream>
+#include <pthread.h>
 
 using namespace mynum;
 
@@ -807,6 +808,17 @@ void test_sqr()
         assert(eq(srx, mrx));
         assert(eq(sry, mry));
     }
+    {
+        for (int i = 0; i < 3; i++)
+        {
+            NN a, b, c, d;
+            create_big(a, 200);
+            create_big(b, 200);
+            kmul(a, b, c);
+            mul(a, b, d);
+            assert(eq(c, d));
+        }
+    }
 }
 
 void test_kmul()
@@ -855,7 +867,24 @@ void test_cmp()
         assert(cmp(c, b) < 0);
     }
     {
-        NN a, b, c("0"), d("123"), e("456");
+        assert(cmp(NN("ABCD1", 16), NN("ABCD2", 16)) < 0);
+        assert(cmp(NN("ABCDEFEF1", 16), NN("ABCDEFEF2", 16)) < 0);
+        assert(cmp(NN("ABCDEFEFFF1", 16), NN("ABCDEFEFFF2", 16)) < 0);
+        assert(cmp(NN("ABCD2", 16), NN("ABCD1", 16)) > 0);
+        assert(cmp(NN("ABCDEFEF2", 16), NN("ABCDEFEF1", 16)) > 0);
+        assert(cmp(NN("ABCDEFEFFF2", 16), NN("ABCDEFEFFF1", 16)) > 0);
+
+        NN x("ABCDEFFF", 16), y("ABCDEEEE1", 16), z("ABCDEEEEFFFFF", 16);
+        assert(cmp(x, x) == 0);
+        assert(cmp(y, y) == 0);
+        assert(cmp(z, z) == 0);
+
+        NN z0, z1;
+        assert(cmp(z0, z0) == 0);
+        assert(cmp(z0, z1) == 0);
+    }
+    {
+        NN a, b, c("0"), d("123"), e("456"), f("-456");
         assert(eq(a, b));
         assert(eq(a, c));
         assert(!neq(a, b));
@@ -867,6 +896,9 @@ void test_cmp()
         assert(cmp(a, d) < 0);
         assert(cmp(d, e) < 0);
         assert(cmp(e, d) > 0);
+        assert(neq(e, f));
+        assert(cmp(e, f) > 0);
+        assert(cmp(f, e) < 0);
         NN x("1231314453465546546"), y("1231314453465546546");
         assert(cmp(x, y) == 0);
         assert(cmp(y, x) == 0);
@@ -880,7 +912,6 @@ void test_cmp()
         assert(cmp(x, z) < 0);
         assert(cmp(z, z) == 0);
         assert(eq(z, z));
-
         NN u("65538"), v("65539");
         assert(neq(u, v));
         assert(!eq(u, v));

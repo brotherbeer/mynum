@@ -1421,7 +1421,8 @@ static void __sqr(const unit_t* x, slen_t lx, number_t& res);
 static void __ksqr(const unit_t* x, slen_t lx, number_t& res);
 static void __div(const unit_t* a, slen_t la, const unit_t* b, slen_t lb, number_t& q, number_t& r);
 static void __div(const unit_t* a, slen_t la, const unit_t* b, slen_t lb, number_t& q);
-static bool __neq_core(const unit_t* x, slen_t lx, const unit_t* y, slen_t ly);
+static bool __neq_core(const unit_t* x, const unit_t* y, slen_t l);
+static slen_t __cmp_same_len_core(const unit_t* x, const unit_t* y, slen_t l);
 static slen_t __cmp_core(const unit_t* x, slen_t lx, const unit_t* y, slen_t ly);
 static slen_t __add_core(const unit_t* x, slen_t lx, const unit_t* y, slen_t ly, unit_t* res);
 static slen_t __sub_core(const unit_t* x, slen_t lx, const unit_t* y, slen_t ly, unit_t* res);
@@ -1442,33 +1443,20 @@ static slen_t __bit_not_core(const unit_t* x, slen_t lx, unit_t* res);
 
 int cmp(const number_t& a, const number_t& b)
 {
-    if (a.is_not(b))
+    if (a.len - b.len)
     {
-        if (a.len - b.len)
-        {
-            return a.len - b.len > 0? 1: -1;        
-        }
-        slen_t sign = __sign(a.len);
-        slen_t la = __abs(a.len);
-        slen_t lb = __abs(b.len);
-        return __cmp_core(a.dat, la, b.dat, lb) * sign;
+        return a.len - b.len > 0? 1: -1;        
     }
-    return 0;
+    return __cmp_same_len_core(a.dat, b.dat, __abs(a.len)) * __sign(a.len);
 }
 
 bool neq(const number_t& a, const number_t& b)
 {
-    if (a.is_not(b))
+    if (a.len - b.len)
     {
-        if (!__same_sign(a.len, b.len))
-        {
-            return true;
-        }
-        slen_t la = __abs(a.len);
-        slen_t lb = __abs(b.len);
-        return __neq_core(a.dat, la, b.dat, lb);
+        return true;
     }
-    return false;
+    return __neq_core(a.dat, b.dat, __abs(a.len));
 }
 
 void abs(const number_t& a, number_t& res)
@@ -2451,34 +2439,28 @@ void __guess_sqrt(const number_t& a, number_t& res)
     res.__trim();
 }
 
-bool __neq_core(const unit_t* x, slen_t lx, const unit_t* y, slen_t ly)
+bool __neq_core(const unit_t* x, const unit_t* y, slen_t l)
 {
-    assert (lx >= 0 && ly >= 0);
+    assert (l >= 0);
 
-    if (lx - ly)
+    if (l)
     {
-        return true;
-    }
-    if (lx)
-    {
-        if (x[lx - 1] != y[lx - 1] || x[0] != y[0])
+        if (x[l - 1] != y[l - 1] || x[0] != y[0])
         {
             return true;
         }
         else
         {
-            slen_t i = (x[0] * 19937 + 1) % lx;
+            slen_t i = (x[0] * 19937 + 1) % l;
             if (x[i] != y[i])
             {
                 return true;
             }        
         }
     }
-
     const dunit_t* p1 = (dunit_t*)x;
     const dunit_t* p2 = (dunit_t*)y;
-    const dunit_t* pe = lx & 1? (dunit_t*)(x + lx - 1): (dunit_t*)(x + lx);
-
+    const dunit_t* pe = l & 1? (dunit_t*)(x + l - 1): (dunit_t*)(x + l);
     while (p1 != pe)
     {  
         if (*p1++ != *p2++)
@@ -2489,31 +2471,25 @@ bool __neq_core(const unit_t* x, slen_t lx, const unit_t* y, slen_t ly)
     return false;
 }
 
-slen_t __cmp_core(const unit_t* x, slen_t lx, const unit_t* y, slen_t ly)
+__always_inline(slen_t) __cmp_same_len_core(const unit_t* x, const unit_t* y, slen_t l)
 {
-    assert(lx >= 0 && ly >= 0);
+    assert(l >= 0);
 
-    if (lx - ly)
+    if (l & 1)
     {
-        return lx - ly > 0? 1: -1;
-    }
-    if (lx & 1)
-    {
-        lx--;
-        if (x[lx] > y[lx])
+        l--;
+        if (x[l] > y[l])
         {
             return 1;
         }
-        else if (x[lx] < y[lx])
+        else if (x[l] < y[l])
         {
             return -1;
         }
     }
-
-    const dunit_t* p1 = (dunit_t*)(x + lx - 2);
-    const dunit_t* p2 = (dunit_t*)(y + lx - 2);
+    const dunit_t* p1 = (dunit_t*)(x + l - 2);
+    const dunit_t* p2 = (dunit_t*)(y + l - 2);
     const dunit_t* pe = (dunit_t*)(x - 2);
-
     for (dunit_t d; p1 != pe; p1--, p2--)
     {  
         if ((d = *p1 - *p2))
@@ -2522,6 +2498,17 @@ slen_t __cmp_core(const unit_t* x, slen_t lx, const unit_t* y, slen_t ly)
         }
     }
     return 0;
+}
+
+slen_t __cmp_core(const unit_t* x, slen_t lx, const unit_t* y, slen_t ly)
+{
+    assert(lx >= 0 && ly >= 0);
+
+    if (lx - ly)
+    {
+        return __sign(lx - ly);
+    }
+    return __cmp_same_len_core(x, y, lx);
 }
 
 slen_t __add_core(const unit_t* x, slen_t lx, const unit_t* y, slen_t ly, unit_t* res)

@@ -64,7 +64,7 @@ number_t a = 123, b(789L);  // use basic integer type to initialize number_t obj
 number_t c("271828182845"); // use a string that represents decimal number
 number_t d("abcdef", 16);   // use a string that represents hexadecimal number
 number_t e("1111100", 2);   // use a string that represents binary number
-number_t f("HIJKLMN", x);   // use a string that represents arbitrary based number, x between [2, 36]
+number_t f("HIJKLMN", x);   // use a string that represents arbitrary based number, _x_ between [2, 36]
 ```
 When using hexadecimal string, the efficiency is highest. The max base is 36.
 
@@ -75,8 +75,8 @@ If the string parameter is wrong, then the value of object is wrong too, but wil
 If you want to test the correctness of the string, you can use the 'check' function, for example:
 ```C++
 const char* s = "1234567890";
-assert(check(s, 10) > 0); // if s represents a decimal number, then s is correct
-assert(check(s, 8) == 0); // if s represents an octal number, then s is wrong
+assert(check(s, 10) > 0); // if _s_ represents a decimal number, then _s_ is correct
+assert(check(s, 8) == 0); // if _s_ represents an octal number, then _s_ is wrong
 ```
 Function 'check' returns the string length if the string is right, or 0 if the string is wrong.
 
@@ -98,9 +98,9 @@ assert(a == 0);
 ##Addition
 ```C++
 number_t a = 123, b = 456, c;
-add(a, b, c);  // add a and b, c is the result
+add(a, b, c);  // add _a_ and _b_, _c_ is the result
 
-c.add(a);      // add a to c
+c.add(a);      // add _a_ to _c_
 
 c = add(a, b); // return object
 
@@ -114,9 +114,9 @@ c += a;        // overloaded operator +=
 ##Subtraction
 ```C++
 number_t a = 123, b = 456, c;
-sub(a, b, c);  // c is the result of a - b
+sub(a, b, c);  // _c_ is the result of _a_ - _b_
 
-c.sub(a);      // the same to c -= a
+c.sub(a);      // the same to _c_ -= _a_
 
 c = sub(a, b); // return object
 
@@ -130,9 +130,9 @@ c -= a;
 ##Multiplication
 ```C++
 number_t a = 123, b = 456, c;
-mul(a, b, c);  // c is the result of a * b
+mul(a, b, c);  // _c_ is the result of _a_ * _b_
 
-c.mul(a);      // the same to c *= a
+c.mul(a);      // the same to _c_ *= _a_
 
 kmul(a, b, c); // using karatsuba algorithm
 
@@ -146,9 +146,9 @@ c *= a;
 ##Division
 ```C++
 number_t a = 123, b = 456, q, r;
-div(a, b, q);     // a is the dividend, b is the divisor, q is the quotient
+div(a, b, q);     // _a_ is the dividend, _b_ is the divisor, _q_ is the quotient
 
-div(a, b, q, r);  // r is the remainder
+div(a, b, q, r);  // _r_ is the remainder
 
 a.div(b);
 
@@ -165,7 +165,7 @@ a /= b;
 ```C++
 number_t a = 123, b = 456, q, r;
 
-mod(a, b, r);    // r is the remainder after division of a by b
+mod(a, b, r);    // _r_ is the remainder after division of _a_ by _b_
 
 r = mod(a, b);   // return object
 
@@ -178,11 +178,11 @@ a %= b;
 ```C++
 number_t a = 123, b = 456, c;
 
-sqr(a, c);      // set c to a * a;
+sqr(a, c);      // set _c_ to _a_ * _a_;
 
 ksqr(a, c);     // using karatsuba algorithm
 
-pow(a, b, c);   // set c to a raised to the power of b, it is required that b > 0
+pow(a, b, c);   // set _c_ to _a_ raised to the power of _b_, it is required that _b_ > 0
 
 c = pow(a, b);
 ```
@@ -191,22 +191,22 @@ c = pow(a, b);
 ```C++
 number_t a = 123, b = 456, c = 678, d;
 
-pom(a, b, c, d);  // set d to a raised to b modulo c
+pom(a, b, c, d);  // set _d_ to _a_ raised to _b_ modulo _c_
 ```
 
 ##Root
 ```C++
 number_t a = 123456, b;
 
-sqrt(a, b);       // b is the square root
+sqrt(a, b);       // _b_ is the square root
 ```
 
 ##Comparison
 ```C++
 number_t a = 123, b = 456;
-cmp(a, b) < 0;   // a < b
-cmp(a, b) > 0;   // a > b
-cmp(a, b) == 0;  // a == b 
+cmp(a, b) < 0;   // _a_ < _b_
+cmp(a, b) > 0;   // _a_ > _b_
+cmp(a, b) == 0;  // _a_ == _b_
 
 eq(a, b);        // equal
 lt(a, b);        // less than
@@ -224,7 +224,7 @@ a <= b;
 ##Bits operations
 ```C++
 number_t a = 123, b = 456, c;
-bit_and(a, b, c);  // bitwise and, c is the result
+bit_and(a, b, c);  // bitwise and, _c_ is the result
 bit_or(a, b, c);   // bitwise or
 bit_xor(a, b, c);  // bitwise exclusive or
 bit_not(a, c);     // bitwise not
@@ -256,12 +256,12 @@ a >>= 5;
 ```C++
 number_t a = 123;
 
-a.to_string(36);  // convert m to base-36 string
-a.to_string(19);  // convert m to base-19 string
-a.to_string(16);  // convert m to base-16 string
-a.to_string(10);  // convert m to base-10 string
-a.to_string(8);   // convert m to base-8 string
-a.to_string(2);   // convert m to base-2 string
+a.to_string(36);  // convert _a_ to base-36 string
+a.to_string(19);  // convert _a_ to base-19 string
+a.to_string(16);  // convert _a_ to base-16 string
+a.to_string(10);  // convert _a_ to base-10 string
+a.to_string(8);   // convert _a_ to base-8 string
+a.to_string(2);   // convert _a_ to base-2 string
 ```
 Use follow methods for higher efficiency:
 
@@ -280,11 +280,11 @@ you can use max_base() to obtain the max base supported
 ##Absolute value
 ```C++
 number_t a = -123;
-number_t b = abs(a);  // set b to the absolute value of a
+number_t b = abs(a);  // set _b_ to the absolute value of _a_
 
-b = a.abs();    // equals to abs(a)
+b = a.abs();    // equals to abs(_a_)
 
-a.set_abs();    // set a to its absolute value
+a.set_abs();    // set _a_ to its absolute value
 ```
 
 ##Negative value
@@ -300,17 +300,17 @@ a.set_neg();
 ##Number property
 ```C++
 number_t a = 123, b = a;
-a.is_even();   // return true if a is an even number
+a.is_even();   // return true if _a_ is an even number
 
-a.is_not(b);   // return true if a and b are not same object
+a.is_not(b);   // return true if _a_ and _b_ are not same object
 
-a.is_odd();    // return true if a is an odd number
+a.is_odd();    // return true if _a_ is an odd number
 
-a.is_one();    // return true if a is 1
+a.is_one();    // return true if _a_ is 1
 
-a.is_power2(); // return true if a is the n-th power of 2 (n >= 0)
+a.is_power2(); // return true if _a_ is the _n_-th power of 2 (n >= 0)
 
-a.is_zero();   // return true if a is 0
+a.is_zero();   // return true if _a_ is 0
 ```
 
 ##String
@@ -331,26 +331,26 @@ a.to_hex_string(s);  // to string based 16
 
 a.to_string(s);      // convert the value to string, base 10 is default 
 
-a.to_string(s, x);   // convert the value to string based x 
+a.to_string(s, x);   // convert the value to string based _x_ 
 ```
 
 ##Other utils
 ```C++
 number_t a = 123, b = 456;
 
-swap(a, b);      // swap a and b, after this function called, a is 456, b is 123
+swap(a, b);      // swap _a_ and _b_, after this function called, _a_ is 456, _b_ is 123
 
-a.steal(b);      // a steals the data of b, so a gets the memory of b, and b is set 0
+a.steal(b);      // _a_ steals the data of _b_, so _a_ gets the memory of _b_, and _b_ is set 0
 
-a.set_one();     // set a 1
+a.set_one();     // set _a_ to 1
 
-a.set_zero();    // set a 0
+a.set_zero();    // set _a_ to 0
 
-a.set_sign(x);   // if x is 1 then set a to be positive, if x is -1 then set a to be negative
+a.set_sign(x);   // if _x_ is 1 then set _a_ to be positive, if _x_ is -1 then set _a_ to be negative
 
-sign(a);         // if a > 0 return 1 else return -1
+sign(a);         // if _a_ > 0 return 1 else return -1
 
-same_sign(a, b); // if a and b have the same sign, return 1, else return 0
+same_sign(a, b); // if _a_ and _b_ have the same sign, return 1, else return 0
 ```
 
 #Examples:
@@ -383,12 +383,12 @@ using namespace mynum;
 
 /*
  * rearctan1 and rearctan2 have the same function,
- * they use Maclaurin expansion to get the product of arctan(1/x) and the n-th power of 10
+ * they use Maclaurin expansion to get the product of arctan(1/_x_) and the _n_-th power of 10
  *
  * rearctan1 uses the overloaded operators, rearctan1 uses the normal APIs
  * operator overloading makes the source code briefer, but the efficiency is slightly lower
  * the two functions are used by PI_example() to compute the circumference ratio PI
- * the example obtaines 100 decimal places of PI, readers can set n to their interested value,
+ * the example obtaines 100 decimal places of PI, readers can set _n_ to their interested value,
  * and get the result
  */
 void rearctan1(int x, int n, number_t& res);
@@ -397,7 +397,7 @@ void rearctan2(int x, int n, number_t& res);
 /*
  *  Use Machin's formula to compute PI
  *  PI = 16 * arctan(1/5) - 4 * arctan(1/239)
- *  The last few decimal places may be wrong, increase n to obtain higher accuracy
+ *  The last few decimal places may be wrong, increase _n_ to obtain higher accuracy
  */
 void PI_example()
 {
@@ -460,7 +460,7 @@ using namespace mynum;
 
 /*
  *  This example computes the decimal places of the natural logarithms base E
- *  The last few decimal places may be wrong, increase n to obtain higher accuracy
+ *  The last few decimal places may be wrong, increase _n_ to obtain higher accuracy
  */
 void E_example()
 {

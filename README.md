@@ -11,9 +11,9 @@ operations:
  * [Subtraction](#subtraction)
  * [Multiplication](#multiplication)
  * [Division](#division)
- * [Modulo](#modulo)
- * [Power](#power)
- * [Power modulo](#power-modulo)
+ * [Modulo operation](#modulo-operation)
+ * [Exponentiation](#exponentiation)
+ * [Modular exponentiation](#modular-exponentiation)
  * [Root](#root)
  * [Comparison](#comparison)
  * [Bits operations](#bits-operations)
@@ -52,7 +52,7 @@ mynum can also be compiled into a dynamic library, for example:
 
 `g++ -fPIC -shared -O2 -DNDEBUG mynum.cpp -o mynum.so`
 
-The source code is currently applicable to g++, MSVC (MSVC please select 2008 and above version).
+The source code is currently applicable to g++, MSVC(2008 and above version).
 
 ##Initialization
 The namespace is `'mynum'`, and the class name of big integer is `'number_t'`.
@@ -114,7 +114,7 @@ c += a;        // overloaded operator +=
 ##Subtraction
 ```C++
 number_t a = 123, b = 456, c;
-sub(a, b, c);  // c is the result
+sub(a, b, c);  // c is the result of a - b
 
 c.sub(a);      // the same to c -= a
 
@@ -130,7 +130,7 @@ c -= a;
 ##Multiplication
 ```C++
 number_t a = 123, b = 456, c;
-mul(a, b, c);  // c is the result 
+mul(a, b, c);  // c is the result of a * b
 
 c.mul(a);      // the same to c *= a
 
@@ -146,7 +146,7 @@ c *= a;
 ##Division
 ```C++
 number_t a = 123, b = 456, q, r;
-div(a, b, q);     // q is the quotient
+div(a, b, q);     // a is the dividend, b is the divisor, q is the quotient
 
 div(a, b, q, r);  // r is the remainder
 
@@ -161,10 +161,11 @@ q = a / b;       // overloaded operator /, need myoperators.h
 a /= b;
 ```
 
-##Modulo
+##Modulo operation
 ```C++
 number_t a = 123, b = 456, q, r;
-mod(a, b, r);    // r is the result
+
+mod(a, b, r);    // r is the remainder after division of a by b
 
 r = mod(a, b);   // return object
 
@@ -173,24 +174,24 @@ r = a % b;       // overloaded operator %, need myoperators.h
 a %= b;
 ```
 
-##Power
+##Exponentiation
 ```C++
 number_t a = 123, b = 456, c;
 
-sqr(a, c);      // c == a * a;
+sqr(a, c);      // set c to a * a;
 
 ksqr(a, c);     // using karatsuba algorithm
 
-pow(a, b, c);   // b-th power of a
+pow(a, b, c);   // set c to a raised to the power of b, it is required that b > 0
 
 c = pow(a, b);
 ```
 
-##Power modulo
+##Modular exponentiation
 ```C++
 number_t a = 123, b = 456, c = 678, d;
 
-pom(a, b, c, d);  // d == pow(a, b) % c, but mush more efficient
+pom(a, b, c, d);  // set d to a raised to b modulo c
 ```
 
 ##Root
@@ -307,7 +308,7 @@ a.is_odd();    // return true if a is an odd number
 
 a.is_one();    // return true if a is 1
 
-a.is_power2(); // return true if a is n-th power of 2
+a.is_power2(); // return true if a is the n-th power of 2 (n >= 0)
 
 a.is_zero();   // return true if a is 0
 ```

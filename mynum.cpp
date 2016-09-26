@@ -144,7 +144,7 @@ static __always_inline(slen_t) __sign(slen_t x, slen_t y)
 
 static __always_inline(bool) __same_sign(slen_t x, slen_t y)
 {
-    return __sign_shift(x ^ y) == 0;
+    return (x ^ y) >= 0;
 }
 
 static __always_inline(dunit_t) __make_dunit(unit_t high, unit_t low)
@@ -1448,6 +1448,17 @@ int cmp(const number_t& a, const number_t& b)
         return a.len - b.len > 0? 1: -1;        
     }
     return __cmp_same_len_core(a.dat, b.dat, __abs(a.len)) * __sign(a.len);
+}
+
+int cmp_abs(const number_t& a, const number_t& b)
+{
+    slen_t la = __abs(a.len);
+    slen_t lb = __abs(b.len);
+    if (la - lb)
+    {
+        return la - lb > 0? 1: -1;        
+    }
+    return __cmp_same_len_core(a.dat, b.dat, la);
 }
 
 bool neq(const number_t& a, const number_t& b)

@@ -191,6 +191,7 @@ struct number_t: public _base_number_t
 };
 
 int cmp(const number_t& a, const number_t& b);
+int cmp_abs(const number_t& a, const number_t& b);
 bool neq(const number_t& a, const number_t& b);
 inline bool eq(const number_t& a, const number_t& b)  { return !neq(a, b); }
 inline bool lt(const number_t& a, const number_t& b)  { return cmp(a, b) == -1; }

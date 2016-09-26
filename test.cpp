@@ -967,6 +967,14 @@ void test_cmp()
         assert(a != 131235);
         assert((long long)131234 == a);
     }
+    {
+        NN a("-12342342424234234"), b("12342342424234234"), c("12313");
+        assert(cmp(a, b) < 0);
+        assert(cmp(a, c) < 0);
+        assert(cmp_abs(a, b) == 0);
+        assert(cmp_abs(a, c) > 0);
+        assert(cmp_abs(b, c) > 0);
+    }
 }
 
 void test_add()

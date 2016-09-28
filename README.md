@@ -48,6 +48,8 @@ Include [mynum.h](https://github.com/brotherbeer/mynum/blob/master/mynum.h) and 
 
 [myoperators.h](https://github.com/brotherbeer/mynum/blob/master/operators.h) overloaded the associated C++ operators, if you want to use the operators to do the calculations, please #include "myoperators.h"
 
+[test.cpp](https://github.com/brotherbeer/mynum/blob/master/test.cpp) contained the examples and test cases
+
 mynum can also be compiled into a dynamic library, for example:
 
 `g++ -fPIC -shared -O2 -DNDEBUG mynum.cpp -o mynum.so`

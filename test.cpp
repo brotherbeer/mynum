@@ -4,235 +4,11 @@
 #include <ctime>
 #include <string>
 #include <iostream>
-#include <pthread.h>
 
 using namespace mynum;
 
-/** examples and test cases */
-
-void basic_examples();
-void PI_example();
-void E_example();
-void gcd_example();
-void radix_example();
-void test_detail();
-
-/*
- * The basic usage of mynum algorithm library
- */
-void basic_examples()
-{
-    /** Initialization example: */
-    {
-        number_t a;    // initialize an object without parameters, the object is zero
-        number_t b(-123);    // use a variable of the basic integer type to initialize the object
-        number_t c("abcdef", 16);  // use a string to initialize the object, 16 is the base
-        number_t d(a);   // use an object to initialize another object
-    }
-
-    /** Addition example: Fibonacci series summation */
-    { 
-        number_t a, b = 0, c = 1;
-        for (int i = 0; i < 300; i++)
-        {
-            a = b;
-            b = c;
-            c = a + b; // use add(a, b, c) for higher efficiency
-        }
-        assert(c == number_t("359579325206583560961765665172189099052367214309267232255589801"));
-    }
-
-    /** Subtraction example: compute the average */
-    { 
-        number_t a("314159265358979323846264338327950238");
-        number_t b("2459045235360287471352662497757247093"), c;
-        c  = a - ((a - b) >> 1);
-        assert(c == number_t("1386602250359633397599463418042598665"));
-
-        // this is just an example of subtraction, in practical application you should use addition for higher efficiency:
-        add(a, b, c);
-        c.shr(1);
-        assert(c == number_t("1386602250359633397599463418042598665"));
-    }
-
-    /** Multiplication example: compute the factorial of 64 */
-    {
-        number_t a = 1;
-        for (int i = 2; i <= 64; i++)
-        {
-            a.mul(i);
-        }
-        assert(a == number_t("126886932185884164103433389335161480802865516174545192198801894375214704230400000000000000"));
-    }
-
-    /** Square root example: */
-    {
-        number_t a = 2, b = 100000000;
-        a.mul(b.pow(16));
-        a.sqrt();
-        assert(a == number_t("14142135623730950488016887242096980785696718753769480731766797379"));
-    }
-}
-
-/*
- * rearctan1 and rearctan2 have the same function,
- * they use Maclaurin expansion to get the product of arctan(1/x) and the n-th power of 10
- *
- * rearctan1 uses the overloaded operators, rearctan1 uses the normal APIs
- * operator overloading makes the source code briefer, but the efficiency is slightly lower
- * the two functions are used by PI_example() to compute the circumference ratio PI
- * the example obtaines 100 decimal places of PI, readers can set n to their interested value,
- * and get the result
- */
-void rearctan1(int x, int n, number_t& res)
-{
-    int k = 1;
-    number_t u, v, xx(x * x);
-
-    res = 10;
-    res.pow(n).div(x);
-    u = res;
-
-    do
-    {
-        u /= xx;
-        v = u / (2 * k + 1);
-        v *= ((k & 1) * -1) | 1;
-        res += v;
-        k++;
-    } while (v);
-}
-
-void rearctan2(int x, int n, number_t& res)
-{
-    int k = 1;
-    number_t u, v, xx(x * x);
-
-    res = 10;
-    res.pow(n).div(x);
-    u = res;
-
-    do
-    {
-        u.div(xx);
-        div(u, 2 * k + 1, v);
-        v.set_sign(0 - (k & 1));
-        res.add(v);
-        k++;
-    } while (v);
-}
-
-/*
- *  Use Machin's formula to compute PI
- *  PI = 16 * arctan(1/5) - 4 * arctan(1/239)
- *  The last few decimal places may be wrong, increase n to obtain higher accuracy
- */
-void PI_example()
-{
-    int n = 100;
-    number_t t0, t1;
-
-    rearctan1(5, n, t0);
-    t0 <<= 2;
-    rearctan2(239, n, t1);
-    t0 -= t1;
-    t0 <<= 2;
-
-    // the result
-    assert (t0.to_dec_string() == "31415926535897932384626433832795028841971693993751058209749445923078164062862089986280348253421170712");
-}
-
-/*
- *  This example computes the decimal places of the natural logarithms base E
- *  The last few decimal places may be wrong, increase n to obtain higher accuracy
- */
-void E_example()
-{
-    // unit_t is the basic computing unit type of mynum
-    // on 64bit systems, unit_t is unsigned int
-    // on 32bit systems, unit_t is unsigned short
-    // so the value of the unit_t type variable is between [0, 4294967295] on 64bit systems,
-    // or [0, 65535] on 32bits systems
-    // when the computing relates to small integers which can be hold by unit_t,
-    // unit_t operations will be more efficient
-
-    unit_t n = 100, i = 2;
-    number_t x = 10, e;
-    x.pow(n);
-
-    while (x)
-    {
-        x.div_unit(i++);  // faster than x.div(i++)
-        e.add(x);
-    }
-
-    // the result
-    assert(e.to_string() == "7182818284590452353602874713526624977572470936999595749669676277240766303535475945713821785251664238");
-
-    // other unit_t operations:
-    // add_unit(unit_t x)
-    // sub_unit(unit_t x)
-    // mul_unit(unit_t x)
-    // mod_unit(unit_t x)
-
-    // the macro UNITBITS indcates how many bits are in the unit_t 
-    // use precompiled instructions to determine the range of unit_t variable values
-    //
-    // #if UNITBITS == 16
-    // max 65535
-    // #elif UNITBITS == 32
-    // max 4294967295
-    // #endif
-}
-
-/*
- * compute the common denominator with division algorithm
- */
-void gcd_example()
-{
-    number_t m("3149916521386303663457"), n("97950481"), t;
-
-    while (m % n != 0)
-    {
-        mod(m, n, t);
-        m.steal(n);
-        n.steal(t);
-    }
-    assert(n == 19937);
-}
-
-/*
- * show how to convert a number_t object to string, the base can be specified
- */
-void radix_example()
-{
-    number_t m = (number_t(1) << 107) - 1; // m is a Mersenne prime
-
-    assert(m.to_string(36) == "c4zaoiznmaffyd6jzqygv");                // convert m to base-36 string, a stands for 10, b stands for 12, and so on, z stands for 35
-    assert(m.to_string(19) == "1e26446i4fb4d551a9bi03h3i9");           // convert m to base-19 string
-    assert(m.to_string(16) == "7ffffffffffffffffffffffffff");          // convert m to base-16 string
-    assert(m.to_string(10) == "162259276829213363391578010288127");    // convert m to base-10 string
-    assert(m.to_string(8) == "377777777777777777777777777777777777");  // convert m to base-8 string
-    assert(m.to_string(2) == "11111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111");  // convert m to base-2 string
-
-    // Use follow methods for higher efficiency:
-    // to_bin_string() to get base-2 string
-    // to_oct_string() to get base-8 string
-    // to_dec_string() to get base-10 string
-    // to_hex_string() to get base-16 string
-    // in the above method, the efficiency of to_hex_string() is the highest.
-
-    // Currently, the max base supported is 36, it will be extended in the subsequent version,
-    // you can use max_base() to obtain the max base supported
-    //
-    // NOTICE!! never use m.to_string(0), m.to_string(1) and a base larger than max_base() returned
-    //
-}
-
-/*
- *  for further test
- */
 void test_construct();
+void test_assign();
 void test_string_convertion();
 void test_abs();
 void test_zero();
@@ -257,49 +33,34 @@ void test_property();
 void test_swap();
 void test_operators();
 void test_string();
+void test_add_samll();
+void test_mul_samll();
+void test_div_samll();
+void test_mod_samll();
 
 void test_detail()
 {
     srand((unsigned int)time(NULL));
 
     test_construct();
+    test_assign();
     test_string_convertion();
 
     test_abs();
     test_zero();
     test_cmp();
-    test_mul();
-    test_sqr();
-    test_sqrt();
-
-    test_kmul();
-    test_add();
-    test_sub();
-
-    test_div();
-    test_and();
-    test_or();
-    test_xor();
-    test_not();
-    test_shl();
-    test_shr();
-    test_pow();
-    test_pom();
-    test_bits();
     test_property();
     test_swap();
-    test_operators();
     test_string();
+
+    test_add_samll();
+    test_mul_samll();
+    test_div_samll();
+    test_mod_samll();
 }
 
 int main(int argc, char* argv[])
 {
-    basic_examples();
-    PI_example();
-    E_example();
-    radix_example();
-    gcd_example();
-
     if (argc > 1)
     {
         int times = atoi(argv[1]);
@@ -347,12 +108,12 @@ void test_construct()
         assert(eq(b, i));
         assert(eq(l, m));
         assert(eq(b, m));
-        a = b; assert (eq(a, b));
-        c = e; assert (eq(c, e));
-        e = f; assert (eq(e, f));
+        a = b; assert(eq(a, b));
+        c = e; assert(eq(c, e));
+        e = f; assert(eq(e, f));
     }
     {
-        NN a("123456789123456789123456789");
+        NN a("+123456789123456789123456789");
         NN b(123456789);
         NN c((long)12);
         NN d((long long)12);
@@ -373,41 +134,24 @@ void test_construct()
         assert(eq(c, d));
     }
     {
-        NN a("", 16);
-        NN b(NULL, 16);
-        NN c("");
-        NN d(NULL);
-        assert(a.is_zero());
-        assert(b.is_zero());
-        assert(c.is_zero());
-        assert(d.is_zero());
-
-        NN e("0", 16);
-        NN f("0000", 16);
-        NN g("00000", 16);
-        NN h("00000000", 16);
-        assert(e.is_zero());
-        assert(f.is_zero());
-        assert(g.is_zero());
-        assert(h.is_zero());
+        NN a("", 16);         assert(a.is_zero());
+        NN b(NULL, 16);       assert(b.is_zero());
+        NN c("");             assert(c.is_zero());
+        NN d(NULL);           assert(d.is_zero());
+        NN e("0", 16);        assert(e.is_zero());
+        NN f("0000", 16);     assert(f.is_zero());
+        NN g("00000", 16);    assert(g.is_zero());
+        NN h("00000000", 16); assert(h.is_zero());
     }
     {
-        NN a("a", 16);
-        NN b("ab", 16);
-        NN c("abc", 16);
-        NN d("abcd", 16);
-        NN e("abcde", 16);
-        NN f("abcdef", 16);
-        NN g("abcdef1", 16);
-        NN h("abcdef12", 16);
-        assert(eq(a, 0xa));
-        assert(eq(b, 0xab));
-        assert(eq(c, 0xabc));
-        assert(eq(d, 0xabcd));
-        assert(eq(e, 0xabcde));
-        assert(eq(f, 0xabcdef));
-        assert(eq(g, 0xabcdef1));
-        assert(eq(h, 0xabcdef12));
+        NN a("a", 16);         assert(eq(a, 0xa));
+        NN b("ab", 16);        assert(eq(b, 0xab));
+        NN c("abc", 16);       assert(eq(c, 0xabc));
+        NN d("abcd", 16);      assert(eq(d, 0xabcd));
+        NN e("abcde", 16);     assert(eq(e, 0xabcde));
+        NN f("abcdef", 16);    assert(eq(f, 0xabcdef));
+        NN g("abcdef1", 16);   assert(eq(g, 0xabcdef1));
+        NN h("abcdef12", 16);  assert(eq(h, 0xabcdef12));
     }
     {
         NN a("0", 2), b("1", 2), c("11", 2), d("111", 2);
@@ -438,28 +182,17 @@ void test_construct()
         assert(eq(a, b));
     }
     {
-        NN a("1234567890");
-        a.~number_t();      // 显式调用析构函数
-        assert(a.is_zero());
-        NN b;
-        b.~number_t();
-        assert(b.is_zero());
+        NN a("1234567890"); a.~number_t(); assert(a.is_zero());
+        NN b; b.~number_t(); assert(b.is_zero());
     }
     {
-        NN a("2132314432123432323234", 5);
-        NN b("2132314432123432323234", 6);
-        NN c("2132314432123432323234", 7);
-        NN d("2132314432123432323234", 9);
-        NN e("2132314432123432323234", 32);
-        NN f("2132314432123432323234", 33);
-        NN g("2132314432123432323234", 36);
-        assert(eq(a, "1116483718636069"));
-        assert(eq(b, "49617098196310822"));
-        assert(eq(c, "1235090655865747923"));
-        assert(eq(d, "235401196012841910865"));
-        assert(eq(e, "82518724560440499616058857064548"));
-        assert(eq(f, "157381945262979943192432190607001"));
-        assert(eq(g, "976962556466868338958243803839312"));
+        NN a("2132314432123432323234", 5);  assert(eq(a, "1116483718636069"));
+        NN b("2132314432123432323234", 6);  assert(eq(b, "49617098196310822"));
+        NN c("2132314432123432323234", 7);  assert(eq(c, "1235090655865747923"));
+        NN d("2132314432123432323234", 9);  assert(eq(d, "235401196012841910865"));
+        NN e("2132314432123432323234", 32); assert(eq(e, "82518724560440499616058857064548"));
+        NN f("2132314432123432323234", 33); assert(eq(f, "157381945262979943192432190607001"));
+        NN g("2132314432123432323234", 36); assert(eq(g, "976962556466868338958243803839312"));
         NN h("xxxxxxxx4j6473829202108172636454fgh64i74373823893293094058574c65251a4153648596069587473463535465757", 34);
         assert(eq(h, "41344028102870176563305997529441614984333017185992689784270345138316739022495793606262711909389364726981774832025688250243376430885399855868948295890581"));
         NN i("xxxxxxxx4j6473829202108172636454fgh64i74373823893293094058574c65251a4153648596069587473463535465757", 35);
@@ -476,6 +209,76 @@ void test_construct()
     }
 }
 
+void test_assign()
+{
+    {
+        NN a;
+        a.bits_reserve(1000);
+#if UNITBITS == 16
+        assert(a.cap == 64);
+#elif UNITBITS == 32
+        assert(a.cap == 32);
+#endif
+        a = char(123); assert(a.to_string() == "123");
+        a = short(123); assert(a.to_string() == "123");
+        a = int(123); assert(a.to_string() == "123");
+        a = long(123); assert(a.to_string() == "123");
+        a = (long long)(123); assert(a.to_string() == "123");
+        a = short(-123); assert(a.to_string() == "-123");
+        a = int(-123); assert(a.to_string() == "-123");
+        a = long(-123); assert(a.to_string() == "-123");
+        a = (long long)(-123); assert(a.to_string() == "-123");
+        a = (unsigned short)(123); assert(a.to_string() == "123");
+        a = (unsigned int)(123); assert(a.to_string() == "123");
+        a = (unsigned long)(123); assert(a.to_string() == "123");
+        a = (unsigned long long)(123); assert(a.to_string() == "123");
+    }
+    {
+        NN a;
+        assert(a.is_zero());
+        a = char(123); assert(a.to_string() == "123");
+        a = short(123); assert(a.to_string() == "123");
+        a = int(123); assert(a.to_string() == "123");
+        a = long(123); assert(a.to_string() == "123");
+        a = (long long)(123); assert(a.to_string() == "123");
+        a = short(-123); assert(a.to_string() == "-123");
+        a = int(-123); assert(a.to_string() == "-123");
+        a = long(-123); assert(a.to_string() == "-123");
+        a = (long long)(-123); assert(a.to_string() == "-123");
+        a = (unsigned char)(123); assert(a.to_string() == "123");
+        a = (unsigned short)(123); assert(a.to_string() == "123");
+        a = (unsigned int)(123); assert(a.to_string() == "123");
+        a = (unsigned long)(123); assert(a.to_string() == "123");
+        a = (unsigned long long)(123); assert(a.to_string() == "123");
+    }
+    {
+        NN a; a = 0xabcdffffffffabcdULL; assert(a.to_string(16) == "abcdffffffffabcd");
+        NN b; b = 0xabcdffffU; assert(b.to_string(16) == "abcdffff");
+        NN c; c = (unsigned short)(0xabcd); assert(c.to_string(16) == "abcd");
+    }
+    {
+        NN a("12345678901234567890");
+        a.bits_reserve(1000);
+        assert(a.to_string() == "12345678901234567890");
+#if UNITBITS == 16
+        assert(a.cap == 64);
+#elif UNITBITS == 32
+        assert(a.cap == 32);
+#endif
+    }
+    {
+        NN a(123), b(456), c, d(111), e;
+        a.assign("11111111111010101101010", 2);  assert(a.to_string(2) == "11111111111010101101010");
+        b.assign("12312343453465651556567", 8);  assert(b.to_string(8) == "12312343453465651556567");
+        c.assign("23546252353252352353325", 10); assert(c.to_string(10) == "23546252353252352353325");
+        d.assign("bdeeee454563aaa43534562", 16); assert(d.to_string(16) == "bdeeee454563aaa43534562");
+        e.assign("23412412412421421412421", 17); assert(e.to_string(17) == "23412412412421421412421");
+        a.assign("bdeeee454563aaa43534562", 20); assert(a.to_string(20) == "bdeeee454563aaa43534562");
+        a.assign("bdeeee454563aaa43534562", 21); assert(a.to_string(21) == "bdeeee454563aaa43534562");
+        a.assign("bdeeee454563aaa43534562", 22); assert(a.to_string(22) == "bdeeee454563aaa43534562");
+    }
+}
+
 void test_abs()
 {
     {
@@ -484,6 +287,17 @@ void test_abs()
         assert(eq(res, 0));
         res = abs(a);
         assert(eq(res, 0));
+        set_abs(a);
+        assert(a.is_zero());
+    }
+    {
+        NN a(-3), res;
+        abs(a, res);
+        assert(eq(res, 3));
+        res = abs(a);
+        assert(eq(res, 3));
+        set_abs(a);
+        assert(eq(a, 3));
     }
     {
         NN a("77777777777777777777", 8);
@@ -500,6 +314,24 @@ void test_abs()
         res = abs(b);
         assert(cmp(res, a) == 0);
     }
+    {
+        NN a("-1234567890000000000000");
+        NN b = a.abs();
+        assert(cmp(a, NN("-1234567890000000000000")) == 0);
+        assert(cmp(b, NN("1234567890000000000000")) == 0);
+        abs(a, a);
+        assert(cmp(a, NN("1234567890000000000000")) == 0);
+    }
+    {
+        NN a("-1234567890000000000000");
+        a.set_abs();
+        assert(cmp(a, NN("1234567890000000000000")) == 0);
+    }
+    {
+        NN a("-1234567890000000000000");
+        set_abs(a);
+        assert(cmp(a, NN("1234567890000000000000")) == 0);
+    }
 }
 
 void test_neg()
@@ -512,6 +344,13 @@ void test_neg()
         assert(eq(neg(c), "3142341241234123412412"));
         neg(c, res);
         assert(eq(res, "-3142341241234123412412"));
+    }
+    {
+        NN a, b(-3), c("3142341241234123412412"), res;
+        assert(eq(set_neg(a), 0));
+        assert(eq(set_neg(b), 3));
+        set_neg(c);
+        assert(eq(c, "-3142341241234123412412"));
     }
 }
 
@@ -678,14 +517,6 @@ void test_string_convertion()
         {
             assert(b.to_string(i) == "0"); 
         }
-    }
-    {
-        NN a,b,c,d,e;
-        a.assign((int)123); b.assign((short)-7); c.assign((char)-120); d.assign((long)780000); e.assign((long long)3);
-        assert(a - b - c - d - e == -779753);
-        assert(a / b / c * d * e == 0);
-        NN f(a / b / c * d * e == 0);
-        assert(f.is_one());
     }
 }
 
@@ -1887,6 +1718,54 @@ void test_string()
     assert(a.valid());
     assert(d.valid());
     assert(!c.valid());
+}
+
+void test_add_samll()
+{
+    {
+        NN a;
+        for (unit_t i = 0; i < 1000; i++)
+        {
+            a.add_unit(i);
+        }
+        NN b;
+        b.bits_reserve(1000);
+        for (unit_t i = 0; i < 1000; i++)
+        {
+            b.add_unit(i);
+        }
+        assert(a == b);
+        assert(a == 499500);
+    }
+}
+
+void test_mul_samll()
+{
+    {
+        NN a;
+        a.set_one();
+        for (unit_t i = 1; i < 32; i++)
+        {
+            a.mul_unit(i);
+        }
+        NN b(1);
+        b.bits_reserve(1000);
+        for (unit_t i = 1; i < 32; i++)
+        {
+            b.mul_unit(i);
+        }
+        assert(a == b);
+        assert(b == NN("8222838654177922817725562880000000"));
+    }
+}
+
+void test_div_samll()
+{
+}
+
+void test_mod_samll()
+{
+
 }
 
 bool chance(int n)

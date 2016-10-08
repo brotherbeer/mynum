@@ -26,9 +26,10 @@ typedef long long slen_t;
 struct _base_number_t
 {
     unit_t* dat;
-    slen_t  len;
+    slen_t len;
+    slen_t cap;
 
-    _base_number_t(): dat(NULL), len(0)
+    _base_number_t(): dat(NULL), len(0), cap(0)
     {}
 };
 
@@ -114,7 +115,10 @@ struct number_t: public _base_number_t
     number_t& mod_unit(unit_t);
 
     int bit_at(size_t) const;
+    void bit_set_one(size_t);
+    void bit_set_zero(size_t);
     size_t bits_count() const;
+    void bits_reserve(size_t);
 
     number_t& operator = (const number_t&);
     number_t& operator = (short);
@@ -159,7 +163,6 @@ struct number_t: public _base_number_t
     slen_t __vbits_count() const;
 
     void __copy(const number_t&);
-    int __bit_at(size_t x) const;
 
     template <class T> void __uassign(T x)
     {
@@ -171,13 +174,21 @@ struct number_t: public _base_number_t
 
     template <class T> void __assign(T x)
     {
-        slen_t sign = x > 0? 1: -1;
-        x = x > 0? x: -x;
+        slen_t sign;
+        if (x > 0)
+        {
+            sign = 1;
+        }
+        else
+        {
+            sign = -1;
+            x = -x;
+        }
         __reserve((len = (sizeof(T) + sizeof(unit_t) - 1) / sizeof(unit_t)));
         *dat = 0;
         *(T*)dat = x;
-        __trim();
         len *= sign;
+        __trim();
     }
 
     void __construct_from_bin_string(const char*s, slen_t l);

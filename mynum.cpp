@@ -102,7 +102,7 @@ struct _radix_t
 
 static __always_inline(unit_t*) __allocate_units(slen_t s)
 {
-    return (unit_t*)mem::allocate(s, sizeof(unit_t));
+    return (unit_t*)mem::allocate(s + (s & 1), sizeof(unit_t));
 }
 
 static __always_inline(void) __deallocate_units(unit_t* p)
@@ -166,6 +166,20 @@ static __always_inline(dunit_t) __make_dunit(dunit_t high, unit_t low)
         len = slen_t((p - e) * __sign(len)); \
     } while (0)
 
+#define __trim_packing_zeros(dat, len) do\
+    {\
+        slen_t l = __abs(len); \
+        if (l & 1) dat[l] = 0; \
+    } while (0)
+
+#define __trim_leading_and_packing(dat, len) do\
+    {\
+        unit_t *e = dat - 1, *p = e + __abs(len); \
+        while (p != e && !*p) {p--;} \
+        if ((p - e) & 1) *(p + 1) = 0; \
+        len = slen_t((p - e) * __sign(len)); \
+    } while (0)
+
 number_t::number_t(const char* s)
 {
     if (s)
@@ -174,7 +188,7 @@ number_t::number_t(const char* s)
         if (l > 0)
         {
             __construct_from_xbase_string(s, l, 10, LN_10, INNERDEC_BASE, INNERDEC_BASE_DIGITS);
-            __trim_leading_zeros(dat, len);
+            __trim_leading_and_packing(dat, len);
         }
     }
 }
@@ -187,7 +201,7 @@ number_t::number_t(const char* s, int base)
         if (l > 0)
         {
             __construct_from_string(s, l, base);
-            __trim_leading_zeros(dat, len);
+            __trim_leading_and_packing(dat, len);
         }
     }
 }
@@ -197,7 +211,7 @@ number_t::number_t(const char* s, size_t l, int base)
     if (s && slen_t(l) > 0 && base <= __max_base())
     {
         __construct_from_string(s, l, base);
-        __trim_leading_zeros(dat, len);
+        __trim_leading_and_packing(dat, len);
     }
 }
 
@@ -206,24 +220,110 @@ number_t::number_t(const number_t& another)
     __copy(another);
 }
 
-number_t& number_t::assign(const number_t& x)     { copy(x); return *this; }
-number_t& number_t::assign(int x)                 { __release(); __assign(x); return *this;  }
-number_t& number_t::assign(long x)                { __release(); __assign(x); return *this;  }
-number_t& number_t::assign(long long x)           { __release(); __assign(x); return *this;  }
-number_t& number_t::assign(unsigned int x)        { __release(); __uassign(x); return *this; }
-number_t& number_t::assign(unsigned long x)       { __release(); __uassign(x); return *this; }
-number_t& number_t::assign(unsigned long long x)  { __release(); __uassign(x); return *this; }
+number_t& number_t::assign(const number_t& x)
+{
+    copy(x);
+    return *this;
+}
+
+number_t& number_t::assign(int x)
+{
+    len = sizeof(int) / sizeof(unit_t);
+    if (cap < len)
+    {
+        __deallocate_units(dat);
+        __reserve(len);
+    }
+    *(int*)dat = __abs(x);
+    len *= __sign(x);
+    __trim_leading_and_packing(dat, len);
+    return *this;
+}
+
+number_t& number_t::assign(long x)
+{ 
+    len = sizeof(long) / sizeof(unit_t);
+    if (cap < len)
+    {
+        __deallocate_units(dat);
+        __reserve(len);
+    }
+    *(long*)dat = __abs(x);
+    len *= __sign(x);
+    __trim_leading_and_packing(dat, len);
+    return *this;
+}
+
+number_t& number_t::assign(long long x)
+{ 
+    len = sizeof(long long) / sizeof(unit_t);
+    if (cap < len)
+    {
+        __deallocate_units(dat);
+        __reserve(len);
+    }
+    if (x > 0)
+    {
+        *(long long*)dat = x;
+    }
+    else
+    {
+        *(long long*)dat = -x;
+        len *= -1;
+    }
+    __trim_leading_and_packing(dat, len);
+    return *this;
+}
+
+number_t& number_t::assign(unsigned int x)
+{ 
+    len = sizeof(unsigned int) / sizeof(unit_t);
+    if (cap < len)
+    {
+        __deallocate_units(dat);
+        __reserve(len);
+    }
+    *(unsigned int*)dat = x;
+    __trim_leading_and_packing(dat, len);
+    return *this;
+}
+
+number_t& number_t::assign(unsigned long x)
+{ 
+    len = sizeof(unsigned long) / sizeof(unit_t);
+    if (cap < len)
+    {
+        __deallocate_units(dat);
+        __reserve(len);
+    }
+    *(unsigned long*)dat = x;
+    __trim_leading_and_packing(dat, len);
+    return *this;
+}
+
+number_t& number_t::assign(unsigned long long x)
+{ 
+    len = sizeof(unsigned long long) / sizeof(unit_t);
+    if (cap < len)
+    {
+        __deallocate_units(dat);
+        __reserve(len);
+    }
+    *(unsigned long long*)dat = x;
+    __trim_leading_and_packing(dat, len);
+    return *this;
+}
 
 number_t& number_t::assign(const char* s, int base)
 {
-    __release();
+    len = 0;
     if (s && base <= __max_base())
     {
         slen_t l = (slen_t)strlen(s);
         if (l > 0)
         {
             __construct_from_string(s, l, base);
-            __trim_leading_zeros(dat, len);
+            __trim_leading_and_packing(dat, len);
         }
     }
     return *this;
@@ -231,11 +331,11 @@ number_t& number_t::assign(const char* s, int base)
 
 number_t& number_t::assign(const char* s, size_t l, int base)
 {
-    __release();
+    len = 0;
     if (s && slen_t(l) > 0 && base <= __max_base())
     {
         __construct_from_string(s, l, base);
-        __trim_leading_zeros(dat, len);
+        __trim_leading_and_packing(dat, len);
     }
     return *this;
 }
@@ -243,6 +343,24 @@ number_t& number_t::assign(const char* s, size_t l, int base)
 number_t::~number_t()
 {
     __release();
+}
+
+void number_t::bits_reserve(size_t n)
+{
+    slen_t newcap = (n + (sizeof(unit_t) * 8) - 1) / (sizeof(unit_t) * 8);
+    if (newcap > cap)
+    {
+        newcap += newcap & 1;
+        unit_t* tmp = __allocate_units(newcap);
+        slen_t l = __abs(len);
+        slen_t s = __sign(len);
+        __copy_units(tmp, dat, l);
+        __deallocate_units(dat);
+        dat = tmp;
+        len = l * s;
+        cap = newcap;
+        __trim_packing_zeros(dat, len);
+    }
 }
 
 string_t number_t::to_bin_string() const
@@ -460,8 +578,10 @@ number_t& number_t::add_unit(unit_t x)
     }
     else if (len == 0)
     {
-        __release();
-        __reserve(1);
+        if (!cap)
+        {
+            __reserve(1);
+        }
         *dat = x;
         len = 1;
     }
@@ -469,6 +589,7 @@ number_t& number_t::add_unit(unit_t x)
     {
         len = 0 - __abs_sub_unit(x);
     }
+    __trim();
     return *this;
 }
 
@@ -480,8 +601,10 @@ number_t& number_t::sub_unit(unit_t x)
     }
     else if (len == 0)
     {
-        __release();
-        __reserve(1);
+        if (!cap)
+        {
+            __reserve(1);
+        }
         *dat = x;
         len = -1;
     }
@@ -489,6 +612,7 @@ number_t& number_t::sub_unit(unit_t x)
     {
         len = 0 - __abs_add_unit(x);
     }
+    __trim();
     return *this;
 }
 
@@ -509,13 +633,23 @@ number_t& number_t::mul_unit(unit_t x)
         }
         if (carry)
         {
-            unit_t* tmp = __allocate_units(l + 1);
-            __copy_units(tmp, dat, l);
-            tmp[l++] = carry & MASK;
-            __deallocate_units(dat);
-            dat = tmp;
+            if (cap > l)
+            {
+                *e = carry & MASK;
+            }
+            else
+            {
+                cap = l << 1;
+                unit_t* tmp = __allocate_units(cap);
+                __copy_units(tmp, dat, l);
+                tmp[l] = carry & MASK;
+                __deallocate_units(dat);
+                dat = tmp;
+            }
+            l++;
         }
         len = l * __sign(len);
+        __trim();
     }
     return *this;
 }
@@ -560,13 +694,26 @@ number_t& number_t::mod_unit(unit_t x)
         {
             set_zero();
         }
+        __trim();
     }
     return *this;
 }
 
 int number_t::bit_at(size_t x) const
 {
-    return len? __bit_at(x): 0;
+    if (len && slen_t(x / SHIFT) < len)
+    {
+        return dat[x / SHIFT] & ((unit_t)1 << x % SHIFT);
+    }
+    return 0;
+}
+
+void bit_set_one(size_t x)
+{
+}
+
+void bit_set_zero(size_t x)
+{
 }
 
 size_t number_t::bits_count() const
@@ -593,7 +740,6 @@ void number_t::copy(const number_t& another)
 {
     if (this != &another)
     {
-        __release();
         __copy(another);
     }
 }
@@ -602,25 +748,33 @@ void number_t::steal(number_t& other)
 {
     if (is_not(other))
     {
-        __release();
+        __deallocate_units(dat);
         dat = other.dat;
         len = other.len;
+        cap = other.cap;
         other.dat = NULL;
         other.len = 0;
+        other.cap = 0;
     }
 }
 
 void number_t::set_zero()
 {
-    __release();
+    len = 0;
 }
 
 void number_t::set_one()
 {
-    __release();
-    __reserve(1);
-    *dat = 1;
-    len = 1;
+    if (cap)
+    {
+        *dat = 1;
+        len = 1;
+        __trim_packing_zeros(dat, len);
+    }
+    else
+    {
+        __uassign((unsigned int)1);
+    }
 }
 
 number_t& number_t::operator = (const number_t& x)    { return assign(x); }
@@ -665,12 +819,12 @@ number_t& number_t::operator -- ()
 
 number_t& number_t::operator ++ (int)
 {
-    return this->add_unit(1);
+    return this->add(unit_t(1));
 }
 
 number_t& number_t::operator -- (int)
 {
-    return this->sub_unit(1);
+    return this->sub(unit_t(1));
 }
 
 number_t& number_t::operator += (const number_t& x)
@@ -736,26 +890,26 @@ bool number_t::operator ! () const
 void number_t::__copy(const number_t& another)
 {
     slen_t l = __abs(another.len);
-    dat = __allocate_units(l);
-    memcpy(dat, another.dat, l * sizeof(unit_t));
-    len = another.len;
+    if (l)
+    {
+        if (l > cap)   // release
+        {
+            __reserve(l);
+        }
+        memcpy(dat, another.dat, l * sizeof(unit_t));
+        len = another.len;
+        __trim_packing_zeros(dat, len);
+    }
+    else
+    {
+        set_zero();
+    }
 }
 
 void number_t::__reserve(slen_t units)
 {
-    dat = __allocate_units(units);
-}
-
-slen_t number_t::__bits_reserve(slen_t n)
-{
-    slen_t units = (n + SHIFT - 1) / SHIFT;
-    __reserve(units);
-    return units;
-}
-
-int number_t::__bit_at(size_t x) const
-{
-    return dat[x / SHIFT] & ((unit_t)1 << x % SHIFT);
+    cap = units + (units & 1);
+    dat = (unit_t*)mem::allocate(cap, sizeof(unit_t));
 }
 
 slen_t number_t::__vbits_count() const
@@ -768,6 +922,7 @@ void number_t::__release()
     __deallocate_units(dat);
     dat = NULL;
     len = 0;
+    cap = 0;
 }
 
 /**
@@ -838,11 +993,20 @@ slen_t number_t::__abs_add_unit(unit_t x)
     }
     if (carry)
     {
-        unit_t* tmp = __allocate_units(l + 1);
-        __copy_units(tmp, dat, l);
-        tmp[l++] = carry & MASK;
-        __deallocate_units(dat);
-        dat = tmp;
+        if (cap > l)
+        {
+            *e = carry & MASK;
+        }
+        else
+        {
+            cap = l << 1;
+            unit_t* tmp = __allocate_units(cap);
+            __copy_units(tmp, dat, l);
+            tmp[l] = carry & MASK;
+            __deallocate_units(dat);
+            dat = tmp;
+        }
+        l++;
     }
     return l;
 }
@@ -889,7 +1053,7 @@ static __always_inline(unit_t) __strbin_to_unit(const char* p, int l)
 
 void number_t::__construct_from_bin_string(const char* s, slen_t l)
 {
-    assert(len == 0 && dat == NULL);
+    assert(len == 0);
 
     int sign = 1;
     if (*s == '-' || *s == '+')
@@ -901,7 +1065,13 @@ void number_t::__construct_from_bin_string(const char* s, slen_t l)
 
     const char *p0 = s + l - UNITBITS;
     const char *p1 = s + l % UNITBITS;
-    __reserve((l + UNITBITS - 1) / UNITBITS);
+
+    slen_t n = (l + UNITBITS - 1) / UNITBITS;
+    if (n > cap)
+    {
+        __deallocate_units(dat);
+        __reserve(n);
+    }
     for (; p0 >= p1; p0 -= UNITBITS)
     {
         dat[len++] = __strbin_to_unit(p0, UNITBITS);
@@ -926,7 +1096,7 @@ static __always_inline(unit_t) __strhex_to_unit(const char* p, int l)
 
 void number_t::__construct_from_hex_string(const char* s, slen_t l)
 {
-    assert(len == 0 && dat == NULL);
+    assert(len == 0);
 
     int sign = 1;
     if (*s == '-' || *s == '+')
@@ -940,7 +1110,12 @@ void number_t::__construct_from_hex_string(const char* s, slen_t l)
     const char *p0 = s + l - k;
     const char *p1 = s + l % k;
 
-    __reserve(l + k - 1 / k);
+    slen_t n = l + k - 1 / k;
+    if (n > cap)
+    {
+        __deallocate_units(dat);
+        __reserve(l + k - 1 / k);
+    }
     for (; p0 >= p1; p0 -= k)
     {
         dat[len++] = __strhex_to_unit(p0, k);
@@ -965,12 +1140,17 @@ static __always_inline(unit_t) __str_to_unit(const char* p, int base, int l)
 
 void number_t::__construct_from_xbase_string(const char* s, slen_t l, unit_t base, float ln_base, unit_t inner_base, unit_t inner_base_digits)
 {
-    assert(len == 0 && dat == NULL && l >= 0 && base <= __max_base());
+    assert(len == 0 && l >= 0 && base <= __max_base());
 
     unit_t u;
     int i = 0, sign = 1, d;
-    __reserve(int(ln_base * l / LN_BASE + 1));
 
+    slen_t n = slen_t(ln_base * l / LN_BASE + 1);
+    if (n > cap)
+    {
+        __deallocate_units(dat);
+        __reserve(n);
+    }
     if (*s == '-' || *s == '+')
     {
         sign = *s == '-'? -1: 1;
@@ -998,7 +1178,7 @@ void number_t::__construct_from_xbase_string(const char* s, slen_t l, unit_t bas
 
 void number_t::__construct_from_string(const char* s, slen_t l, int base)
 {
-    assert(len == 0 && dat == NULL && l >= 0 && base <= __max_base());
+    assert(len == 0 && l >= 0 && base <= __max_base());
 
     switch (base)
     {
@@ -1209,7 +1389,7 @@ string_t& number_t::__to_xbase_string(string_t& res, unit_t base, unit_t inner_b
 
 void number_t::__trim()
 {
-    __trim_leading_zeros(dat, len);
+    __trim_leading_and_packing(dat, len);
 }
 
 number_t& set_abs(number_t& a)                          { a.len = __abs(a.len); return a; }
@@ -1987,42 +2167,10 @@ void swap(number_t& a, number_t& b)
 
 void bits_reserve_1(number_t& a, int n)
 {
-    if (n)
-    {
-        a.__release();
-        a.len = a.__bits_reserve(n);
-        slen_t extra = a.len * SHIFT - n;
-        const unit_t max_shift = unit_t(1) << (SHIFT - 1);
-        __set_units_zero(a.dat, a.len);
-        a.dat[a.len - 1] = max_shift >> extra;
-    }
-    else
-    {
-        a.set_zero();
-    }
 }
 
 void bits_reserve_max(number_t& a, int n)
 {
-    if (n)
-    {
-        a.__release();
-        a.len = a.__bits_reserve(n);
-        slen_t extra = a.len * SHIFT - n;
-        unit_t* p = a.dat;
-        unit_t* e = a.dat + a.len - 1;
-        while (p != e)
-        {
-            *p++ = MASK;
-        }
-        *p = MASK;
-        *p <<= extra;
-        *p >>= extra;
-    }
-    else
-    {
-        a.set_zero();
-    }
 }
 
 bool is_power2(const number_t& a)
@@ -2344,7 +2492,8 @@ void __guess_sqrt(const number_t& a, number_t& res)
     slen_t n = a.__vbits_count();
     n = n & 1? (n + 1) >> 1 : n >> 1;
     res.__release();
-    res.len = res.__bits_reserve(n);
+    res.len = (n + SHIFT - 1) / SHIFT;
+    res.__reserve(res.len);
     __set_units_zero(res.dat, res.len);
 
     dunit_t h;

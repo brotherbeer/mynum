@@ -34,6 +34,7 @@ void test_swap();
 void test_operators();
 void test_string();
 void test_add_samll();
+void test_sub_samll();
 void test_mul_samll();
 void test_div_samll();
 void test_mod_samll();
@@ -54,6 +55,7 @@ void test_detail()
     test_string();
 
     test_add_samll();
+    test_sub_samll();
     test_mul_samll();
     test_div_samll();
     test_mod_samll();
@@ -1743,6 +1745,17 @@ void test_add_samll()
         }
         assert(a == b);
         assert(a == 499500);
+    }
+}
+
+void test_sub_samll()
+{
+    {
+        NN a("1234567890"), b("-1234567890"), c, d(-1234);
+        a.sub_unit(1234); assert(a == 1234566656);
+        b.sub_unit(1234); assert(b == -1234569124);
+        c.sub_unit(1234); assert(c == -1234);
+        d.sub_unit(1234); assert(d == -2468);
     }
 }
 

@@ -1723,6 +1723,13 @@ void test_string()
 void test_add_samll()
 {
     {
+        NN a("1234567890"), b("-1234567890"), c, d(-1234);
+        a.add_unit(1234); assert(a == 1234569124ULL);
+        b.add_unit(1234); assert(b == -1234566656LL);
+        c.add_unit(1234); assert(c == 1234);
+        d.add_unit(1234); assert(d == 0);
+    }
+    {
         NN a;
         for (unit_t i = 0; i < 1000; i++)
         {
@@ -1741,6 +1748,13 @@ void test_add_samll()
 
 void test_mul_samll()
 {
+    {
+        NN a("1234567890"), b("-1234567890"), c, d(-1234);
+        a.mul_unit(1234); assert(a == NN("1523456776260"));
+        b.mul_unit(1234); assert(b == NN("-1523456776260"));
+        c.mul_unit(1234); assert(c == 0);
+        d.mul_unit(1234); assert(d == -1522756);
+    }
     {
         NN a;
         a.set_one();
@@ -1761,11 +1775,17 @@ void test_mul_samll()
 
 void test_div_samll()
 {
+    NN a("94837582435723485723049587239057");
+    assert(a.div_unit(1234) == NN("76853794518414494102957526125"));
+    assert(a.div_unit(1234) == NN("62280222462248374475654397"));
+    assert(a.div_unit(1234) == NN("50470196484804193254176"));
+    assert(a.div_unit(1234) == NN("40899673002272441859"));
 }
 
 void test_mod_samll()
 {
-
+    NN a("94837582435723485723049587239057");
+    assert(a.mod_unit(1234) == 807);
 }
 
 bool chance(int n)

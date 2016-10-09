@@ -235,8 +235,6 @@ void bit_xor(const number_t& a, const number_t& b, number_t& res);
 void bit_not(const number_t& a, number_t& res);
 
 void swap(number_t& a, number_t& b);
-void bits_reserve_1(number_t& a, int n);
-void bits_reserve_max(number_t& a, int n);
 
 bool is_power2(const number_t& a);
 bool is_odd(const number_t& a);

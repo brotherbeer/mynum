@@ -707,19 +707,46 @@ number_t& number_t::mod_unit(unit_t x)
 
 int number_t::bit_at(size_t x) const
 {
-    if (len && slen_t(x / SHIFT) < len)
+    if (slen_t(x / SHIFT) < len)
     {
         return dat[x / SHIFT] & ((unit_t)1 << x % SHIFT);
     }
     return 0;
 }
 
-void bit_set_one(size_t x)
+void number_t::bit_set_one(size_t x)
 {
+    slen_t u = slen_t(x / SHIFT);
+    if (u < len)
+    {
+        dat[u] |= (unit_t)1 << x % SHIFT;
+    }
+    else
+    {
+        if (u >= cap)
+        {
+            slen_t newcap;
+            unit_t* tmp = __allocate_units(u + 1, &newcap);
+            __copy_units(tmp, dat, len);
+            __deallocate_units(dat);
+            dat = tmp;
+            cap = newcap;
+        }
+        dat[u] = (unit_t)1 << x % SHIFT;
+        __set_units_zero(dat + len, u - len);
+        len = u + 1;
+    }
+    __trim();
 }
 
-void bit_set_zero(size_t x)
+void number_t::bit_set_zero(size_t x)
 {
+    slen_t u = slen_t(x / SHIFT);
+    if (len && u < len)
+    {
+        dat[u] &= ~((unit_t)1 << x % SHIFT);
+    }
+    __trim();
 }
 
 size_t number_t::bits_count() const
@@ -1787,22 +1814,151 @@ void mul(const number_t& a, const number_t& b, number_t& res)
 {
     __mul(a.dat, __abs(a.len), b.dat, __abs(b.len), res);
     res.len *= __sign(a.len, b.len);
+    __trim_packing_zeros(res.dat, res.len);
 }
 
-void kmul(const number_t& a, const number_t& b, number_t& res)
+void kmul(const number_t& u, const number_t& v, number_t& res)
 {
-    __kmul(a.dat, __abs(a.len), b.dat, __abs(b.len), res);
-    res.len *= __sign(a.len, b.len);
+    slen_t n, lx, ly, la, lb, lc, ld, newcap;
+    const unit_t *a, *b, *c, *d, *x, *y;
+
+    x = u.dat;
+    y = v.dat;
+    lx = __abs(u.len);
+    ly = __abs(v.len);
+
+    if (lx <= KMUL_THRESHOLD || ly <= KMUL_THRESHOLD)
+    {
+        mul(u, v, res);
+        return;
+    }
+
+    n = lx >= ly? lx >> 1: ly >> 1;
+    b = x;
+    d = y;
+    a = x + n;
+    c = y + n;
+    lb = n < lx? n: lx;
+    ld = n < ly? n: ly;
+    la = lx - n > 0? lx - n: 0;
+    lc = ly - n > 0? ly - n: 0;
+
+    __trim_leading_zeros(a, la);
+    __trim_leading_zeros(b, lb);
+    __trim_leading_zeros(c, lc);
+    __trim_leading_zeros(d, ld);
+
+    number_t ac, bd, a_bd_c;
+    
+    __kmul(a, la, c, lc, ac);
+    __kmul(b, lb, d, ld, bd);
+
+    unit_t* tmp;
+    if (res.cap < lx + ly + 1 || res.dat == x || res.dat == y)
+    {
+        tmp = __allocate_units(lx + ly + 1, &newcap);
+    }
+    else
+    {
+        tmp = res.dat;
+    }
+
+    slen_t s0, l0 = 0, s1, l1 = 0;
+    if ((s0 = __cmp_core(a, la, b, lb)) > 0)
+    {
+        l0 = __sub_core(a, la, b, lb, tmp);
+    }
+    else if (s0 < 0)
+    {
+        l0 = __sub_core(b, lb, a, la, tmp);
+    }
+    if ((s1 = __cmp_core(d, ld, c, lc)) > 0)
+    {
+        l1 = __sub_core(d, ld, c, lc, tmp + l0);
+    }
+    else if (s1 < 0)
+    {
+        l1 = __sub_core(c, lc, d, ld, tmp + l0);
+    }
+
+    __kmul(tmp, l0, tmp + l0, l1, a_bd_c);
+    __set_units_zero(tmp, lx + ly + 1);
+    __copy_units(tmp, bd.dat, bd.len);
+    __copy_units(tmp + 2 * n, ac.dat, ac.len);
+    __add_core(tmp + n, lx + ly + 1 - n, ac.dat, ac.len, tmp + n);
+    __add_core(tmp + n, lx + ly + 1 - n, bd.dat, bd.len, tmp + n);
+    if (s0 == s1)
+    {
+        __add_core(tmp + n, lx + ly + 1 - n, a_bd_c.dat, a_bd_c.len, tmp + n);
+    }
+    else
+    {
+        __sub_core(tmp + n, lx + ly + 1 - n, a_bd_c.dat, a_bd_c.len, tmp + n);
+    }
+
+    if (tmp != res.dat)
+    {
+        res.__release();
+        res.dat = tmp;
+        res.cap = newcap;       
+    }
+    res.len = (lx + ly + 1) * __sign(u.len, v.len);
+    res.__trim();
 }
 
 void sqr(const number_t& a, number_t& res)
 {
     __sqr(a.dat, __abs(a.len), res);
+    __trim_packing_zeros(res.dat, res.len);
 }
 
-void ksqr(const number_t& a, number_t& res)
+void ksqr(const number_t& u, number_t& res)
 {
-    __ksqr(a.dat, __abs(a.len), res);
+    const unit_t *a, *b, *x = u.dat;
+    slen_t n, la, lb, lx = __abs(u.len), newcap;
+
+    if (lx <= KSQR_THRESHOLD)
+    {
+        sqr(u, res);
+        return;
+    }
+    n = lx >> 1;
+    b = x;
+    a = x + n;
+    lb = n;
+    la = lx - n;
+    __trim_leading_zeros(a, la);
+    __trim_leading_zeros(b, lb);
+
+    number_t aa, ab, bb;
+
+    __ksqr(a, la, aa);
+    __kmul(a, la, b, lb, ab);
+    __ksqr(b, lb, bb);
+
+    unit_t* tmp;
+    if (res.cap < 2 * lx || res.dat == x)
+    {
+        tmp = __allocate_units(2 * lx, &newcap);
+    }
+    else
+    {
+        tmp = res.dat;
+    }
+    __set_units_zero(tmp, 2 * lx);
+    __copy_units(tmp, bb.dat, bb.len);
+    __copy_units(tmp + 2 * n, aa.dat, aa.len);
+    __add_core(tmp + n, 2 * lx - n, ab.dat, ab.len, tmp + n);
+    __add_core(tmp + n, 2 * lx - n, ab.dat, ab.len, tmp + n);
+
+    if (tmp != res.dat)
+    {
+        __deallocate_units(res.dat);
+        res.dat = tmp;
+        res.cap = newcap;
+    }
+    res.len = 2 * lx;
+    res.__trim();
 }
 
 int div(const number_t& a, const number_t& b, number_t& q, number_t& r)
@@ -2202,14 +2358,6 @@ void swap(number_t& a, number_t& b)
     a.len ^= b.len;
 }
 
-void bits_reserve_1(number_t& a, int n)
-{
-}
-
-void bits_reserve_max(number_t& a, int n)
-{
-}
-
 bool is_power2(const number_t& a)
 {
     if (!a.is_zero())
@@ -2249,12 +2397,26 @@ void __mul(const unit_t* x, slen_t lx, const unit_t* y, slen_t ly, number_t& res
 
     if (lx && ly)
     {
-        unit_t* tmp = __allocate_units(lx + ly);
+        unit_t* tmp;
+        slen_t lr, newcap;
+
+        if (res.cap < lx + ly || res.dat == x || res.dat == y)
+        {
+            tmp = __allocate_units(lx + ly, &newcap);
+        }
+        else
+        {
+            tmp = res.dat;
+        }
         __set_units_zero(tmp, lx + ly);
-        slen_t lr = __mul_core(x, lx, y, ly, tmp);
-        res.__release();
+        lr = __mul_core(x, lx, y, ly, tmp);
+        if (res.dat != tmp)
+        {
+            __deallocate_units(res.dat);
+            res.dat = tmp;
+            res.cap = newcap;
+        }
         res.len = lr;
-        res.dat = tmp;
     }
     else
     {
@@ -2342,11 +2504,25 @@ void __sqr(const unit_t* x, slen_t lx, number_t& res)
 {
     if (lx)
     {
-        unit_t* tmp = __allocate_units(2 * lx);
-        slen_t lr = __sqr_core(x, lx, tmp);
-        res.__release();
+        unit_t* tmp;
+        slen_t lr, newcap;
+        
+        if (res.cap < 2 * lx || res.dat == x)
+        {
+            tmp = __allocate_units(2 * lx, &newcap);
+        }
+        else
+        {
+            tmp = res.dat;
+        }
+        lr = __sqr_core(x, lx, tmp);
+        if (tmp != res.dat)
+        {
+            __deallocate_units(res.dat);
+            res.dat = tmp;
+            res.cap = newcap;
+        }
         res.len = lr;
-        res.dat = tmp;
     }
     else
     {
@@ -2400,14 +2576,23 @@ void __div(const unit_t* a, slen_t la, const unit_t* b, slen_t lb, number_t& q, 
 
     if (lb > 1)
     {
-        slen_t lx = la;
-        slen_t ly = lb;
-        unit_t* x = __allocate_units(lx + 1);
-        unit_t* y = __allocate_units(ly);
+        unit_t *x, *y, *tmp;
+        slen_t n = 0, lx, ly, lr, qnewcap, rnewcap;
+
+        lx = la;
+        ly = lb;
+        x = __allocate_units(lx + 1);
+        if (r.cap < ly || r.dat == a || r.dat == b)
+        {
+            y = __allocate_units(ly, &rnewcap);
+        }
+        else
+        {
+            y = r.dat;
+        }
         __copy_units(x, a, lx);
         __copy_units(y, b, ly);
 
-        slen_t n = 0;
         if (*(x + lx - 1) >= *(y + ly - 1))
         {
             n = SHIFT - __vbits_count(*(y + ly - 1));
@@ -2419,10 +2604,21 @@ void __div(const unit_t* a, slen_t la, const unit_t* b, slen_t lb, number_t& q, 
             }
         }
 
-        unit_t* tmp = __allocate_units(lx - ly);
-        slen_t lr = __div_core(x, lx, y, ly, tmp);
-        q.__release();
-        q.dat = tmp;
+        if (q.cap < lx - ly)
+        {
+            tmp = __allocate_units(lx - ly, &qnewcap);
+        }
+        else
+        {
+            tmp = q.dat;
+        }
+        lr = __div_core(x, lx, y, ly, tmp);
+        if (tmp != q.dat)
+        {
+            __deallocate_units(q.dat);
+            q.dat = tmp;
+            q.cap = qnewcap;
+        }
         q.len = lr;
 
         if (n)
@@ -2430,26 +2626,57 @@ void __div(const unit_t* a, slen_t la, const unit_t* b, slen_t lb, number_t& q, 
             __shr_core(x, ly, n);
         }
         __copy_units(y, x, ly);
-        r.__release();
-        r.dat = y;
+        if (y != r.dat)
+        {
+            __deallocate_units(r.dat);
+            r.dat = y;
+            r.cap = rnewcap;
+        }
         r.len = ly;
-        r.__trim();
+        __trim_leading_zeros(r.dat, r.len);
 
         __deallocate_units(x);
     }
     else
     {
-        unit_t* tmpq = __allocate_units(la);
-        unit_t* tmpr = __allocate_units(1);
-        slen_t lq, lr;
+        slen_t lq, lr, qnewcap, rnewcap;
+        unit_t *tmpq, *tmpr;
+
+        if (q.cap < la || q.dat == a || q.dat == b)
+        {
+            tmpq = __allocate_units(la, &qnewcap);
+        }
+        else
+        {
+            tmpq = q.dat;
+        }
+        if (r.cap < 1 || r.dat == a || r.dat == b)
+        {
+            tmpr = __allocate_units(1, &rnewcap);
+        }
+        else
+        {
+            tmpr = r.dat;
+        }
         __div_unit_core(a, la, *b, tmpq, &lq, tmpr, &lr);
-        q.__release();
-        r.__release();
-        q.dat = tmpq;
+
+        if (tmpq != q.dat)
+        {
+            __deallocate_units(q.dat);
+            q.dat = tmpq;
+            q.cap = qnewcap;
+        }
+        if (tmpr != r.dat)
+        {
+            __deallocate_units(r.dat);
+            r.dat = tmpr;
+            r.cap = rnewcap;
+        }
         q.len = lq;
-        r.dat = tmpr;
         r.len = lr;
     }
+    __trim_packing_zeros(q.dat, q.len);
+    __trim_packing_zeros(r.dat, r.len);
 }
 
 void __div(const unit_t* a, slen_t la, const unit_t* b, slen_t lb, number_t& q)
@@ -2458,14 +2685,16 @@ void __div(const unit_t* a, slen_t la, const unit_t* b, slen_t lb, number_t& q)
 
     if (lb > 1)
     {
-        slen_t lx = la;
-        slen_t ly = lb;
-        unit_t* x = __allocate_units(lx + 1);
-        unit_t* y = __allocate_units(ly);
+        unit_t *x, *y, *tmp;
+        slen_t n = 0, lx, ly, lr, newcap;
+
+        lx = la;
+        ly = lb;
+        x = __allocate_units(lx + 1);
+        y = __allocate_units(ly);
         __copy_units(x, a, lx);
         __copy_units(y, b, ly);
 
-        slen_t n = 0;
         if (*(x + lx - 1) >= *(y + ly - 1))
         {
             n = SHIFT - __vbits_count(*(y + ly - 1));
@@ -2477,25 +2706,48 @@ void __div(const unit_t* a, slen_t la, const unit_t* b, slen_t lb, number_t& q)
             }
         }
 
-        unit_t* tmp = __allocate_units(lx - ly);
-        slen_t lr = __div_core(x, lx, y, ly, tmp);
-        q.__release();
-        q.dat = tmp;
+        if (q.cap < lx - ly)
+        {
+            tmp = __allocate_units(lx - ly, &newcap);
+        }
+        else
+        {
+            tmp = q.dat;
+        }
+        lr = __div_core(x, lx, y, ly, tmp);
+        if (tmp != q.dat)
+        {
+            __deallocate_units(q.dat);
+            q.dat = tmp;
+            q.cap = newcap;
+        }
         q.len = lr;
         __deallocate_units(x);
         __deallocate_units(y);
     }
     else
     {
-        slen_t lq, lr;
-        unit_t* tmpq = __allocate_units(la);
-        unit_t* tmpr = __allocate_units(1);
-        __div_unit_core(a, la, *b, tmpq, &lq, tmpr, &lr);
-        q.__release();
-        q.dat = tmpq;
+        unit_t *tmp, r;
+        slen_t lq, lr, newcap;
+
+        if (q.cap < la || q.dat == a || q.dat == b)
+        {
+            tmp = __allocate_units(la, &newcap);
+        }
+        else
+        {
+            tmp = q.dat;
+        }
+        __div_unit_core(a, la, *b, tmp, &lq, &r, &lr);
+        if (tmp != q.dat)
+        {
+            __deallocate_units(q.dat);
+            q.dat = tmp;
+            q.cap = newcap;
+        }
         q.len = lq;
-        __deallocate_units(tmpr);
     }
+    __trim_packing_zeros(q.dat, q.len);
 }
 
 void __shl_units(number_t& a, int b)

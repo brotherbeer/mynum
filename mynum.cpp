@@ -105,6 +105,12 @@ static __always_inline(unit_t*) __allocate_units(slen_t s)
     return (unit_t*)mem::allocate(s + (s & 1), sizeof(unit_t));
 }
 
+static __always_inline(unit_t*) __allocate_units(slen_t units, slen_t* pcap)
+{
+    *pcap = units + (units & 1);
+    return (unit_t*)mem::allocate(*pcap, sizeof(unit_t));
+}
+
 static __always_inline(void) __deallocate_units(unit_t* p)
 {
     return mem::deallocate(p);
@@ -1664,86 +1670,117 @@ void neg(const number_t& a, number_t& res)
 
 void add(const number_t& a, const number_t& b, number_t& res)
 {
-    unit_t* tmp;
-    slen_t lr, la, lb, sign;
+    slen_t lr, la, lb, sa, sb, newcap;
+    unit_t *tmp, *pa = a.dat, *pb = b.dat;
 
     la = __abs(a.len);
     lb = __abs(b.len);
+    sa = __sign(a.len);
+    sb = __sign(b.len);
 
-    if (__same_sign(a.len, b.len))
+    if (la < lb || (la == lb && __cmp_same_len_core(pa, pb, la) == -1))
     {
-        if (la > lb)
+        tmp = pa;
+        pa = pb;
+        pb = tmp;
+        la ^= lb;
+        sa ^= sb;
+        lb ^= la;
+        sb ^= sa;
+        la ^= lb;
+        sa ^= sb;
+    }
+    if (sa == sb)
+    {
+        if (res.cap < la + 1 || res.dat == pa || res.dat == pb)
         {
-            tmp = __allocate_units(la + 1);
-            lr = __add_core(a.dat, la, b.dat, lb, tmp);
+            tmp = __allocate_units(la + 1, &newcap);
         }
         else
         {
-            tmp = __allocate_units(lb + 1);
-            lr = __add_core(b.dat, lb, a.dat, la, tmp);
+            tmp = res.dat;
         }
-        sign = __sign(a.len);
+        lr = __add_core(pa, la, pb, lb, tmp);
     }
     else
     {
-        if ((sign = __cmp_core(a.dat, la, b.dat, lb)) == 1)
+        if (res.cap < la || res.dat == pa || res.dat == pb)
         {
-            tmp = __allocate_units(la);
-            lr = __sub_core(a.dat, la, b.dat, lb, tmp);
+            tmp = __allocate_units(la, &newcap);
         }
         else
         {
-            tmp = __allocate_units(lb);
-            lr = __sub_core(b.dat, lb, a.dat, la, tmp);
+            tmp = res.dat;
         }
-        sign *= __sign(a.len);
+        lr = __sub_core(pa, la, pb, lb, tmp);
     }
-
-    res.__release();
-    res.dat = tmp;
-    res.len = lr * sign;
+    if (tmp != res.dat)
+    {
+        __deallocate_units(res.dat);
+        res.dat = tmp;
+        res.cap = newcap;
+    }
+    res.len = lr * sa;
+    __trim_packing_zeros(res.dat, res.len);
 }
 
 void sub(const number_t& a, const number_t& b, number_t& res)
 {
-    unit_t* tmp;
-    slen_t lr, la, lb, sign;
-    
+    slen_t lr, la, lb, sa, sb, sign = 1, newcap;
+    unit_t *tmp, *pa = a.dat, *pb = b.dat;
+
     la = __abs(a.len);
     lb = __abs(b.len);
+    sa = __sign(a.len);
+    sb = __sign(b.len);
 
-    if (__same_sign(a.len, b.len))
+    if (la < lb || (la == lb && __cmp_same_len_core(pa, pb, la) == -1))
     {
-        if ((sign = __cmp_core(a.dat, la, b.dat, lb)) == 1)
+        tmp = pa;
+        pa = pb;
+        pb = tmp;
+        la ^= lb;
+        sa ^= sb;
+        lb ^= la;
+        sb ^= sa;
+        la ^= lb;
+        sa ^= sb;
+        sign = -1;
+    }
+    if (sa == sb)
+    {
+        if (res.cap < la || res.dat == pa || res.dat == pb)
         {
-            tmp = __allocate_units(la);
-            lr = __sub_core(a.dat, la, b.dat, lb, tmp);
+            tmp = __allocate_units(la, &newcap);
         }
         else
         {
-            tmp = __allocate_units(lb);
-            lr = __sub_core(b.dat, lb, a.dat, la, tmp);
+            tmp = res.dat;
         }
-        sign *= __sign(a.len);
+        lr = __sub_core(pa, la, pb, lb, tmp);
+        sign *= sa;
     }
     else
     {
-        if (la > lb)
+        if (res.cap < la + 1 || res.dat == pa || res.dat == pb)
         {
-            tmp = __allocate_units(la + 1);
-            lr = __add_core(a.dat, la, b.dat, lb, tmp);
+            tmp = __allocate_units(la + 1, &newcap);
         }
         else
         {
-            tmp = __allocate_units(lb + 1);
-            lr = __add_core(b.dat, lb, a.dat, la, tmp);
+            tmp = res.dat;
         }
+        lr = __add_core(pa, la, pb, lb, tmp);
         sign = __sign(a.len);
     }
-
-    res.__release();
-    res.dat = tmp;
+    if (tmp != res.dat)
+    {
+        __deallocate_units(res.dat);
+        res.dat = tmp;
+        res.cap = newcap;
+    }
     res.len = lr * sign;
+    __trim_packing_zeros(res.dat, res.len);
 }
 
 void mul(const number_t& a, const number_t& b, number_t& res)

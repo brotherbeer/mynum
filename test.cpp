@@ -54,6 +54,9 @@ void test_detail()
     test_swap();
     test_string();
 
+    test_add();
+    test_sub();
+
     test_add_samll();
     test_sub_samll();
     test_mul_samll();
@@ -895,6 +898,25 @@ void test_add()
         assert(eq(c, "2417851639229260818548130"));
     }
     {
+        NN a("1208925819614629174706175"), b("1234567890"), c;
+        c.bits_reserve(100);
+        add(neg(a), b, c);
+        assert(eq(c, "-1208925819614627940138285"));
+        add(a, neg(b), c);
+        assert(eq(c, "1208925819614627940138285"));
+        add(neg(a), neg(b), c);
+        assert(eq(c, "-1208925819614630409274065"));
+        swap(a, b);
+        add(a, b, c);
+        assert(eq(c, "1208925819614630409274065"));
+        add(neg(a), b, c);
+        assert(eq(c, "1208925819614627940138285"));
+        add(a, neg(b), c);
+        assert(eq(c, "-1208925819614627940138285"));
+        add(neg(a), neg(b), c);
+        assert(eq(c, "-1208925819614630409274065"));
+    }
+    {
         NN a("-123456789"), b("123456789"), c("+123456789");
         assert(add(b, a).is_zero());
         assert(add(a, b).is_zero());
@@ -938,11 +960,25 @@ void test_sub()
         sub(a, b, a);
         assert(eq(a, "567821896988087687911110816207110711082876879884"));
     }
+
+    {
+        NN a("-567822223333322222445645351452345234535222222229");
+        NN b("-326345234534534534535245234523452345342345"), c;
+        sub(a, b, c);
+        assert(eq(c, "-567821896988087687911110816207110711082876879884"));
+        swap(a, b);
+        sub(a, b, c);
+        assert(eq(c, "567821896988087687911110816207110711082876879884"));
+    }
     {
         NN a("123456789123456789");
         NN b("123456789123456789");
         NN c;
         sub(a, b, c);
+        assert(eq(c, 0));
+        sub(a, a, c);
+        assert(eq(c, 0));
+        sub(b, b, c);
         assert(eq(c, 0));
     }
     {
@@ -1751,11 +1787,12 @@ void test_add_samll()
 void test_sub_samll()
 {
     {
-        NN a("1234567890"), b("-1234567890"), c, d(-1234);
+        NN a("1234567890"), b("-1234567890"), c, d(-1234), e(1234);
         a.sub_unit(1234); assert(a == 1234566656);
         b.sub_unit(1234); assert(b == -1234569124);
         c.sub_unit(1234); assert(c == -1234);
         d.sub_unit(1234); assert(d == -2468);
+        e.sub_unit(1234); assert(e == 0);
     }
 }
 

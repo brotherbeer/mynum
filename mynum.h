@@ -40,12 +40,12 @@ struct number_t: public _base_number_t
     number_t(const char*);
     number_t(const char*, int base);
     number_t(const char* s, size_t length, int base);
-    number_t(long x)                { __assign(x);  }
-    number_t(long long x)           { __assign(x);  }
-    number_t(int x)                 { __assign(x);  }
-    number_t(unsigned long x)       { __uassign(x); }
-    number_t(unsigned long long x)  { __uassign(x); } 
-    number_t(unsigned int x)        { __uassign(x); }
+    number_t(long x);
+    number_t(long long x);
+    number_t(int x);
+    number_t(unsigned long x);
+    number_t(unsigned long long x);
+    number_t(unsigned int x);
     number_t(const number_t&);
 
     number_t& assign(const number_t&);
@@ -153,44 +153,13 @@ struct number_t: public _base_number_t
     bool operator ! () const;
 
     void __reserve(slen_t units);
-    void __release();
-    void __trim();
     void __add(unit_t);
     void __mul(unit_t);
     slen_t __abs_add_unit(unit_t);
     slen_t __abs_sub_unit(unit_t);
     slen_t __bits_reserve(slen_t);
     slen_t __vbits_count() const;
-
     void __copy(const number_t&);
-
-    template <class T> void __uassign(T x)
-    {
-        __reserve((len = (sizeof(T) + sizeof(unit_t) - 1) / sizeof(unit_t)));
-        *dat = 0;
-        *(T*)dat = x;
-        __trim();
-    }
-
-    template <class T> void __assign(T x)
-    {
-        slen_t sign;
-        if (x > 0)
-        {
-            sign = 1;
-        }
-        else
-        {
-            sign = -1;
-            x = -x;
-        }
-        __reserve((len = (sizeof(T) + sizeof(unit_t) - 1) / sizeof(unit_t)));
-        *dat = 0;
-        *(T*)dat = x;
-        len *= sign;
-        __trim();
-    }
-
     void __construct_from_bin_string(const char*s, slen_t l);
     void __construct_from_hex_string(const char* s, slen_t l);
     void __construct_from_xbase_string(const char* s, slen_t l, unit_t base, float ln_base, unit_t inner_base, unit_t inner_base_digits);

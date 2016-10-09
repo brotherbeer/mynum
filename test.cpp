@@ -62,7 +62,15 @@ void test_detail()
     test_sqr();
     test_ksqr();
     test_div();
-
+    test_pow();
+    test_pom();
+    test_sqrt();
+    test_and();
+    test_or();
+    test_xor();
+    test_not();
+    test_shl();
+    test_shr();
     test_bits();
 
     test_add_samll();
@@ -1426,7 +1434,7 @@ void test_not()
         bit_not(a, a);
         assert(a == b);
         NN c("-110010010101111101111100000000110", 2);  // 33bits
-        NN d("001101101010000010000011111111001", 2);
+        NN d("-001101101010000010000011111111001", 2);
         c.bit_not();
         assert(c == d);
         NN e("1111110010010101111101111100000000110", 2);  // 37bits
@@ -1779,6 +1787,17 @@ void test_string()
 void test_add_samll()
 {
     {
+        NN a;
+        a.bit_set_one(1111);
+        a.set_zero();
+        a.add_unit(0);
+        assert(a == 0);
+
+        a.add_unit(1);
+        a.add_unit(0);
+        assert(a == 1);
+    }
+    {
         NN a("1234567890"), b("-1234567890"), c, d(-1234);
         a.add_unit(1234); assert(a == 1234569124ULL);
         b.add_unit(1234); assert(b == -1234566656LL);
@@ -1882,5 +1901,4 @@ void create_big(NN& x, int size)
     x.set_zero();
     x.bit_set_one(size * sizeof(unit_t) * 8);
     random(x);
-    x.__trim();
 }

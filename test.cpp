@@ -9,6 +9,7 @@ using namespace mynum;
 
 void test_construct();
 void test_assign();
+void test_copy();
 void test_string_convertion();
 void test_abs();
 void test_zero();
@@ -46,6 +47,7 @@ void test_detail()
 
     test_construct();
     test_assign();
+    test_copy();
     test_string_convertion();
 
     test_abs();
@@ -256,7 +258,6 @@ void test_assign()
     }
     {
         NN a;
-        assert(a.is_zero());
         a = char(123); assert(a.to_string() == "123");
         a = short(123); assert(a.to_string() == "123");
         a = int(123); assert(a.to_string() == "123");
@@ -297,6 +298,54 @@ void test_assign()
         a.assign("bdeeee454563aaa43534562", 20); assert(a.to_string(20) == "bdeeee454563aaa43534562");
         a.assign("bdeeee454563aaa43534562", 21); assert(a.to_string(21) == "bdeeee454563aaa43534562");
         a.assign("bdeeee454563aaa43534562", 22); assert(a.to_string(22) == "bdeeee454563aaa43534562");
+    }
+    {
+        NN a(12345), b, c;
+        b.assign(a);
+        assert(a.assign(a) == a);
+        assert(a.assign(a) == b);
+        assert(12345 == b);
+        c.bits_reserve(100);
+        slen_t cap0 = c.cap;
+        c.assign(a);
+        slen_t cap1 = c.cap;
+        assert(c == a);
+        assert(cap0 == cap1);
+        b.~number_t();
+        a.assign(b);
+        assert(a == 0);
+    }
+}
+
+void test_copy()
+{
+    {
+        NN a("742354345232453423678231459849423"), b;
+        b.copy(b);
+        a.copy(a);
+        assert(b.is_zero());
+        assert(eq(a, NN("742354345232453423678231459849423")));
+        b.copy(a);
+        assert(eq(b, a));
+        a.copy(b);
+        assert(eq(b, a));
+        b.~number_t();
+        a.copy(b);
+        assert(eq(b, a));
+        assert(a.is_zero());
+        assert(a.dat == NULL);
+        assert(a.len == 0);
+        assert(a.cap == 0);
+    }
+    {
+        NN a(12345), b, c;
+        b.copy(a);
+        assert(b == a);
+        assert(b.cap == a.cap);
+        c.bits_reserve(100);
+        c.copy(a);
+        assert(c == a);
+        assert(c.cap == a.cap);
     }
 }
 
@@ -1788,11 +1837,34 @@ void test_add_samll()
 {
     {
         NN a;
+        a.add_unit(32452); a.add_unit(5648); a.add_unit(57); a.add_unit(4);
+        a.add_unit(56756); a.add_unit(332); a.add_unit(8976); a.add_unit(993);
+        a.add_unit(4321); a.add_unit(8907); a.add_unit(0);
+        assert(a == 118446);
+        a.set_neg();
+        a.add_unit(32452); a.add_unit(5648); a.add_unit(57); a.add_unit(4);
+        a.add_unit(56756); a.add_unit(332); a.add_unit(8976); a.add_unit(993);
+        a.add_unit(4321); a.add_unit(8907); a.add_unit(0);
+        assert(a == 0);
+
+        a.~number_t();
+        a.bits_reserve(1111);
+        a.add_unit(32452); a.add_unit(5648); a.add_unit(57); a.add_unit(4);
+        a.add_unit(56756); a.add_unit(332); a.add_unit(8976); a.add_unit(993);
+        a.add_unit(4321); a.add_unit(8907); a.add_unit(0);
+        assert(a == 118446);
+        a.set_neg();
+        a.add_unit(32452); a.add_unit(5648); a.add_unit(57); a.add_unit(4);
+        a.add_unit(56756); a.add_unit(332); a.add_unit(8976); a.add_unit(993);
+        a.add_unit(4321); a.add_unit(8907); a.add_unit(0);
+        assert(a == 0);
+    }
+    {
+        NN a;
         a.bit_set_one(1111);
         a.set_zero();
         a.add_unit(0);
         assert(a == 0);
-
         a.add_unit(1);
         a.add_unit(0);
         assert(a == 1);
@@ -1824,6 +1896,17 @@ void test_add_samll()
 void test_sub_samll()
 {
     {
+        NN a(118446);
+        a.sub_unit(32452); a.sub_unit(5648); a.sub_unit(57); a.sub_unit(4);
+        a.sub_unit(56756); a.sub_unit(332); a.sub_unit(8976); a.sub_unit(993);
+        a.sub_unit(4321); a.sub_unit(8907); a.sub_unit(0);
+        assert(a == 0);
+        a.sub_unit(32452); a.sub_unit(5648); a.sub_unit(57); a.sub_unit(4);
+        a.sub_unit(56756); a.sub_unit(332); a.sub_unit(8976); a.sub_unit(993);
+        a.sub_unit(4321); a.sub_unit(8907); a.sub_unit(0);
+        assert(a == -118446);
+    }
+    {
         NN a("1234567890"), b("-1234567890"), c, d(-1234), e(1234);
         a.sub_unit(1234); assert(a == 1234566656);
         b.sub_unit(1234); assert(b == -1234569124);
@@ -1835,6 +1918,15 @@ void test_sub_samll()
 
 void test_mul_samll()
 {
+    {
+        NN a(1);
+        a.mul_unit(32452); a.mul_unit(5648); a.mul_unit(57); a.mul_unit(4);
+        a.mul_unit(56756); a.mul_unit(332); a.mul_unit(8976); a.mul_unit(993);
+        a.mul_unit(4321); a.mul_unit(8907); a.mul_unit(1);
+        assert(a == NN("270127424034073692837664953532416"));
+        a.mul_unit(0);
+        assert(a == NN("0"));
+    }
     {
         NN a("1234567890"), b("-1234567890"), c, d(-1234);
         a.mul_unit(1234); assert(a == NN("1523456776260"));
@@ -1862,17 +1954,43 @@ void test_mul_samll()
 
 void test_div_samll()
 {
-    NN a("94837582435723485723049587239057");
-    assert(a.div_unit(1234) == NN("76853794518414494102957526125"));
-    assert(a.div_unit(1234) == NN("62280222462248374475654397"));
-    assert(a.div_unit(1234) == NN("50470196484804193254176"));
-    assert(a.div_unit(1234) == NN("40899673002272441859"));
+    {
+        NN a;
+        assert(a.div_unit(1) == 0);
+        assert(a.div_unit(13459) == 0);
+    }
+    {
+        NN a("270127424034073692837664953532416");
+        a.div_unit(1);
+        a.div_unit(32452); a.div_unit(5648); a.div_unit(57); a.div_unit(4);
+        a.div_unit(56756); a.div_unit(332); a.div_unit(8976); a.div_unit(993);
+        a.div_unit(4321); a.div_unit(8907);
+        assert(a == 1);
+    }
+    {
+        NN a("94837582435723485723049587239057");
+        assert(a.div_unit(1234) == NN("76853794518414494102957526125"));
+        assert(a.div_unit(1234) == NN("62280222462248374475654397"));
+        assert(a.div_unit(1234) == NN("50470196484804193254176"));
+        assert(a.div_unit(1234) == NN("40899673002272441859"));
+    }
 }
 
 void test_mod_samll()
 {
     NN a("94837582435723485723049587239057");
     assert(a.mod_unit(1234) == 807);
+    a.assign("2453562355438");
+    assert(a.mod_unit(1) == 0);
+    a.assign("2453562355438");
+    assert(a.mod_unit(2) == 0);
+    a.assign("2453562355438");
+    assert(a.mod_unit(3) == 1);
+    a.assign("-2453562355438");
+    assert(a.mod_unit(3) == -1);
+    a.set_zero();
+    assert(a.mod_unit(3) == 0);
+    assert(a.mod_unit(33399) == 0);
 }
 
 bool chance(int n)

@@ -165,27 +165,12 @@ static __always_inline(dunit_t) __make_dunit(dunit_t high, unit_t low)
 
 /** class number_t implementation */
 
-#define __trim_abs_no_stuffing_zero(dat, len) do\
+#define __trim_leading_zeros(dat, len) do\
     {\
         assert(len >= 0); \
         const unit_t *e = dat - 1, *p = e + len; \
         while (p != e && !*p) {p--;} \
         len = slen_t(p - e); \
-    } while (0)
-
-#define __trim_abs_leading_zeros(dat, len) do\
-    {\
-        assert(len >= 0); \
-        unit_t *e = dat - 1, *p = e + len; \
-        while (p != e && !*p) {p--;} \
-        len = slen_t(p - e); \
-    } while (0)
-
-#define __trim_leading_zeros(dat, len) do\
-    {\
-        const unit_t *e = dat - 1, *p = e + __abs(len); \
-        while (p != e && !*p) {p--;} \
-        len = slen_t((p - e) * __sign(len)); \
     } while (0)
 
 number_t::number_t(const char* s)
@@ -236,7 +221,7 @@ number_t::number_t(long x)
     len = sizeof(long) / sizeof(unit_t);
     __reserve(len);
     *(long*)dat = x;
-    __trim_abs_leading_zeros(dat, len);
+    __trim_leading_zeros(dat, len);
     len *= sign;
 }
 
@@ -251,7 +236,7 @@ number_t::number_t(long long x)
     len = sizeof(long long) / sizeof(unit_t);
     __reserve(len);
     *(long long*)dat = x;
-    __trim_abs_leading_zeros(dat, len);
+    __trim_leading_zeros(dat, len);
     len *= sign;
 }
 
@@ -266,7 +251,7 @@ number_t::number_t(int x)
     len = sizeof(int) / sizeof(unit_t);
     __reserve(len);
     *(int*)dat = x;
-    __trim_abs_leading_zeros(dat, len);
+    __trim_leading_zeros(dat, len);
     len *= sign;
 }
 
@@ -275,7 +260,7 @@ number_t::number_t(unsigned long x)
     len = sizeof(unsigned long) / sizeof(unit_t);
     __reserve(len);
     *(unsigned long*)dat = x;
-    __trim_abs_leading_zeros(dat, len);
+    __trim_leading_zeros(dat, len);
 }
 
 number_t::number_t(unsigned long long x)
@@ -283,7 +268,7 @@ number_t::number_t(unsigned long long x)
     len = sizeof(unsigned long long) / sizeof(unit_t);
     __reserve(len);
     *(unsigned long long*)dat = x;
-    __trim_abs_leading_zeros(dat, len);
+    __trim_leading_zeros(dat, len);
 }
 
 number_t::number_t(unsigned int x)
@@ -291,12 +276,22 @@ number_t::number_t(unsigned int x)
     len = sizeof(unsigned int) / sizeof(unit_t);
     __reserve(len);
     *(unsigned int*)dat = x;
-    __trim_abs_leading_zeros(dat, len);
+    __trim_leading_zeros(dat, len);
 }
 
 number_t& number_t::assign(const number_t& x)
 {
-    copy(x);
+    if (this->is_not(x))
+    {
+        slen_t l = __abs(x.len);
+        if (l > cap)
+        {
+            __deallocate_units(dat);
+            __reserve(l);
+        }
+        __copy_units(dat, x.dat, l);
+        len = x.len;
+    }
     return *this;
 }
 
@@ -309,7 +304,7 @@ number_t& number_t::assign(int x)
         __reserve(len);
     }
     *(int*)dat = __abs(x);
-    __trim_abs_leading_zeros(dat, len);
+    __trim_leading_zeros(dat, len);
     len *= __sign(x);
     return *this;
 }
@@ -323,7 +318,7 @@ number_t& number_t::assign(long x)
         __reserve(len);
     }
     *(long*)dat = __abs(x);
-    __trim_abs_leading_zeros(dat, len);
+    __trim_leading_zeros(dat, len);
     len *= __sign(x);
     return *this;
 }
@@ -344,7 +339,7 @@ number_t& number_t::assign(long long x)
         x = -x;
     }
     *(long long*)dat = x;
-    __trim_abs_leading_zeros(dat, len);
+    __trim_leading_zeros(dat, len);
     len *= sign;
     return *this;
 }
@@ -358,7 +353,7 @@ number_t& number_t::assign(unsigned int x)
         __reserve(len);
     }
     *(unsigned int*)dat = x;
-    __trim_abs_leading_zeros(dat, len);
+    __trim_leading_zeros(dat, len);
     return *this;
 }
 
@@ -371,7 +366,7 @@ number_t& number_t::assign(unsigned long x)
         __reserve(len);
     }
     *(unsigned long*)dat = x;
-    __trim_abs_leading_zeros(dat, len);
+    __trim_leading_zeros(dat, len);
     return *this;
 }
 
@@ -384,7 +379,7 @@ number_t& number_t::assign(unsigned long long x)
         __reserve(len);
     }
     *(unsigned long long*)dat = x;
-    __trim_abs_leading_zeros(dat, len);
+    __trim_leading_zeros(dat, len);
     return *this;
 }
 
@@ -422,13 +417,13 @@ number_t::~number_t()
 
 void number_t::bits_reserve(size_t n)
 {
-    slen_t newcap = (n + (sizeof(unit_t) * 8) - 1) / (sizeof(unit_t) * 8);
-    if (newcap > cap)
+    n = (n + (sizeof(unit_t) * 8) - 1) / (sizeof(unit_t) * 8);
+    if ((slen_t)n > cap)
     {
-        newcap += newcap & 1;
-        unit_t* tmp = __allocate_units(newcap);
-        slen_t l = __abs(len);
-        slen_t s = __sign(len);
+        slen_t l, s, newcap;
+        unit_t* tmp = __allocate_units(n, &newcap);
+        l = __abs(len);
+        s = __sign(len);
         __copy_units(tmp, dat, l);
         __deallocate_units(dat);
         dat = tmp;
@@ -726,7 +721,7 @@ number_t& number_t::mul_unit(unit_t x)
             }
             l++;
         }
-        __trim_abs_leading_zeros(dat, l);
+        __trim_leading_zeros(dat, l);
         len = l * __sign(len);
     }
     return *this;
@@ -747,7 +742,7 @@ number_t& number_t::div_unit(unit_t x)
             *q = unit_t(rem / x);
             rem %= x;
         }
-        __trim_abs_leading_zeros(dat, l);
+        __trim_leading_zeros(dat, l);
         len = l * __sign(len);
     }
     return *this;
@@ -842,23 +837,23 @@ bool number_t::is_even() const
 
 void number_t::copy(const number_t& another)
 {
-    if (this != &another)
+    if (this->is_not(another))
     {
         __copy(another);
     }
 }
 
-void number_t::steal(number_t& other)
+void number_t::steal(number_t& x)
 {
-    if (is_not(other))
+    if (this->is_not(x))
     {
         __deallocate_units(dat);
-        dat = other.dat;
-        len = other.len;
-        cap = other.cap;
-        other.dat = NULL;
-        other.len = 0;
-        other.cap = 0;
+        dat = x.dat;
+        len = x.len;
+        cap = x.cap;
+        x.dat = NULL;
+        x.len = 0;
+        x.cap = 0;
     }
 }
 
@@ -989,19 +984,23 @@ bool number_t::operator ! () const
 
 void number_t::__copy(const number_t& another)
 {
-    slen_t l = __abs(another.len);
-    if (l)
+    assert(this->is_not(another));
+
+    if (another.dat)
     {
-        if (l > cap)   // release
+        if (cap != another.cap)
         {
-            __reserve(l);
+            __deallocate_units(dat);
+            __reserve(another.cap);
         }
-        memcpy(dat, another.dat, l * sizeof(unit_t));
         len = another.len;
+        __copy_units(dat, another.dat, __abs(len));
     }
     else
     {
-        set_zero();
+        dat = NULL;
+        len = another.len;
+        cap = another.cap;
     }
 }
 
@@ -1065,7 +1064,7 @@ void number_t::__mul(unit_t x)
 
 slen_t number_t::__abs_add_unit(unit_t x)
 {
-    //assert(len != 0);
+    assert(len != 0);
 
     slen_t l = __abs(len);
     dunit_t carry = 0;
@@ -1170,7 +1169,7 @@ void number_t::__construct_from_bin_string(const char* s, slen_t l)
     {
         dat[len++] = __strbin_to_unit(s, l % UNITBITS);
     }
-    __trim_abs_leading_zeros(dat, len);
+    __trim_leading_zeros(dat, len);
     len *= sign;
 }
 
@@ -1215,7 +1214,7 @@ void number_t::__construct_from_hex_string(const char* s, slen_t l)
     {
         dat[len++] = __strhex_to_unit(s, l % k);
     }
-    __trim_abs_leading_zeros(dat, len);
+    __trim_leading_zeros(dat, len);
     len *= sign;
 }
 
@@ -1265,7 +1264,7 @@ void number_t::__construct_from_xbase_string(const char* s, slen_t l, unit_t bas
             __add(d);
         }
     }
-    __trim_abs_leading_zeros(dat, len);
+    __trim_leading_zeros(dat, len);
     len *= sign;
 }
 
@@ -1881,10 +1880,10 @@ void kmul(const number_t& u, const number_t& v, number_t& res)
     la = lx - n > 0? lx - n: 0;
     lc = ly - n > 0? ly - n: 0;
 
-    __trim_abs_no_stuffing_zero(a, la);
-    __trim_abs_no_stuffing_zero(b, lb);
-    __trim_abs_no_stuffing_zero(c, lc);
-    __trim_abs_no_stuffing_zero(d, ld);
+    __trim_leading_zeros(a, la);
+    __trim_leading_zeros(b, lb);
+    __trim_leading_zeros(c, lc);
+    __trim_leading_zeros(d, ld);
 
     number_t ac, bd, a_bd_c;
     
@@ -1937,7 +1936,7 @@ void kmul(const number_t& u, const number_t& v, number_t& res)
         res.cap = newcap;       
     }
     res.len = (lx + ly + 1);
-    __trim_abs_leading_zeros(res.dat, res.len);
+    __trim_leading_zeros(res.dat, res.len);
     res.len *= __sign(u.len, v.len);
 }
 
@@ -1961,8 +1960,8 @@ void ksqr(const number_t& u, number_t& res)
     a = x + n;
     lb = n;
     la = lx - n;
-    __trim_abs_no_stuffing_zero(a, la);
-    __trim_abs_no_stuffing_zero(b, lb);
+    __trim_leading_zeros(a, la);
+    __trim_leading_zeros(b, lb);
 
     number_t aa, ab, bb;
 
@@ -1988,7 +1987,7 @@ void ksqr(const number_t& u, number_t& res)
         res.cap = newcap;
     }
     res.len = 2 * lx;
-    __trim_abs_leading_zeros(res.dat, res.len);
+    __trim_leading_zeros(res.dat, res.len);
 }
 
 int div(const number_t& a, const number_t& b, number_t& q, number_t& r)
@@ -2054,12 +2053,14 @@ int mod(const number_t& a, const number_t& b, number_t& r)
     return 0;
 }
 
-int floor_div(const number_t& a, const number_t& b, number_t& q, number_t& r)
+int floor_div(const number_t& a, const number_t& b, number_t& q, number_t& r)    // XXX
 {
     if (!b.is_zero())
     {
-        slen_t la = __abs(a.len);
-        slen_t lb = __abs(b.len);
+        slen_t la, lb, lr, sign, rnewcap;
+
+        la = __abs(a.len);
+        lb = __abs(b.len);
         if (la >= lb)
         {
             __div(a.dat, la, b.dat, lb, q, r);
@@ -2070,7 +2071,7 @@ int floor_div(const number_t& a, const number_t& b, number_t& q, number_t& r)
             abs(a, r);
         }
 
-        slen_t sign = __sign(a.len);
+        sign = __sign(a.len);
         if (__same_sign(a.len, b.len))
         {
             r.len *= sign;
@@ -2080,11 +2081,12 @@ int floor_div(const number_t& a, const number_t& b, number_t& q, number_t& r)
             if (!r.is_zero())
             {
                 q.add_unit(1);
-                unit_t* tmp = __allocate_units(lb);
-                slen_t lr = __sub_core(b.dat, lb, r.dat, r.len, tmp);
+                unit_t* tmp = __allocate_units(lb, &rnewcap);
+                lr = __sub_core(b.dat, lb, r.dat, r.len, tmp);
                 __deallocate_units(r.dat);
                 r.dat = tmp;
                 r.len = lr;
+                r.cap = rnewcap;
             }
             q.len *= -1;
             r.len *= -sign;
@@ -2118,7 +2120,7 @@ void shr(const number_t& a, size_t b, number_t& res)
             res.cap = newcap;
         }
         res.len = l;
-        __trim_abs_leading_zeros(res.dat, res.len);
+        __trim_leading_zeros(res.dat, res.len);
         res.len *= __sign(a.len);
     }
     else
@@ -2152,7 +2154,7 @@ void shl(const number_t& a, size_t b, number_t& res)
         res.cap = newcap;
     }
     res.len = l;
-    __trim_abs_leading_zeros(res.dat, res.len);
+    __trim_leading_zeros(res.dat, res.len);
     res.len *= __sign(a.len);
 }
 
@@ -2443,8 +2445,11 @@ void swap(number_t& a, number_t& b)
     a.dat = b.dat;
     b.dat = tmp;
     a.len ^= b.len;
+    a.cap ^= b.cap;
     b.len ^= a.len;
+    b.cap ^= a.cap;
     a.len ^= b.len;
+    a.cap ^= b.cap;
 }
 
 bool is_power2(const number_t& a)
@@ -2534,10 +2539,10 @@ void __kmul(const unit_t* x, slen_t lx, const unit_t* y, slen_t ly, number_t& re
     la = lx - n > 0? lx - n: 0;
     lc = ly - n > 0? ly - n: 0;
 
-    __trim_abs_no_stuffing_zero(a, la);
-    __trim_abs_no_stuffing_zero(b, lb);
-    __trim_abs_no_stuffing_zero(c, lc);
-    __trim_abs_no_stuffing_zero(d, ld);
+    __trim_leading_zeros(a, la);
+    __trim_leading_zeros(b, lb);
+    __trim_leading_zeros(c, lc);
+    __trim_leading_zeros(d, ld);
 
     number_t ac, bd, a_bd_c;
     
@@ -2586,7 +2591,7 @@ void __kmul(const unit_t* x, slen_t lx, const unit_t* y, slen_t ly, number_t& re
     __deallocate_units(res.dat);
     res.len = lx + ly + 1;
     res.dat = tmp;
-    __trim_abs_leading_zeros(res.dat, res.len);
+    __trim_leading_zeros(res.dat, res.len);
 }
 
 void __sqr(const unit_t* x, slen_t lx, number_t& res)
@@ -2635,8 +2640,8 @@ void __ksqr(const unit_t* x, slen_t lx, number_t& res)
     a = x + n;
     lb = n;
     la = lx - n;
-    __trim_abs_no_stuffing_zero(a, la);
-    __trim_abs_no_stuffing_zero(b, lb);
+    __trim_leading_zeros(a, la);
+    __trim_leading_zeros(b, lb);
 
     number_t aa, ab, bb;
 
@@ -2656,7 +2661,7 @@ void __ksqr(const unit_t* x, slen_t lx, number_t& res)
     __deallocate_units(res.dat);
     res.len = 2 * lx;
     res.dat = tmp;
-    __trim_abs_leading_zeros(res.dat, res.len);
+    __trim_leading_zeros(res.dat, res.len);
 }
 
 void __div(const unit_t* a, slen_t la, const unit_t* b, slen_t lb, number_t& q, number_t& r)
@@ -2722,7 +2727,7 @@ void __div(const unit_t* a, slen_t la, const unit_t* b, slen_t lb, number_t& q, 
             r.cap = rnewcap;
         }
         r.len = ly;
-        __trim_abs_leading_zeros(r.dat, r.len);
+        __trim_leading_zeros(r.dat, r.len);
 
         __deallocate_units(x);
     }
@@ -2837,7 +2842,7 @@ void __shl_units(number_t& a, int b)
     __deallocate_units(a.dat);
     a.dat = tmp;
     a.len = a.len + b;
-    __trim_abs_leading_zeros(a.dat, a.len);
+    __trim_leading_zeros(a.dat, a.len);
 }
 
 void __sub(const number_t& a, const number_t& b, number_t& res)
@@ -2883,7 +2888,7 @@ void __guess_sqrt(const number_t& a, number_t& res)
     rem.len = 4;
     *(dunit_t*)rem.dat = *p;
     *((dunit_t*)rem.dat + 1) = h - *pr * *pr;
-    __trim_abs_leading_zeros(rem.dat, rem.len);
+    __trim_leading_zeros(rem.dat, rem.len);
 
     slen_t times = a.len / 10? a.len / 10: 4;
     do
@@ -2961,7 +2966,7 @@ void __guess_sqrt(const number_t& a, number_t& res)
         *pr-- = *pe--;
     }
 
-    __trim_abs_leading_zeros(res.dat, res.len);
+    __trim_leading_zeros(res.dat, res.len);
 }
 
 bool __neq_core(const unit_t* x, const unit_t* y, slen_t l)
@@ -3058,7 +3063,7 @@ slen_t __add_core(const unit_t* x, slen_t lx, const unit_t* y, slen_t ly, unit_t
     {
         res[i++] = (unit_t)carry;
     }
-    __trim_abs_leading_zeros(res, i);
+    __trim_leading_zeros(res, i);
     return i;
 }
 
@@ -3080,7 +3085,7 @@ slen_t __sub_core(const unit_t* x, slen_t lx, const unit_t* y, slen_t ly, unit_t
         borrow >>= SHIFT;
         borrow &= 1;
     }
-    __trim_abs_leading_zeros(res, i);
+    __trim_leading_zeros(res, i);
     return i;
 }
 
@@ -3105,7 +3110,7 @@ slen_t __mul_core(const unit_t* x, slen_t lx, const unit_t* y, slen_t ly, unit_t
         }
     }
     lx += ly;
-    __trim_abs_leading_zeros(res, lx);
+    __trim_leading_zeros(res, lx);
     return lx;
 }
 
@@ -3148,7 +3153,7 @@ slen_t __sqr_core(const unit_t* x, slen_t lx, unit_t* res)
     carry = *r + (dunit_t)*p * *p;
     *r++ = carry & MASK;
     *r += carry >> SHIFT;
-    __trim_abs_leading_zeros(res, lx);
+    __trim_leading_zeros(res, lx);
     return lx;
 }
 
@@ -3168,8 +3173,8 @@ void __div_unit_core(const unit_t* x, slen_t lx, unit_t y, unit_t* q, slen_t* lq
     *r = (unit_t)rem;
     *lq = lx;
     *lr = 1;
-    __trim_abs_leading_zeros(q, *lq);
-    __trim_abs_leading_zeros(r, *lr);
+    __trim_leading_zeros(q, *lq);
+    __trim_leading_zeros(r, *lr);
 }
 
 unit_t __guess_quotient(unit_t x1, unit_t x2, unit_t x3, unit_t y1, unit_t y2)
@@ -3238,7 +3243,7 @@ slen_t __div_core(unit_t* x, slen_t lx, const unit_t* y, slen_t ly, unit_t* q)
         *qk-- = __truing_quotient(xk, y, ly, trial);
         xk--;
     }
-    __trim_abs_leading_zeros(q, k);
+    __trim_leading_zeros(q, k);
     return k;
 }
 
@@ -3280,7 +3285,7 @@ slen_t __bit_and_core(const unit_t* x, const unit_t* y, slen_t lx, unit_t* res)
     {
         *p++ = *x++ & *y++;
     }
-    __trim_abs_leading_zeros(res, lx);
+    __trim_leading_zeros(res, lx);
     return lx;
 }
 
@@ -3299,7 +3304,7 @@ slen_t __bit_or_core(const unit_t* x, slen_t lx, const unit_t* y, slen_t ly, uni
     {
         *p++ = *x++;
     }
-    __trim_abs_leading_zeros(res, lx);
+    __trim_leading_zeros(res, lx);
     return lx;
 }
 
@@ -3318,7 +3323,7 @@ slen_t __bit_xor_core(const unit_t* x, slen_t lx, const unit_t* y, slen_t ly, un
     {
         *p++ = *x++;
     }
-    __trim_abs_leading_zeros(res, lx);
+    __trim_leading_zeros(res, lx);
     return lx;
 }
 
@@ -3341,7 +3346,7 @@ slen_t __bit_not_core(const unit_t* x, slen_t lx, unit_t* res)
         *p++ = ~*x++;
     }
     *(p - 1) &= ~s;
-    __trim_abs_leading_zeros(res, lx);
+    __trim_leading_zeros(res, lx);
     return lx;
 }
 

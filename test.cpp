@@ -49,14 +49,12 @@ void test_detail()
     test_assign();
     test_copy();
     test_string_convertion();
-
     test_abs();
     test_zero();
     test_cmp();
     test_property();
     test_swap();
     test_string();
-
     test_add();
     test_sub();
     test_mul();
@@ -74,7 +72,6 @@ void test_detail()
     test_shl();
     test_shr();
     test_bits();
-
     test_add_samll();
     test_sub_samll();
     test_mul_samll();
@@ -664,6 +661,14 @@ void test_mul()
         mul(d, c, res);
         assert(eq(res, "-339626857293784511118"));
     }
+    {
+        NN a(123456), b(24680);
+        a.bits_reserve(100);
+        slen_t cap0 = a.cap;
+        a.mul(b);
+        slen_t cap1 = a.cap;
+        assert(cap0 == cap1);
+    }
 }
 
 void test_sqr()
@@ -694,6 +699,14 @@ void test_sqr()
         sqr(x, sr);
         mul(x, x, mr);
         assert(eq(sr, mr));
+    }
+    {
+        NN a(1234);
+        a.bits_reserve(100);
+        slen_t cap0 = a.cap;
+        a.sqr();
+        slen_t cap1 = a.cap;
+        assert(cap0 == cap1);
     }
 }
 

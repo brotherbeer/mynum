@@ -13,8 +13,8 @@
 #include <cstdlib>
 #include <cstring>
 #include <cmath>
-#include <stdio.h>
 #include "mynum.h"
+
 
 #ifdef __GNUC__
 #define __always_inline(x)  __attribute__((always_inline)) x
@@ -53,7 +53,7 @@ const float LN_INNEROCT_BASE = 20.7944f;
 
 typedef unsigned char byte_t;
 
-struct mem 
+struct mem
 {
     static __always_inline(void*) allocate(size_t s, size_t u)
     {
@@ -315,7 +315,7 @@ number_t& number_t::assign(int x)
 }
 
 number_t& number_t::assign(long x)
-{ 
+{
     len = sizeof(long) / sizeof(unit_t);
     if (cap < len)
     {
@@ -329,7 +329,7 @@ number_t& number_t::assign(long x)
 }
 
 number_t& number_t::assign(long long x)
-{ 
+{
     len = sizeof(long long) / sizeof(unit_t);
     if (cap < len)
     {
@@ -350,7 +350,7 @@ number_t& number_t::assign(long long x)
 }
 
 number_t& number_t::assign(unsigned int x)
-{ 
+{
     len = sizeof(unsigned int) / sizeof(unit_t);
     if (cap < len)
     {
@@ -363,7 +363,7 @@ number_t& number_t::assign(unsigned int x)
 }
 
 number_t& number_t::assign(unsigned long x)
-{ 
+{
     len = sizeof(unsigned long) / sizeof(unit_t);
     if (cap < len)
     {
@@ -376,7 +376,7 @@ number_t& number_t::assign(unsigned long x)
 }
 
 number_t& number_t::assign(unsigned long long x)
-{ 
+{
     len = sizeof(unsigned long long) / sizeof(unit_t);
     if (cap < len)
     {
@@ -1075,7 +1075,7 @@ slen_t number_t::__abs_add_unit(unit_t x)
     dunit_t carry = 0;
     unit_t* p = dat;
     unit_t* e = dat + l;
- 
+
     carry = (dunit_t)*p + x;
     *p = carry & MASK;
     carry >>= SHIFT;
@@ -1728,7 +1728,7 @@ int cmp_abs(const number_t& a, const number_t& b)
     slen_t lb = __abs(b.len);
     if (la - lb)
     {
-        return la - lb > 0? 1: -1;        
+        return la - lb > 0? 1: -1;
     }
     return __cmp_same_len_core(a.dat, b.dat, la);
 }
@@ -1882,9 +1882,13 @@ void kmul(const number_t& u, const number_t& v, number_t& res)
     __kmul(b, lb, d, ld, bd);
 
     unit_t* tmp = res.dat;
-    if (res.cap < lx + ly + 1 || res.dat == x || res.dat == y)
+    if (res.cap < lx + ly + 1)
     {
         tmp = __allocate_units(lx + ly + 1, &newcap);
+    }
+    else if (res.dat == x || res.dat == y)
+    {
+        tmp = __allocate_units(res.cap, &newcap);
     }
 
     slen_t s0, l0 = 0, s1, l1 = 0;
@@ -1924,7 +1928,7 @@ void kmul(const number_t& u, const number_t& v, number_t& res)
     {
         __deallocate_units(res.dat);
         res.dat = tmp;
-        res.cap = newcap;       
+        res.cap = newcap;
     }
     res.len = (lx + ly + 1);
     __trim_leading_zeros(res.dat, res.len);
@@ -1961,9 +1965,13 @@ void ksqr(const number_t& u, number_t& res)
     __ksqr(b, lb, bb);
 
     unit_t* tmp = res.dat;
-    if (res.cap < 2 * lx || res.dat == x)
+    if (res.cap < 2 * lx)
     {
         tmp = __allocate_units(2 * lx, &newcap);
+    }
+    else if (res.dat == x)
+    {
+        tmp = __allocate_units(res.cap, &newcap);
     }
     __set_units_zero(tmp, 2 * lx);
     __copy_units(tmp, bb.dat, bb.len);
@@ -2394,7 +2402,7 @@ void bit_xor(const number_t& a, const number_t& b, number_t& res)
         {
             tmp = __allocate_units(lb, &newcap);
         }
-        lr = __bit_xor_core(b.dat, lb, a.dat, la, tmp);  
+        lr = __bit_xor_core(b.dat, lb, a.dat, la, tmp);
     }
     if (tmp != res.dat)
     {
@@ -2475,14 +2483,18 @@ void __mul(const unit_t* x, slen_t lx, const unit_t* y, slen_t ly, number_t& res
 
     if (lx && ly)
     {
-        slen_t lr, newcap;
         unit_t* tmp = res.dat;
+        slen_t lr, newcap, lxy = lx + ly;
 
-        if (res.cap < lx + ly || res.dat == x || res.dat == y)
+        if (res.cap < lxy)
         {
-            tmp = __allocate_units(lx + ly, &newcap);
+            tmp = __allocate_units(lxy, &newcap);
         }
-        __set_units_zero(tmp, lx + ly);
+        else if (res.dat == x || res.dat == y)
+        {
+            tmp = __allocate_units(res.cap, &newcap);
+        }
+        __set_units_zero(tmp, lxy);
         lr = __mul_core(x, lx, y, ly, tmp);
         if (res.dat != tmp)
         {
@@ -2525,7 +2537,7 @@ void __kmul(const unit_t* x, slen_t lx, const unit_t* y, slen_t ly, number_t& re
     __trim_leading_zeros(d, ld);
 
     number_t ac, bd, a_bd_c;
-    
+
     __kmul(a, la, c, lc, ac);
     __kmul(b, lb, d, ld, bd);
 
@@ -2540,7 +2552,6 @@ void __kmul(const unit_t* x, slen_t lx, const unit_t* y, slen_t ly, number_t& re
     {
         l0 = __sub_core(b, lb, a, la, tmp);
     }
-
     if ((s1 = __cmp_core(d, ld, c, lc)) > 0)
     {
         l1 = __sub_core(d, ld, c, lc, tmp + l0);
@@ -2551,14 +2562,11 @@ void __kmul(const unit_t* x, slen_t lx, const unit_t* y, slen_t ly, number_t& re
     }
 
     __kmul(tmp, l0, tmp + l0, l1, a_bd_c);
-
     __set_units_zero(tmp, lx + ly + 1);
     __copy_units(tmp, bd.dat, bd.len);
     __copy_units(tmp + 2 * n, ac.dat, ac.len);
-
     __add_core(tmp + n, lx + ly + 1 - n, ac.dat, ac.len, tmp + n);
     __add_core(tmp + n, lx + ly + 1 - n, bd.dat, bd.len, tmp + n);
-
     if (s0 == s1)
     {
         __add_core(tmp + n, lx + ly + 1 - n, a_bd_c.dat, a_bd_c.len, tmp + n);
@@ -2567,7 +2575,6 @@ void __kmul(const unit_t* x, slen_t lx, const unit_t* y, slen_t ly, number_t& re
     {
         __sub_core(tmp + n, lx + ly + 1 - n, a_bd_c.dat, a_bd_c.len, tmp + n);
     }
-
     __deallocate_units(res.dat);
     res.len = lx + ly + 1;
     res.dat = tmp;
@@ -2578,12 +2585,16 @@ void __sqr(const unit_t* x, slen_t lx, number_t& res)
 {
     if (lx)
     {
-        unit_t* tmp = res.dat;
         slen_t lr, newcap;
-        
-        if (res.cap < 2 * lx || res.dat == x)
+        unit_t* tmp = res.dat;
+
+        if (res.cap < 2 * lx)
         {
             tmp = __allocate_units(2 * lx, &newcap);
+        }
+        else if (res.dat == x)
+        {
+            tmp = __allocate_units(res.cap, &newcap);
         }
         lr = __sqr_core(x, lx, tmp);
         if (tmp != res.dat)
@@ -2626,14 +2637,11 @@ void __ksqr(const unit_t* x, slen_t lx, number_t& res)
     __ksqr(b, lb, bb);
 
     unit_t* tmp = __allocate_units(2 * lx);
-
     __set_units_zero(tmp, 2 * lx);
     __copy_units(tmp, bb.dat, bb.len);
     __copy_units(tmp + 2 * n, aa.dat, aa.len);
-
     __add_core(tmp + n, 2 * lx - n, ab.dat, ab.len, tmp + n);
     __add_core(tmp + n, 2 * lx - n, ab.dat, ab.len, tmp + n);
-
     __deallocate_units(res.dat);
     res.len = 2 * lx;
     res.dat = tmp;
@@ -2646,19 +2654,19 @@ void __div(const unit_t* a, slen_t la, const unit_t* b, slen_t lb, number_t& q, 
 
     if (lb > 1)
     {
-        unit_t *x, *y, *tmp;
+        unit_t *x, *y = r.dat, *tmp = q.dat;
         slen_t n = 0, lx, ly, lr, qnewcap, rnewcap;
 
         lx = la;
         ly = lb;
         x = __allocate_units(lx + 1);
-        if (r.cap < ly || r.dat == a || r.dat == b)
+        if (r.cap < ly)
         {
             y = __allocate_units(ly, &rnewcap);
         }
-        else
+        else if (r.dat == a || r.dat == b)
         {
-            y = r.dat;
+            y = __allocate_units(r.cap, &rnewcap);
         }
         __copy_units(x, a, lx);
         __copy_units(y, b, ly);
@@ -2677,10 +2685,6 @@ void __div(const unit_t* a, slen_t la, const unit_t* b, slen_t lb, number_t& q, 
         if (q.cap < lx - ly)
         {
             tmp = __allocate_units(lx - ly, &qnewcap);
-        }
-        else
-        {
-            tmp = q.dat;
         }
         lr = __div_core(x, lx, y, ly, tmp);
         if (tmp != q.dat)
@@ -2712,13 +2716,21 @@ void __div(const unit_t* a, slen_t la, const unit_t* b, slen_t lb, number_t& q, 
         slen_t lq, lr, qnewcap, rnewcap;
         unit_t *tmpq = q.dat, *tmpr = r.dat;
 
-        if (q.cap < la || q.dat == a || q.dat == b)
+        if (q.cap < la)
         {
             tmpq = __allocate_units(la, &qnewcap);
         }
-        if (r.cap < 1 || r.dat == a || r.dat == b)
+        else if (q.dat == a || q.dat == b)
+        {
+            tmpq = __allocate_units(q.cap, &qnewcap);
+        }
+        if (r.cap < 1)
         {
             tmpr = __allocate_units(1, &rnewcap);
+        }
+        else if (r.dat == a || r.dat == b)
+        {
+            tmpr = __allocate_units(r.cap, &rnewcap);
         }
         __div_unit_core(a, la, *b, tmpq, &lq, tmpr, &lr);
         if (tmpq != q.dat)
@@ -2744,7 +2756,7 @@ void __div(const unit_t* a, slen_t la, const unit_t* b, slen_t lb, number_t& q)
 
     if (lb > 1)
     {
-        unit_t *x, *y, *tmp;
+        unit_t *x, *y, *tmp = q.dat;
         slen_t n = 0, lx, ly, lr, newcap;
 
         lx = la;
@@ -2769,10 +2781,6 @@ void __div(const unit_t* a, slen_t la, const unit_t* b, slen_t lb, number_t& q)
         {
             tmp = __allocate_units(lx - ly, &newcap);
         }
-        else
-        {
-            tmp = q.dat;
-        }
         lr = __div_core(x, lx, y, ly, tmp);
         if (tmp != q.dat)
         {
@@ -2786,16 +2794,16 @@ void __div(const unit_t* a, slen_t la, const unit_t* b, slen_t lb, number_t& q)
     }
     else
     {
-        unit_t *tmp, r;
+        unit_t *tmp = q.dat, r;
         slen_t lq, lr, newcap;
 
-        if (q.cap < la || q.dat == a || q.dat == b)
+        if (q.cap < la)
         {
             tmp = __allocate_units(la, &newcap);
         }
-        else
+        else if (q.dat == a || q.dat == b)
         {
-            tmp = q.dat;
+            tmp = __allocate_units(q.cap, &newcap);
         }
         __div_unit_core(a, la, *b, tmp, &lq, &r, &lr);
         if (tmp != q.dat)

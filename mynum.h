@@ -8,20 +8,19 @@
 
 namespace mynum {
 
-#if ULONG_MAX == 0xffffffffUL
+#if SIZE_MAX == 0xffffffffUL
 #define UNITBITS 16
 typedef unsigned short unit_t;
 typedef unsigned int dunit_t;
 typedef int slen_t;
-#elif ULONG_MAX == 0xffffffffffffffffUL
+#elif SIZE_MAX == 0xffffffffffffffffULL
 #define UNITBITS 32
 typedef unsigned int unit_t;
 typedef unsigned long long dunit_t;
 typedef long long slen_t;
 #else
-#error ULONG_MAX unknown
+#error SIZE_MAX unknown
 #endif
-
 
 struct _base_number_t
 {

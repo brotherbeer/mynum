@@ -1740,38 +1740,46 @@ void test_bits()
         a.bit_set_one(3); assert(eq(a, 15));
         a.bit_set_one(4); assert(eq(a, 31));
         a.bit_set_one(16); assert(eq(a, 65567));
-        a.bit_set_one(32); assert(a.to_bin_string() == "100000000000000010000000000011111");
-        a.bit_set_one(33); assert(a.to_bin_string() == "1100000000000000010000000000011111");
-        a.bit_set_one(34); assert(a.to_bin_string() == "11100000000000000010000000000011111");
-        a.bit_set_zero(0); assert(a.to_bin_string() == "11100000000000000010000000000011110");
-        a.bit_set_zero(2); assert(a.to_bin_string() == "11100000000000000010000000000011010");
-        a.bit_set_zero(4); assert(a.to_bin_string() == "11100000000000000010000000000001010");
+        a[32] = 1; assert(a.to_bin_string() == "100000000000000010000000000011111");
+        a[33] = 1; assert(a.to_bin_string() == "1100000000000000010000000000011111");
+        a[34] = 1; assert(a.to_bin_string() == "11100000000000000010000000000011111");
+        a[0] = 0; assert(a.to_bin_string() == "11100000000000000010000000000011110");
+        a[2] = 0; assert(a.to_bin_string() == "11100000000000000010000000000011010");
+        a[4] = 0; assert(a.to_bin_string() == "11100000000000000010000000000001010");
         a.bit_set_zero(128); assert(a.to_bin_string() == "11100000000000000010000000000001010");
         b.bit_set_zero(0); assert(b.to_bin_string() == "0");
-        b.bit_set_zero(128); assert(b.to_bin_string() == "0");
+        b[128] = 0; assert(b.to_bin_string() == "0");
+
+        const number_t& r = a;  // just test compiling
+        int x = a[9] != 1;
+        x = r[9] == 1;
+        //++a[8]++;
+        //--a[8]--;
+        x = a[1] + a[2] - a[3] * a[4];
     }
     {
         NN a(0x123FFabcdefULL); //100100011 1111111110101011 1100110111101111
+        const NN& ref = a;
         assert(a.bits_count() == 41);
-        assert(a.bit_at(0));
-        assert(a.bit_at(1));
-        assert(a.bit_at(2));
-        assert(a.bit_at(3));
-        assert(!a.bit_at(4));
-        assert(a.bit_at(5));
+        assert(a[0]); assert(a.bit_at(0));
+        assert(a[1]); assert(a.bit_at(1));
+        assert(ref[2]); assert(ref.bit_at(2));
+        assert(a[3]); assert(a.bit_at(3));
+        assert(!a[4]); assert(!a.bit_at(4));
+        assert(a[5]); assert(a.bit_at(5));
         assert(!a.bit_at(9));
         assert(a.bit_at(17));
         assert(!a.bit_at(18));
         assert(a.bit_at(31));
-        assert(a.bit_at(32));
+        assert(ref.bit_at(32));
         assert(a.bit_at(33));
-        assert(!a.bit_at(34));
+        assert(!ref[34]);
         assert(!a.bit_at(35));
         assert(!a.bit_at(36));
         assert(a.bit_at(37));
         assert(!a.bit_at(38));
         assert(!a.bit_at(39));
-        assert(a.bit_at(40));
+        assert(ref[40]);
 
         NN b, c(1), d(2), e(0xf), f(0x1f); 
         assert(b.bits_count() == 0);

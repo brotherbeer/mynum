@@ -820,6 +820,18 @@ void number_t::bit_set_zero(size_t x)
     }
 }
 
+void number_t::bit_set(size_t x, int v)
+{
+    if (v)
+    {
+        bit_set_one(x);
+    }
+    else
+    {
+        bit_set_zero(x);
+    }
+}
+
 size_t number_t::bits_count() const
 {
     return len? __vbits_count(): 0;
@@ -975,6 +987,16 @@ number_t& number_t::operator <<= (int x)
 number_t& number_t::operator >>= (int x)
 {
     return this->shr(x);
+}
+
+int number_t::operator [] (int x) const
+{
+    return this->bit_at(x);
+}
+
+bitref_t number_t::operator [] (int x)
+{
+    return bitref_t(*this, x);
 }
 
 number_t::operator bool () const
@@ -1234,7 +1256,7 @@ static __always_inline(unit_t) __str_to_unit(const char* p, int base, int l)
     return x;
 }
 
-void number_t::__construct_from_xbase_string(const char* s, slen_t l, unit_t base, float ln_base, unit_t inner_base, unit_t inner_base_digits)
+void number_t::__construct_from_xbase_string(const char* s, slen_t l, int base, float ln_base, unit_t inner_base, unit_t inner_base_digits)
 {
     assert(len == 0 && l >= 0 && base <= __max_base());
 
@@ -1694,8 +1716,8 @@ static void __ksqr(const unit_t* x, slen_t lx, number_t& res);
 static void __div(const unit_t* a, slen_t la, const unit_t* b, slen_t lb, number_t& q, number_t& r);
 static void __div(const unit_t* a, slen_t la, const unit_t* b, slen_t lb, number_t& q);
 static bool __neq_core(const unit_t* x, const unit_t* y, slen_t l);
-static slen_t __cmp_same_len_core(const unit_t* x, const unit_t* y, slen_t l);
-static slen_t __cmp_core(const unit_t* x, slen_t lx, const unit_t* y, slen_t ly);
+static int __cmp_same_len_core(const unit_t* x, const unit_t* y, slen_t l);
+static int __cmp_core(const unit_t* x, slen_t lx, const unit_t* y, slen_t ly);
 static slen_t __add_core(const unit_t* x, slen_t lx, const unit_t* y, slen_t ly, unit_t* res);
 static slen_t __sub_core(const unit_t* x, slen_t lx, const unit_t* y, slen_t ly, unit_t* res);
 static slen_t __mul_core(const unit_t* x, slen_t lx, const unit_t* y, slen_t ly, unit_t* res);
@@ -1706,8 +1728,8 @@ static void __guess_sqrt(const number_t& a, number_t& res);
 static unit_t __truing_quotient(unit_t* x, const unit_t* y, slen_t len, unit_t trial);
 static slen_t __div_core(unit_t* x, slen_t lx, const unit_t* y, slen_t ly, unit_t* q);
 static void __shl_units(number_t& a, slen_t b);
-static slen_t __shl_core(unit_t* x, slen_t lx, int d);
-static unit_t __shr_core(unit_t* x, slen_t lx, int d);
+static slen_t __shl_core(unit_t* x, slen_t lx, slen_t d);
+static unit_t __shr_core(unit_t* x, slen_t lx, slen_t d);
 static slen_t __bit_and_core(const unit_t* x, const unit_t* y, slen_t lx, unit_t* res);
 static slen_t __bit_or_core(const unit_t* x, slen_t lx, const unit_t* y, slen_t ly, unit_t* res);
 static slen_t __bit_xor_core(const unit_t* x, slen_t lx, const unit_t* y, slen_t ly, unit_t* res);
@@ -2985,7 +3007,7 @@ bool __neq_core(const unit_t* x, const unit_t* y, slen_t l)
     return false;
 }
 
-__always_inline(slen_t) __cmp_same_len_core(const unit_t* x, const unit_t* y, slen_t l)
+__always_inline(int) __cmp_same_len_core(const unit_t* x, const unit_t* y, slen_t l)
 {
     assert(l >= 0);
 
@@ -3014,7 +3036,7 @@ __always_inline(slen_t) __cmp_same_len_core(const unit_t* x, const unit_t* y, sl
     return 0;
 }
 
-slen_t __cmp_core(const unit_t* x, slen_t lx, const unit_t* y, slen_t ly)
+int __cmp_core(const unit_t* x, slen_t lx, const unit_t* y, slen_t ly)
 {
     assert(lx >= 0 && ly >= 0);
 
@@ -3247,7 +3269,7 @@ slen_t __div_core(unit_t* x, slen_t lx, const unit_t* y, slen_t ly, unit_t* q)
     return k;
 }
 
-slen_t __shl_core(unit_t* x, slen_t lx, int d)
+slen_t __shl_core(unit_t* x, slen_t lx, slen_t d)
 {
     slen_t i = 0;
     unit_t carry = 0;
@@ -3264,7 +3286,7 @@ slen_t __shl_core(unit_t* x, slen_t lx, int d)
     return i;
 }
 
-unit_t __shr_core(unit_t* x, slen_t lx, int d)
+unit_t __shr_core(unit_t* x, slen_t lx, slen_t d)
 {
     slen_t i = lx;
     unit_t mask = ((unit_t)1 << d) - 1, carry = 0;

@@ -33,6 +33,7 @@ struct _base_number_t
 };
 
 struct string_t;
+struct bitref_t;
 struct number_t: public _base_number_t
 {
     number_t() {}
@@ -114,6 +115,7 @@ struct number_t: public _base_number_t
     number_t& mod_unit(unit_t);
 
     int bit_at(size_t) const;
+    void bit_set(size_t, int v = 1);
     void bit_set_one(size_t);
     void bit_set_zero(size_t);
     size_t bits_count() const;
@@ -148,6 +150,8 @@ struct number_t: public _base_number_t
     number_t& operator ^= (const number_t&);
     number_t& operator <<= (int);
     number_t& operator >>= (int);
+    int operator [] (int) const;
+    bitref_t operator [] (int);
     operator bool () const;
     bool operator ! () const;
 
@@ -161,7 +165,7 @@ struct number_t: public _base_number_t
     void __copy(const number_t&);
     void __construct_from_bin_string(const char*s, slen_t l);
     void __construct_from_hex_string(const char* s, slen_t l);
-    void __construct_from_xbase_string(const char* s, slen_t l, unit_t base, float ln_base, unit_t inner_base, unit_t inner_base_digits);
+    void __construct_from_xbase_string(const char* s, slen_t l, int base, float ln_base, unit_t inner_base, unit_t inner_base_digits);
     void __construct_from_string(const char* s, slen_t l, int base);
 
     string_t& __to_bin_string(string_t&) const;
@@ -272,6 +276,25 @@ int check(const char* p, int base);
 int check(const char* p, const char* e, int base);
 
 const char* find_valid(const char* p, const char* e, int base, size_t* size);
+
+struct bitref_t
+{
+    number_t& _ref;
+    size_t _x;
+
+    bitref_t(number_t& ref, size_t x): _ref(ref), _x(x) {}
+
+    operator int () const
+    {
+        return _ref.bit_at(_x);
+    }
+
+    int operator = (int v)
+    {
+        _ref.bit_set(_x, v);
+        return v > 0;
+    }
+};
 
 }  //namespace end
 

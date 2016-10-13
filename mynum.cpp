@@ -143,12 +143,12 @@ static __always_inline(slen_t) __abs(slen_t x)
     return (x + y) ^ y;
 }
 
-static __always_inline(slen_t) __sign(slen_t x)
+static __always_inline(int) __sign(slen_t x)
 {
     return __sign_shift(x) | 1;
 }
 
-static __always_inline(slen_t) __sign(slen_t x, slen_t y)
+static __always_inline(int) __sign(slen_t x, slen_t y)
 {
     return __sign_shift(x ^ y) | 1;
 }
@@ -308,9 +308,18 @@ number_t& number_t::assign(int x)
         __deallocate_units(dat);
         __reserve(len);
     }
-    *(int*)dat = __abs(x);
+	int s = 1;
+	if (x > 0)
+	{
+		*(int*)dat = x;
+	}
+	else
+	{
+		*(int*)dat = -x;
+		s = -1;
+	}
     __trim_leading_zeros(dat, len);
-    len *= __sign(x);
+    len *= s;
     return *this;
 }
 
@@ -322,9 +331,18 @@ number_t& number_t::assign(long x)
         __deallocate_units(dat);
         __reserve(len);
     }
-    *(long*)dat = __abs(x);
+	long s = 1;
+	if (x > 0)
+	{
+		*(long*)dat = x;
+	}
+	else
+	{
+		*(long*)dat = -x;
+		s = -1;
+	}
     __trim_leading_zeros(dat, len);
-    len *= __sign(x);
+    len *= s;
     return *this;
 }
 
@@ -767,7 +785,7 @@ number_t& number_t::mod_unit(unit_t x)
         }
         if (rem)
         {
-            *dat = rem;
+            *dat = (unit_t)rem;
             len = __sign(len);
         }
         else
@@ -1686,7 +1704,7 @@ int check(const char* p, int base)
             return 0;
         }
     }
-    return p - q;
+    return int(p - q);
 }
 
 int check(const char* p, const char* e, int base)
@@ -1703,7 +1721,7 @@ int check(const char* p, const char* e, int base)
             return 0;
         }
     }
-    return p - q;
+    return int(p - q);
 }
 
 /** algorithms implementation */

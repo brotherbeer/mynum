@@ -22,6 +22,8 @@ typedef long long slen_t;
 #error SIZE_MAX unknown
 #endif
 
+typedef dunit_t word_t;
+
 struct _base_number_t
 {
     unit_t* dat;
@@ -114,8 +116,14 @@ struct number_t: public _base_number_t
     number_t& div_unit(unit_t);
     number_t& mod_unit(unit_t);
 
-    int bit_at(size_t) const;
-    void bit_set(size_t, int v = 1);
+    number_t& add_word(word_t);
+    number_t& sub_word(word_t);
+    number_t& mul_word(word_t);
+    number_t& div_word(word_t);
+    number_t& mod_word(word_t);
+
+    bool bit_at(size_t) const;
+    void bit_set(size_t, bool v = 1);
     void bit_set_one(size_t);
     void bit_set_zero(size_t);
     size_t bits_count() const;
@@ -133,8 +141,8 @@ struct number_t: public _base_number_t
     number_t& operator = (unsigned long long);
     number_t& operator = (unsigned char);
     number_t& operator = (unsigned int);
-    number_t operator + () const;
-    number_t operator - () const;
+    number_t  operator + () const;
+    number_t  operator - () const;
     number_t& operator ~ ();
     number_t& operator ++ ();
     number_t& operator -- ();
@@ -150,10 +158,39 @@ struct number_t: public _base_number_t
     number_t& operator ^= (const number_t&);
     number_t& operator <<= (int);
     number_t& operator >>= (int);
-    int operator [] (int) const;
-    bitref_t operator [] (int);
+    string_t operator () (int);
+    bool operator [] (size_t) const;
+    bitref_t operator [] (size_t);
     operator bool () const;
     bool operator ! () const;
+
+    // TODO: Use following technique to optimize div_unit
+    // https://en.wikipedia.org/wiki/Division_algorithm#Division_by_a_constant
+    // http://ridiculousfish.com/files/faster_unsigned_division_by_constants.pdf
+    template <unit_t U> number_t& div_const_unit()
+    {
+        if (len)
+        {
+            dunit_t rem = 0;
+            slen_t l = len, s = 1;
+            if (len < 0)
+            {
+                s = -1;
+                l = -len;
+            }
+            unit_t* q = dat + l;
+            while (--q >= dat)
+            {
+                rem = rem << UNITBITS | *q;
+                *q = unit_t(rem / U);   // the compiler will optimize here
+                rem %= U;
+            }
+            const unit_t *e = dat - 1, *p = e + l;
+            while (p != e && !*p) {p--;}
+            len = slen_t(p - e) * s;
+        }
+        return *this;
+    }
 
     void __reserve(slen_t units);
     void __add(unit_t);
@@ -284,15 +321,41 @@ struct bitref_t
 
     bitref_t(number_t& ref, size_t x): _ref(ref), _x(x) {}
 
-    operator int () const
+    operator bool () const
     {
         return _ref.bit_at(_x);
     }
 
-    int operator = (int v)
+    bool operator ~ () const
+    {
+        return !_ref.bit_at(_x) ;
+    }
+
+    bool operator = (bool v)
     {
         _ref.bit_set(_x, v);
-        return v > 0;
+        return v;
+    }
+
+    bool operator |= (bool v)
+    {
+        bool u = _ref.bit_at(_x);
+        _ref.bit_set(_x, u | v);
+        return v;
+    }
+
+    bool operator &= (bool v)
+    {
+        bool u = _ref.bit_at(_x);
+        _ref.bit_set(_x, u & v);
+        return v;
+    }
+
+    bool operator ^= (bool v)
+    {
+        bool u = _ref.bit_at(_x);
+        _ref.bit_set(_x, u ^ v);
+        return v;
     }
 };
 

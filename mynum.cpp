@@ -796,11 +796,11 @@ number_t& number_t::mod_unit(unit_t x)
     return *this;
 }
 
-int number_t::bit_at(size_t x) const
+bool number_t::bit_at(size_t x) const
 {
     if (slen_t(x / SHIFT) < len)
     {
-        return dat[x / SHIFT] & ((unit_t)1 << x % SHIFT);
+        return (dat[x / SHIFT] & ((unit_t)1 << x % SHIFT)) != 0;
     }
     return 0;
 }
@@ -838,7 +838,7 @@ void number_t::bit_set_zero(size_t x)
     }
 }
 
-void number_t::bit_set(size_t x, int v)
+void number_t::bit_set(size_t x, bool v)
 {
     if (v)
     {
@@ -1007,12 +1007,17 @@ number_t& number_t::operator >>= (int x)
     return this->shr(x);
 }
 
-int number_t::operator [] (int x) const
+string_t number_t::operator () (int base)
+{
+    return this->to_string(base);
+}
+
+bool number_t::operator [] (size_t x) const
 {
     return this->bit_at(x);
 }
 
-bitref_t number_t::operator [] (int x)
+bitref_t number_t::operator [] (size_t x)
 {
     return bitref_t(*this, x);
 }

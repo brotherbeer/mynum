@@ -79,6 +79,23 @@ void test_detail()
     test_mod_samll();
 }
 
+//////////////////////
+typedef unsigned int uint32_t;
+typedef unsigned long long uint64_t;
+uint64_t __mul_unit64(uint64_t x, uint64_t y)
+{
+    uint64_t a, b, c, d;
+    uint64_t m, n, o;
+
+    a = x >> 32; b = x & 0xFFFFFFFF;
+    c = y >> 32; d = y & 0xFFFFFFFF;
+    m = d * a + (d * b >> 32);    // never overflow
+    n = c * b;
+    o = m + n;      // maybe overflow, if overflow o < m
+    return a * c + (o >> 32) + (uint64_t(o < m) << 32); // the higher 32-bit
+}
+//////////////////////
+
 int main(int argc, char* argv[])
 {
     if (argc > 1)
@@ -138,7 +155,7 @@ void test_construct()
         NN c((long)12);
         NN d((long long)12);
         assert(neq(a, b));
-        assert(a.to_string() == "123456789123456789123456789");
+        assert(a(10) == "123456789123456789123456789");
         assert(b.to_string() == "123456789");
         assert(c.to_string() == "12");
         assert(d.to_string() == "12");
@@ -239,46 +256,46 @@ void test_assign()
 #elif UNITBITS == 32
         assert(a.cap == 32);
 #endif
-        a = char(123); assert(a.to_string() == "123");
-        a = short(123); assert(a.to_string() == "123");
-        a = int(123); assert(a.to_string() == "123");
-        a = long(123); assert(a.to_string() == "123");
-        a = (long long)(123); assert(a.to_string() == "123");
-        a = short(-123); assert(a.to_string() == "-123");
-        a = int(-123); assert(a.to_string() == "-123");
-        a = long(-123); assert(a.to_string() == "-123");
-        a = (long long)(-123); assert(a.to_string() == "-123");
-        a = (unsigned short)(123); assert(a.to_string() == "123");
-        a = (unsigned int)(123); assert(a.to_string() == "123");
-        a = (unsigned long)(123); assert(a.to_string() == "123");
-        a = (unsigned long long)(123); assert(a.to_string() == "123");
+        a = char(123); assert(a(10) == "123");
+        a = short(123); assert(a(10) == "123");
+        a = int(123); assert(a(10) == "123");
+        a = long(123); assert(a(10) == "123");
+        a = (long long)(123); assert(a(10) == "123");
+        a = short(-123); assert(a(10) == "-123");
+        a = int(-123); assert(a(10) == "-123");
+        a = long(-123); assert(a(10) == "-123");
+        a = (long long)(-123); assert(a(10) == "-123");
+        a = (unsigned short)(123); assert(a(10) == "123");
+        a = (unsigned int)(123); assert(a(10) == "123");
+        a = (unsigned long)(123); assert(a(10) == "123");
+        a = (unsigned long long)(123); assert(a(10) == "123");
     }
     {
         NN a;
-        a = char(123); assert(a.to_string() == "123");
-        a = short(123); assert(a.to_string() == "123");
-        a = int(123); assert(a.to_string() == "123");
-        a = long(123); assert(a.to_string() == "123");
-        a = (long long)(123); assert(a.to_string() == "123");
-        a = short(-123); assert(a.to_string() == "-123");
-        a = int(-123); assert(a.to_string() == "-123");
-        a = long(-123); assert(a.to_string() == "-123");
-        a = (long long)(-123); assert(a.to_string() == "-123");
-        a = (unsigned char)(123); assert(a.to_string() == "123");
-        a = (unsigned short)(123); assert(a.to_string() == "123");
-        a = (unsigned int)(123); assert(a.to_string() == "123");
-        a = (unsigned long)(123); assert(a.to_string() == "123");
-        a = (unsigned long long)(123); assert(a.to_string() == "123");
+        a = char(123); assert(a(10) == "123");
+        a = short(123); assert(a(10) == "123");
+        a = int(123); assert(a(10) == "123");
+        a = long(123); assert(a(10) == "123");
+        a = (long long)(123); assert(a(10) == "123");
+        a = short(-123); assert(a(10) == "-123");
+        a = int(-123); assert(a(10) == "-123");
+        a = long(-123); assert(a(10) == "-123");
+        a = (long long)(-123); assert(a(10) == "-123");
+        a = (unsigned char)(123); assert(a(10) == "123");
+        a = (unsigned short)(123); assert(a(10) == "123");
+        a = (unsigned int)(123); assert(a(10) == "123");
+        a = (unsigned long)(123); assert(a(10) == "123");
+        a = (unsigned long long)(123); assert(a(10) == "123");
     }
     {
-        NN a; a = 0xabcdffffffffabcdULL; assert(a.to_string(16) == "abcdffffffffabcd");
-        NN b; b = 0xabcdffffU; assert(b.to_string(16) == "abcdffff");
-        NN c; c = (unsigned short)(0xabcd); assert(c.to_string(16) == "abcd");
+        NN a; a = 0xabcdffffffffabcdULL; assert(a(16) == "abcdffffffffabcd");
+        NN b; b = 0xabcdffffU; assert(b(16) == "abcdffff");
+        NN c; c = (unsigned short)(0xabcd); assert(c(16) == "abcd");
     }
     {
         NN a("12345678901234567890");
         a.bits_reserve(1000);
-        assert(a.to_string() == "12345678901234567890");
+        assert(a(10) == "12345678901234567890");
 #if UNITBITS == 16
         assert(a.cap == 64);
 #elif UNITBITS == 32
@@ -1159,6 +1176,11 @@ void test_sub()
     }
 }
 
+void test_fun(number_t a)
+{
+    a.bit_set(5);
+}
+
 void test_div()
 {
     {
@@ -1330,6 +1352,18 @@ void test_div()
         floor_div("-1293847912374", 2, q, r);
         assert(eq(q, "-646923956187"));
         assert(eq(r, 0));
+    }
+    {
+        NN a("147586234134123405720334535434543298572375");
+        a.div_const_unit<7>();
+        a.div_const_unit<17>();
+        a.div_const_unit<129>();
+        a.div_const_unit<2>();
+        a.div_const_unit<4>();
+        //a.div_unit(7);
+        //printf("%x %x %x\n", a, a, a);  
+        //printf("%p\n", a.dat);
+        //test_fun(a);
     }
     for (int i = 0; i < 2000; i++)
     {
@@ -1734,21 +1768,29 @@ void test_bits()
 {
     {
         NN a, b;
-        a.bit_set_one(0); assert(eq(a, 1));
-        a.bit_set_one(1); assert(eq(a, 3));
-        a.bit_set_one(2); assert(eq(a, 7));
-        a.bit_set_one(3); assert(eq(a, 15));
-        a.bit_set_one(4); assert(eq(a, 31));
-        a.bit_set_one(16); assert(eq(a, 65567));
-        a[32] = 1; assert(a.to_bin_string() == "100000000000000010000000000011111");
-        a[33] = 1; assert(a.to_bin_string() == "1100000000000000010000000000011111");
-        a[34] = 1; assert(a.to_bin_string() == "11100000000000000010000000000011111");
-        a[0] = 0; assert(a.to_bin_string() == "11100000000000000010000000000011110");
-        a[2] = 0; assert(a.to_bin_string() == "11100000000000000010000000000011010");
-        a[4] = 0; assert(a.to_bin_string() == "11100000000000000010000000000001010");
-        a.bit_set_zero(128); assert(a.to_bin_string() == "11100000000000000010000000000001010");
-        b.bit_set_zero(0); assert(b.to_bin_string() == "0");
-        b[128] = 0; assert(b.to_bin_string() == "0");
+        const NN& const_a_ref = a;
+        a.bit_set_one(0); assert(eq(a, 1)); assert(const_a_ref[0] == 1);
+        a.bit_set_one(1); assert(eq(a, 3)); assert(const_a_ref[1] == 1);
+        a.bit_set_one(2); assert(eq(a, 7)); assert(const_a_ref[2] == 1);
+        a.bit_set_one(3); assert(eq(a, 15)); assert(const_a_ref[3] == 1);
+        a.bit_set_one(4); assert(eq(a, 31)); assert(const_a_ref[4] == 1);
+        a.bit_set_one(16); assert(eq(a, 65567)); assert(const_a_ref[16] == 1);
+
+        assert(a[0] == 1);
+        assert(!a[0] == 0);
+        assert(~a[0] == 0);
+
+        a[32] = 1; assert(a(2) == "100000000000000010000000000011111"); assert(const_a_ref[32] == 1);
+        a[33] = 1; assert(a(2) == "1100000000000000010000000000011111"); assert(const_a_ref[33] == 1);
+        a[34] = 1; assert(a(2) == "11100000000000000010000000000011111"); assert(const_a_ref[34] == 1);
+        a[3] = a[1]; assert(a(2) == "11100000000000000010000000000011111");
+        a[3] = a[5]; assert(a(2) == "11100000000000000010000000000010111");
+        a[0] = 0; assert(a(2) == "11100000000000000010000000000010110"); assert(const_a_ref[0] == 0);
+        a[2] = 0; assert(a(2) == "11100000000000000010000000000010010"); assert(const_a_ref[2] == 0);
+        a[34] = 0; assert(a(2) == "1100000000000000010000000000010010"); assert(const_a_ref[34] == 0);
+        a.bit_set_zero(128); assert(a(2) == "1100000000000000010000000000010010");
+        b.bit_set_zero(0); assert(b(2) == "0");
+        b[128] = 0; assert(b(2) == "0");
 
         const number_t& r = a;  // just test compiling
         int x = a[9] != 1;

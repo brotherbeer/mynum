@@ -164,39 +164,13 @@ struct number_t: public _base_number_t
     operator bool () const;
     bool operator ! () const;
 
-    // TODO: Use following technique to optimize div_unit
-    // https://en.wikipedia.org/wiki/Division_algorithm#Division_by_a_constant
-    // http://ridiculousfish.com/files/faster_unsigned_division_by_constants.pdf
-    template <unit_t U> number_t& div_const_unit()
-    {
-        if (len)
-        {
-            dunit_t rem = 0;
-            slen_t l = len, s = 1;
-            if (len < 0)
-            {
-                s = -1;
-                l = -len;
-            }
-            unit_t* q = dat + l;
-            while (--q >= dat)
-            {
-                rem = rem << UNITBITS | *q;
-                *q = unit_t(rem / U);   // the compiler will optimize here
-                rem %= U;
-            }
-            const unit_t *e = dat - 1, *p = e + l;
-            while (p != e && !*p) {p--;}
-            len = slen_t(p - e) * s;
-        }
-        return *this;
-    }
-
     void __reserve(slen_t units);
     void __add(unit_t);
     void __mul(unit_t);
     slen_t __abs_add_unit(unit_t);
     slen_t __abs_sub_unit(unit_t);
+    slen_t __abs_add_word(word_t);
+    slen_t __abs_sub_word(word_t);
     slen_t __bits_reserve(slen_t);
     slen_t __vbits_count() const;
     void __copy(const number_t&);

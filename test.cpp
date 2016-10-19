@@ -79,23 +79,6 @@ void test_detail()
     test_mod_samll();
 }
 
-//////////////////////
-typedef unsigned int uint32_t;
-typedef unsigned long long uint64_t;
-uint64_t __mul_unit64(uint64_t x, uint64_t y)
-{
-    uint64_t a, b, c, d;
-    uint64_t m, n, o;
-
-    a = x >> 32; b = x & 0xFFFFFFFF;
-    c = y >> 32; d = y & 0xFFFFFFFF;
-    m = d * a + (d * b >> 32);    // never overflow
-    n = c * b;
-    o = m + n;      // maybe overflow, if overflow o < m
-    return a * c + (o >> 32) + (uint64_t(o < m) << 32); // the higher 32-bit
-}
-//////////////////////
-
 int main(int argc, char* argv[])
 {
     if (argc > 1)
@@ -1353,18 +1336,6 @@ void test_div()
         assert(eq(q, "-646923956187"));
         assert(eq(r, 0));
     }
-    {
-        NN a("147586234134123405720334535434543298572375");
-        a.div_const_unit<7>();
-        a.div_const_unit<17>();
-        a.div_const_unit<129>();
-        a.div_const_unit<2>();
-        a.div_const_unit<4>();
-        //a.div_unit(7);
-        //printf("%x %x %x\n", a, a, a);  
-        //printf("%p\n", a.dat);
-        //test_fun(a);
-    }
     for (int i = 0; i < 2000; i++)
     {
         NN a, b, q, r;
@@ -1984,6 +1955,9 @@ void test_add_samll()
         a.add_unit(56756); a.add_unit(332); a.add_unit(8976); a.add_unit(993);
         a.add_unit(4321); a.add_unit(8907); a.add_unit(0);
         assert(a == 0);
+
+        NN b(-456); b.add_unit(1000); assert(b == 544);
+        NN c(-123); c.add_unit(123); assert(c == 0);
     }
     {
         NN a;
@@ -2017,6 +1991,45 @@ void test_add_samll()
         assert(a == b);
         assert(a == 499500);
     }
+#if UNITBITS == 16
+    {
+        NN a("12345678901234567890");
+        a.add_word(65535); assert(a == NN("12345678901234633425"));
+        a.add_word(65536); assert(a == NN("12345678901234698961"));
+        a.set_neg();
+        a.add_word(65535); assert(a == NN("-12345678901234633426"));
+        a.add_word(65536); assert(a == NN("-12345678901234567890"));
+
+        NN b("FFFFFFFFFFFFFFFF", 16);
+        b.add_word(65535); assert(b == NN("18446744073709617150"));
+        b.add_word(0xffffffff); assert(b == NN("18446744078004584445"));
+        b.set_neg();
+        b.add_word(65535); assert(b == NN("-18446744078004518910"));
+        b.add_word(65536); assert(b == NN("-18446744078004453374"));
+
+        NN c(1234);
+        c.add_word(0xffffffff); assert(c == NN("4294968529"));
+        NN d("ffffffffbbee", 16);
+        d.add_word(0xffff); assert(d(16) == "100000000bbed");
+        NN e("ffffffffffffbbee", 16);
+        e.add_word(0xffff); assert(e(16) == "1000000000000bbed");       
+        NN _e_("ffffffffffffbbee", 16);
+        _e_.bits_reserve(300);
+        _e_.add_word(0xffff); assert(_e_(16) == "1000000000000bbed");
+        NN f("aaaaaaaaffffffffffffbbee", 16);
+        f.add_word(0xffff); assert(f(16) == "aaaaaaab000000000000bbed");
+        NN g("aaaabbbbffffffff", 16);
+        g.add_word(0xffff); assert(g(16) == "aaaabbbc0000fffe");
+        NN h("aaaaffffffffffffffff", 16);
+        h.add_word(0xffff); assert(h(16) == "aaab000000000000fffe");
+        NN i("aaaaffffffffffffffffffff", 16);
+        i.add_word(0xffff); assert(i(16) == "aaab0000000000000000fffe");
+        NN j("aaaaffffffffffffffffffff", 16);
+        j.bits_reserve(300);
+        j.add_word(0xffff); assert(j(16) == "aaab0000000000000000fffe");
+    }
+#else
+#endif
 }
 
 void test_sub_samll()
@@ -2031,6 +2044,10 @@ void test_sub_samll()
         a.sub_unit(56756); a.sub_unit(332); a.sub_unit(8976); a.sub_unit(993);
         a.sub_unit(4321); a.sub_unit(8907); a.sub_unit(0);
         assert(a == -118446);
+
+        NN b(456); b.sub_unit(1000); assert(b == -544);
+        NN c(123); c.sub_unit(123); assert(c == 0);
+        NN d(-123); d.sub_unit(123); assert(d == -246);
     }
     {
         NN a("1234567890"), b("-1234567890"), c, d(-1234), e(1234);
@@ -2075,6 +2092,11 @@ void test_mul_samll()
         }
         assert(a == b);
         assert(b == NN("8222838654177922817725562880000000"));
+    }
+    {
+        NN a("23424623456345623452345");
+        a.mul_word(65538);
+        assert(a(10) == "1535202972081979469819786610");
     }
 }
 

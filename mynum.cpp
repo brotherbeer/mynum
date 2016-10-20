@@ -20,6 +20,8 @@
 #define __always_inline(x)  __attribute__((always_inline)) x
 #elif defined(_MSC_VER)
 #define __always_inline(x)  __forceinline x
+#else
+#define __always_inline(x)  inline x
 #endif
 
 namespace mynum {
@@ -137,6 +139,7 @@ static __always_inline(int) __char_digit(char c);
 static __always_inline(bool) __char_digit_valid(char c, int base);
 static __always_inline(slen_t) __vbits_count(unit_t x);
 static __always_inline(dunit_t) __mul_add_dunit(dunit_t x, dunit_t y, dunit_t z, dunit_t* low);
+static __always_inline(dunit_t) __qunit_div_by_dunit(dunit_t h, dunit_t l, dunit_t d, dunit_t* r);
 
 #define __sign_shift(x) ((x) >> ((sizeof(slen_t) << 3) - 1))
 
@@ -847,10 +850,10 @@ number_t& number_t::mul_unit(unit_t x)
 
 number_t& number_t::mul_word(word_t x)
 {
-    __pad_word(dat, len);
-
     if (len)
     {
+        __pad_word(dat, len);
+
         word_t *p, *e, carry = 0;
         slen_t l = __abs(len), m = (l + (l & 1)) / 2;
 
@@ -912,7 +915,24 @@ number_t& number_t::div_unit(unit_t x)
 
 number_t& number_t::div_word(word_t x)
 {
-    __pad_word(dat, len);
+    assert(x != 0);
+
+    if (len)
+    {
+        __pad_word(dat, len);
+
+        word_t *q, *e, rem = 0;
+        slen_t l = __abs(len), m = (l + (l & 1)) / 2;       
+
+        e = (word_t*)dat;
+        q = e + m;
+        while (--q >= e)
+        {
+            *q = __qunit_div_by_dunit(rem, *q, x, &rem);
+        }
+        __trim_leading_zeros(dat, l);
+        len = l * __sign(len);
+    }
     return *this;
 }
 
@@ -3638,6 +3658,60 @@ bool __char_digit_valid(char c, int base)
     return __CHAR_DIGIT[(unsigned char)c] < base;
 }
 
+static __always_inline(dunit_t) __childishly_div_dunit(dunit_t h, dunit_t l, dunit_t d, dunit_t* r)
+{
+    assert(h < d && d != 0);
+
+    dunit_t q1, q2, rx, u, v;
+    unit_t d1 = d >> SHIFT, d2 = d & MASK;
+    unit_t l1 = l >> SHIFT, l2 = l & MASK;
+
+    if (d1)
+    {
+        q1 = h / d1;
+        rx = h % d1;
+        if (q1 >= BASE)
+        {
+            q1 = MASK;
+            rx = h - MASK * d1;
+        }
+        u = q1 * d2;
+        v = __make_dunit(rx, l1);
+        while (rx < BASE && v < u)
+        {
+            u = --q1 * d2;
+            v = __make_dunit(rx += d1, l1);
+        }
+        *r = v - u;
+
+        q2 = *r / d1;
+        rx = *r % d1;
+        if (q2 >= BASE)
+        {
+            q2 = MASK;
+            rx = *r - MASK * d1;
+        }
+        u = q2 * d2;
+        v = __make_dunit(rx, l2);
+        while (rx < BASE && v < u)
+        {
+            u = --q2 * d2;
+            v = __make_dunit(rx += d1, l2);
+        }
+        *r = v - u;
+    }
+    else
+    {
+        u = __make_dunit(h, l1);
+        q1 = u / d2;
+        *r = u % d2;
+        v = __make_dunit(*r, l2);
+        q2 = v / d2;
+        *r = v % d2;
+    }
+    return __make_dunit(q1, q2);  // Oh~ It's too slowwwww
+}
+
 #ifdef __GNUC__
 
 slen_t __vbits_count(unit_t x)
@@ -3658,6 +3732,16 @@ dunit_t __mul_add_dunit(dunit_t x, dunit_t y, dunit_t z, dunit_t* l)
     __qunit_t m = __qunit_t(x) * y + z;
     *l = m & DMASK;
     return m >> (UNITBITS * 2);
+}
+
+dunit_t __qunit_div_by_dunit(dunit_t h, dunit_t l, dunit_t d, dunit_t* r)
+{
+    assert(h < d);
+
+    __qunit_t qunit = __qunit_t(h) << (UNITBITS * 2) | l;
+    dunit_t q = dunit_t(qunit / d);
+    *r = dunit_t(qunit % d);
+    return q;
 }
 
 #elif defined(_MSC_VER)
@@ -3685,15 +3769,32 @@ dunit_t __mul_add_dunit(dunit_t x, dunit_t y, dunit_t z, dunit_t* l)
     return r >> (UNITBITS * 2);
 }
 
+dunit_t __qunit_div_by_dunit(dunit_t h, dunit_t l, dunit_t d, dunit_t* r)
+{
+    return __childishly_div_dunit(h, l, d, r);
+
+    //assert(h < d);
+
+    //unsigned __int64 qunit = (unsigned __int64)h << (UNITBITS * 2) | l;
+    //dunit_t q = dunit_t(qunit / d);
+    //*r = dunit_t(qunit % d);
+    //return q;
+}
+
 #elif UNITBITS == 32
 
 #pragma intrinsic(_umul128)
 dunit_t __mul_add_dunit(dunit_t x, dunit_t y, dunit_t z, dunit_t* l)
 {
     unsigned __int64 h, t;
-    t = *l = _umul128(x£¬y£¬&h);
+    t = *l = _umul128(x, y, &h);
     *l += z;
     return h + (*l < t);
+}
+
+dunit_t __qunit_div_by_dunit(dunit_t h, dunit_t l, dunit_t d, dunit_t* r)
+{
+    return __childishly_div_dunit(h, l, d, r);
 }
 
 #endif
@@ -3752,7 +3853,7 @@ dunit_t __mul_add_dunit(dunit_t x, dunit_t y, dunit_t z, dunit_t* l)
     c = y >> UNITBITS; d = y & MASK;
     m = d * a + (d * b >> UNITBITS);    // never overflow
     n = c * b;
-    o = m + n;      // maybe overflow, if overflow o < m
+    o = m + n;   // maybe overflow, if overflow o < m
 
     h = a * c + (o >> UNITBITS) + (dunit_t(o < m) << UNITBITS);
     *l = x * y;
@@ -3761,6 +3862,11 @@ dunit_t __mul_add_dunit(dunit_t x, dunit_t y, dunit_t z, dunit_t* l)
     *l += z;
     h += *l < a;
     return h;
+}
+
+dunit_t __qunit_div_by_dunit(dunit_t h, dunit_t l, dunit_t d, dunit_t* r)
+{
+    return __childishly_div_dunit(h, l, d, r);
 }
 
 #endif

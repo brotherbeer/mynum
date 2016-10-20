@@ -139,6 +139,7 @@ static __always_inline(int) __char_digit(char c);
 static __always_inline(bool) __char_digit_valid(char c, int base);
 static __always_inline(slen_t) __vbits_count(unit_t x);
 static __always_inline(dunit_t) __mul_add_dunit(dunit_t x, dunit_t y, dunit_t z, dunit_t* low);
+static __always_inline(dunit_t) __qunit_mod_by_dunit(dunit_t h, dunit_t l, dunit_t d);
 static __always_inline(dunit_t) __qunit_div_by_dunit(dunit_t h, dunit_t l, dunit_t d, dunit_t* r);
 
 #define __sign_shift(x) ((x) >> ((sizeof(slen_t) << 3) - 1))
@@ -963,7 +964,33 @@ number_t& number_t::mod_unit(unit_t x)
 
 number_t& number_t::mod_word(word_t x)
 {
-    __pad_word(dat, len);
+    assert(x != 0);
+
+    if (len)
+    {
+        __pad_word(dat, len);
+
+        word_t *q, *e, rem = 0;
+        slen_t l = __abs(len), m = (l + (l & 1)) / 2;       
+
+        e = (word_t*)dat;
+        q = e + m;
+        while (--q >= e)
+        {
+            rem = __qunit_mod_by_dunit(rem, *q, x);
+        }
+        if (rem)
+        {
+            *(word_t*)dat = rem;
+            len = 2;
+        }
+        else
+        {
+            set_zero();
+        }
+        __trim_leading_zeros(dat, l);
+        len = l * __sign(len);
+    }
     return *this;
 }
 
@@ -3744,6 +3771,14 @@ dunit_t __qunit_div_by_dunit(dunit_t h, dunit_t l, dunit_t d, dunit_t* r)
     return q;
 }
 
+dunit_t __qunit_mod_by_dunit(dunit_t h, dunit_t l, dunit_t d)
+{
+    assert(h < d);
+
+    __qunit_t qunit = __qunit_t(h) << (UNITBITS * 2) | l;
+    return dunit_t(qunit % d);
+}
+
 #elif defined(_MSC_VER)
 
 #include <intrin.h>
@@ -3779,6 +3814,14 @@ dunit_t __qunit_div_by_dunit(dunit_t h, dunit_t l, dunit_t d, dunit_t* r)
     //dunit_t q = dunit_t(qunit / d);
     //*r = dunit_t(qunit % d);
     //return q;
+}
+
+dunit_t __qunit_mod_by_dunit(dunit_t h, dunit_t l, dunit_t d)
+{
+    assert(h < d);
+
+    unsigned __int64 qunit = (unsigned __int64)h << (UNITBITS * 2) | l;
+    return dunit_t(qunit % d);
 }
 
 #elif UNITBITS == 32
@@ -3867,6 +3910,13 @@ dunit_t __mul_add_dunit(dunit_t x, dunit_t y, dunit_t z, dunit_t* l)
 dunit_t __qunit_div_by_dunit(dunit_t h, dunit_t l, dunit_t d, dunit_t* r)
 {
     return __childishly_div_dunit(h, l, d, r);
+}
+
+dunit_t __qunit_mod_by_dunit(dunit_t h, dunit_t l, dunit_t d)
+{
+    dunit_t r;
+    __childishly_div_dunit(h, l, d, &r);
+    return r;
 }
 
 #endif

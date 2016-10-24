@@ -862,6 +862,8 @@ number_t& number_t::mul_word(word_t x)
         e = p + m;
         for (; p != e; p++)
         {
+            // multiply *p and x, and add carry to the result
+            // see issue #9
             carry = __mul_add_dunit(*p, x, carry, p);
         }
         if (!carry)
@@ -3685,7 +3687,7 @@ bool __char_digit_valid(char c, int base)
     return __CHAR_DIGIT[(unsigned char)c] < base;
 }
 
-static __always_inline(dunit_t) __childishly_div_dunit(dunit_t h, dunit_t l, dunit_t d, dunit_t* r)
+static __always_inline(dunit_t) __original_div_4by2(dunit_t h, dunit_t l, dunit_t d, dunit_t* r)
 {
     assert(h < d && d != 0);
 
@@ -3695,13 +3697,24 @@ static __always_inline(dunit_t) __childishly_div_dunit(dunit_t h, dunit_t l, dun
 
     if (d1)
     {
+        // compute:
+        // q1 = (h * BASE + l1) / d
+        // r  = (h * BASE + l1) % d
+        // q2 = (r * BASE + l2) / d
+        // r  = (r * BASE + l2) % d
+        // q1 * BASE + q2 is the result of this division
+
+        // first step, use h / d1 to evaluate q1
         q1 = h / d1;
         rx = h % d1;
+        // if h < d, q1 can only be less than BASE
         if (q1 >= BASE)
         {
             q1 = MASK;
             rx = h - MASK * d1;
         }
+        // evaluated q1 may be greater than the true value, the proof is issue #10 */
+        // second step, adjust q1 to the true value, see issue #12
         u = q1 * d2;
         v = __make_dunit(rx, l1);
         while (rx < BASE && v < u)
@@ -3806,7 +3819,7 @@ dunit_t __mul_add_dunit(dunit_t x, dunit_t y, dunit_t z, dunit_t* l)
 
 dunit_t __qunit_div_by_dunit(dunit_t h, dunit_t l, dunit_t d, dunit_t* r)
 {
-    return __childishly_div_dunit(h, l, d, r);
+    return __original_div_4by2(h, l, d, r);
 
     //assert(h < d);
 
@@ -3837,7 +3850,7 @@ dunit_t __mul_add_dunit(dunit_t x, dunit_t y, dunit_t z, dunit_t* l)
 
 dunit_t __qunit_div_by_dunit(dunit_t h, dunit_t l, dunit_t d, dunit_t* r)
 {
-    return __childishly_div_dunit(h, l, d, r);
+    return __original_div_4by2(h, l, d, r);
 }
 
 #endif
@@ -3909,13 +3922,13 @@ dunit_t __mul_add_dunit(dunit_t x, dunit_t y, dunit_t z, dunit_t* l)
 
 dunit_t __qunit_div_by_dunit(dunit_t h, dunit_t l, dunit_t d, dunit_t* r)
 {
-    return __childishly_div_dunit(h, l, d, r);
+    return __original_div_4by2(h, l, d, r);
 }
 
 dunit_t __qunit_mod_by_dunit(dunit_t h, dunit_t l, dunit_t d)
 {
     dunit_t r;
-    __childishly_div_dunit(h, l, d, &r);
+    __original_div_4by2(h, l, d, &r);
     return r;
 }
 

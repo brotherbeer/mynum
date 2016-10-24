@@ -13,13 +13,15 @@
 #include <cstdlib>
 #include <cstring>
 #include <cmath>
-#include <stdio.h>
 #include "mynum.h"
+
 
 #ifdef __GNUC__
 #define __always_inline(x)  __attribute__((always_inline)) x
 #elif defined(_MSC_VER)
 #define __always_inline(x)  __forceinline x
+#else
+#define __always_inline(x)  inline x
 #endif
 
 namespace mynum {
@@ -29,6 +31,7 @@ const float LN_10 = 2.3026f;  // log(10)
 const unit_t  SHIFT = sizeof(unit_t) << 3;
 const dunit_t BASE = (dunit_t)1 << SHIFT;
 const unit_t  MASK = ~unit_t(0);
+const dunit_t DMASK = ~dunit_t(0);
 const int KMUL_THRESHOLD = 80;
 const int KSQR_THRESHOLD = 120;
 
@@ -49,11 +52,12 @@ const unit_t INNEROCT_BASE = 010000000000;
 const float LN_BASE = 22.1807f;
 const float LN_INNERDEC_BASE = 20.7233f;
 const float LN_INNEROCT_BASE = 20.7944f;
+
 #endif
 
 typedef unsigned char byte_t;
 
-struct mem 
+struct mem
 {
     static __always_inline(void*) allocate(size_t s, size_t u)
     {
@@ -102,7 +106,13 @@ struct _radix_t
 
 static __always_inline(unit_t*) __allocate_units(slen_t s)
 {
-    return (unit_t*)mem::allocate(s, sizeof(unit_t));
+    return (unit_t*)mem::allocate(s + (s & 1), sizeof(unit_t));
+}
+
+static __always_inline(unit_t*) __allocate_units(slen_t units, slen_t* pcap)
+{
+    *pcap = units + (units & 1);
+    return (unit_t*)mem::allocate(*pcap, sizeof(unit_t));
 }
 
 static __always_inline(void) __deallocate_units(unit_t* p)
@@ -120,9 +130,17 @@ static __always_inline(unit_t*) __copy_units(unit_t* d, const unit_t* s, slen_t 
     return (unit_t*)memcpy(d, s, l * sizeof(unit_t));
 }
 
+static __always_inline(unit_t*) __move_units(unit_t* d, const unit_t* s, slen_t l)
+{
+    return (unit_t*)memmove(d, s, l * sizeof(unit_t));
+}
+
 static __always_inline(int) __char_digit(char c);
 static __always_inline(bool) __char_digit_valid(char c, int base);
 static __always_inline(slen_t) __vbits_count(unit_t x);
+static __always_inline(dunit_t) __mul_add_dunit(dunit_t x, dunit_t y, dunit_t z, dunit_t* low);
+static __always_inline(dunit_t) __qunit_mod_by_dunit(dunit_t h, dunit_t l, dunit_t d);
+static __always_inline(dunit_t) __qunit_div_by_dunit(dunit_t h, dunit_t l, dunit_t d, dunit_t* r);
 
 #define __sign_shift(x) ((x) >> ((sizeof(slen_t) << 3) - 1))
 
@@ -132,12 +150,12 @@ static __always_inline(slen_t) __abs(slen_t x)
     return (x + y) ^ y;
 }
 
-static __always_inline(slen_t) __sign(slen_t x)
+static __always_inline(int) __sign(slen_t x)
 {
     return __sign_shift(x) | 1;
 }
 
-static __always_inline(slen_t) __sign(slen_t x, slen_t y)
+static __always_inline(int) __sign(slen_t x, slen_t y)
 {
     return __sign_shift(x ^ y) | 1;
 }
@@ -161,10 +179,18 @@ static __always_inline(dunit_t) __make_dunit(dunit_t high, unit_t low)
 
 #define __trim_leading_zeros(dat, len) do\
     {\
-        const unit_t *e = dat - 1, *p = e + __abs(len); \
+        assert(len >= 0); \
+        const unit_t *e = dat - 1, *p = e + len; \
         while (p != e && !*p) {p--;} \
-        len = slen_t((p - e) * __sign(len)); \
+        len = slen_t(p - e); \
     } while (0)
+
+#define __pad_word(dat, len) do\
+    { \
+        slen_t l = __abs(len); \
+        if ((l) & 1) *((dat) + l) = 0; \
+    } while (0)
+
 
 number_t::number_t(const char* s)
 {
@@ -174,7 +200,6 @@ number_t::number_t(const char* s)
         if (l > 0)
         {
             __construct_from_xbase_string(s, l, 10, LN_10, INNERDEC_BASE, INNERDEC_BASE_DIGITS);
-            __trim_leading_zeros(dat, len);
         }
     }
 }
@@ -187,7 +212,6 @@ number_t::number_t(const char* s, int base)
         if (l > 0)
         {
             __construct_from_string(s, l, base);
-            __trim_leading_zeros(dat, len);
         }
     }
 }
@@ -197,7 +221,6 @@ number_t::number_t(const char* s, size_t l, int base)
     if (s && slen_t(l) > 0 && base <= __max_base())
     {
         __construct_from_string(s, l, base);
-        __trim_leading_zeros(dat, len);
     }
 }
 
@@ -206,24 +229,206 @@ number_t::number_t(const number_t& another)
     __copy(another);
 }
 
-number_t& number_t::assign(const number_t& x)     { copy(x); return *this; }
-number_t& number_t::assign(int x)                 { __release(); __assign(x); return *this;  }
-number_t& number_t::assign(long x)                { __release(); __assign(x); return *this;  }
-number_t& number_t::assign(long long x)           { __release(); __assign(x); return *this;  }
-number_t& number_t::assign(unsigned int x)        { __release(); __uassign(x); return *this; }
-number_t& number_t::assign(unsigned long x)       { __release(); __uassign(x); return *this; }
-number_t& number_t::assign(unsigned long long x)  { __release(); __uassign(x); return *this; }
+number_t::number_t(long x)
+{
+    slen_t sign = 1;
+    if (x < 0)
+    {
+        sign = -1;
+        x = -x;
+    }
+    len = sizeof(long) / sizeof(unit_t);
+    __reserve(len);
+    *(long*)dat = x;
+    __trim_leading_zeros(dat, len);
+    len *= sign;
+}
+
+number_t::number_t(long long x)
+{
+    slen_t sign = 1;
+    if (x < 0)
+    {
+        sign = -1;
+        x = -x;
+    }
+    len = sizeof(long long) / sizeof(unit_t);
+    __reserve(len);
+    *(long long*)dat = x;
+    __trim_leading_zeros(dat, len);
+    len *= sign;
+}
+
+number_t::number_t(int x)
+{
+    slen_t sign = 1;
+    if (x < 0)
+    {
+        sign = -1;
+        x = -x;
+    }
+    len = sizeof(int) / sizeof(unit_t);
+    __reserve(len);
+    *(int*)dat = x;
+    __trim_leading_zeros(dat, len);
+    len *= sign;
+}
+
+number_t::number_t(unsigned long x)
+{
+    len = sizeof(unsigned long) / sizeof(unit_t);
+    __reserve(len);
+    *(unsigned long*)dat = x;
+    __trim_leading_zeros(dat, len);
+}
+
+number_t::number_t(unsigned long long x)
+{
+    len = sizeof(unsigned long long) / sizeof(unit_t);
+    __reserve(len);
+    *(unsigned long long*)dat = x;
+    __trim_leading_zeros(dat, len);
+}
+
+number_t::number_t(unsigned int x)
+{
+    len = sizeof(unsigned int) / sizeof(unit_t);
+    __reserve(len);
+    *(unsigned int*)dat = x;
+    __trim_leading_zeros(dat, len);
+}
+
+number_t& number_t::assign(const number_t& x)
+{
+    if (this->is_not(x))
+    {
+        slen_t l = __abs(x.len);
+        if (l > cap)
+        {
+            __deallocate_units(dat);
+            __reserve(l);
+        }
+        __copy_units(dat, x.dat, l);
+        len = x.len;
+    }
+    return *this;
+}
+
+number_t& number_t::assign(int x)
+{
+    len = sizeof(int) / sizeof(unit_t);
+    if (cap < len)
+    {
+        __deallocate_units(dat);
+        __reserve(len);
+    }
+	int s = 1;
+	if (x > 0)
+	{
+		*(int*)dat = x;
+	}
+	else
+	{
+		*(int*)dat = -x;
+		s = -1;
+	}
+    __trim_leading_zeros(dat, len);
+    len *= s;
+    return *this;
+}
+
+number_t& number_t::assign(long x)
+{
+    len = sizeof(long) / sizeof(unit_t);
+    if (cap < len)
+    {
+        __deallocate_units(dat);
+        __reserve(len);
+    }
+	long s = 1;
+	if (x > 0)
+	{
+		*(long*)dat = x;
+	}
+	else
+	{
+		*(long*)dat = -x;
+		s = -1;
+	}
+    __trim_leading_zeros(dat, len);
+    len *= s;
+    return *this;
+}
+
+number_t& number_t::assign(long long x)
+{
+    len = sizeof(long long) / sizeof(unit_t);
+    if (cap < len)
+    {
+        __deallocate_units(dat);
+        __reserve(len);
+    }
+
+    int sign = 1;
+    if (x < 0)
+    {
+        sign = -1;
+        x = -x;
+    }
+    *(long long*)dat = x;
+    __trim_leading_zeros(dat, len);
+    len *= sign;
+    return *this;
+}
+
+number_t& number_t::assign(unsigned int x)
+{
+    len = sizeof(unsigned int) / sizeof(unit_t);
+    if (cap < len)
+    {
+        __deallocate_units(dat);
+        __reserve(len);
+    }
+    *(unsigned int*)dat = x;
+    __trim_leading_zeros(dat, len);
+    return *this;
+}
+
+number_t& number_t::assign(unsigned long x)
+{
+    len = sizeof(unsigned long) / sizeof(unit_t);
+    if (cap < len)
+    {
+        __deallocate_units(dat);
+        __reserve(len);
+    }
+    *(unsigned long*)dat = x;
+    __trim_leading_zeros(dat, len);
+    return *this;
+}
+
+number_t& number_t::assign(unsigned long long x)
+{
+    len = sizeof(unsigned long long) / sizeof(unit_t);
+    if (cap < len)
+    {
+        __deallocate_units(dat);
+        __reserve(len);
+    }
+    *(unsigned long long*)dat = x;
+    __trim_leading_zeros(dat, len);
+    return *this;
+}
 
 number_t& number_t::assign(const char* s, int base)
 {
-    __release();
+    len = 0;
     if (s && base <= __max_base())
     {
         slen_t l = (slen_t)strlen(s);
         if (l > 0)
         {
             __construct_from_string(s, l, base);
-            __trim_leading_zeros(dat, len);
         }
     }
     return *this;
@@ -231,18 +436,37 @@ number_t& number_t::assign(const char* s, int base)
 
 number_t& number_t::assign(const char* s, size_t l, int base)
 {
-    __release();
+    len = 0;
     if (s && slen_t(l) > 0 && base <= __max_base())
     {
         __construct_from_string(s, l, base);
-        __trim_leading_zeros(dat, len);
     }
     return *this;
 }
 
 number_t::~number_t()
 {
-    __release();
+    __deallocate_units(dat);
+    dat = NULL;
+    len = 0;
+    cap = 0;
+}
+
+void number_t::bits_reserve(size_t n)
+{
+    n = (n + (sizeof(unit_t) * 8) - 1) / (sizeof(unit_t) * 8);
+    if ((slen_t)n > cap)
+    {
+        slen_t l, s, newcap;
+        unit_t* tmp = __allocate_units(n, &newcap);
+        l = __abs(len);
+        s = __sign(len);
+        __copy_units(tmp, dat, l);
+        __deallocate_units(dat);
+        dat = tmp;
+        len = l * s;
+        cap = newcap;
+    }
 }
 
 string_t number_t::to_bin_string() const
@@ -460,14 +684,62 @@ number_t& number_t::add_unit(unit_t x)
     }
     else if (len == 0)
     {
-        __release();
-        __reserve(1);
-        *dat = x;
-        len = 1;
+        if (x)
+        {
+            if (!cap)
+            {
+                __reserve(1);
+            }
+            *dat = x;
+            len = 1;
+        }
     }
     else
     {
-        len = 0 - __abs_sub_unit(x);
+        if (*dat >= x || len < -1)
+        {
+            len = 0 - __abs_sub_unit(x);
+        }
+        else
+        {
+            *dat = x - *dat;
+            len = 1;
+        }
+    }
+    return *this;
+}
+
+number_t& number_t::add_word(word_t x)
+{
+    __pad_word(dat, len);
+
+    if (len > 0)
+    {
+        len = __abs_add_word(x);
+    }
+    else if (len == 0)
+    {
+        if (x)
+        {
+            if (!cap)
+            {
+                __reserve(2);
+            }
+            *(word_t*)dat = x;
+            len = 1 + (x > MASK);
+        }
+    }
+    else
+    {
+        if (*(word_t*)dat >= x || len < -2)
+        {
+            len = 0 - __abs_sub_word(x);
+        }
+        else
+        {
+            *(word_t*)dat = x - *(word_t*)dat;
+            len = 1 + (dat[1] != 0);
+        }
     }
     return *this;
 }
@@ -476,18 +748,66 @@ number_t& number_t::sub_unit(unit_t x)
 {
     if (len > 0)
     {
-        len = __abs_sub_unit(x);
+        if (*dat >= x || len > 1)
+        {
+            len = __abs_sub_unit(x);
+        }
+        else
+        {
+            *dat = x - *dat;
+            len = -1;
+        }
     }
     else if (len == 0)
     {
-        __release();
-        __reserve(1);
-        *dat = x;
-        len = -1;
+        if (x)
+        {
+            if (!cap)
+            {
+                __reserve(1);
+            }
+            *dat = x;
+            len = -1;
+        }
     }
     else
     {
         len = 0 - __abs_add_unit(x);
+    }
+    return *this;
+}
+
+number_t& number_t::sub_word(word_t x)
+{
+    __pad_word(dat, len);
+
+    if (len > 0)
+    {
+        if (*(word_t*)dat >= x || len > 2)
+        {
+            len = __abs_sub_word(x);
+        }
+        else
+        {
+            *(word_t*)dat = x - *(word_t*)dat;
+            len = -2 + (dat[1] != 0);
+        }
+    }
+    else if (len == 0)
+    {
+        if (x)
+        {
+            if (!cap)
+            {
+                __reserve(2);
+            }
+            *(word_t*)dat = x;
+            len = -2 + (dat[1] != 0);
+        }
+    }
+    else
+    {
+        len = 0 - __abs_add_word(x);
     }
     return *this;
 }
@@ -509,12 +829,65 @@ number_t& number_t::mul_unit(unit_t x)
         }
         if (carry)
         {
-            unit_t* tmp = __allocate_units(l + 1);
-            __copy_units(tmp, dat, l);
-            tmp[l++] = carry & MASK;
-            __deallocate_units(dat);
-            dat = tmp;
+            if (cap > l)
+            {
+                *e = carry & MASK;
+            }
+            else
+            {
+                unit_t* tmp = __allocate_units((cap = l << 1));
+                __copy_units(tmp, dat, l);
+                tmp[l] = carry & MASK;
+                __deallocate_units(dat);
+                dat = tmp;
+            }
+            l++;
         }
+        __trim_leading_zeros(dat, l);
+        len = l * __sign(len);
+    }
+    return *this;
+}
+
+number_t& number_t::mul_word(word_t x)
+{
+    if (len)
+    {
+        __pad_word(dat, len);
+
+        word_t *p, *e, carry = 0;
+        slen_t l = __abs(len), m = (l + (l & 1)) / 2;
+
+        p = (word_t*)dat;
+        e = p + m;
+        for (; p != e; p++)
+        {
+            carry = __mul_add_dunit(*p, x, carry, p);
+        }
+        if (!carry)
+        {
+            if (p == e && *((unit_t*)p - 1))
+            {
+                l = (unit_t*)p - dat;
+            }
+        }
+        else
+        {
+            if (cap / 2 > m)
+            {
+                *e = carry;
+            }
+            else
+            {
+                unit_t* tmp = __allocate_units((cap = m * 4));
+                __copy_units(tmp, dat, m * 2);
+                *((word_t*)tmp + m) = carry;
+                __deallocate_units(dat);
+                dat = tmp;
+            }
+            l += 2;
+        }
+        __trim_leading_zeros(dat, l);
         len = l * __sign(len);
     }
     return *this;
@@ -527,14 +900,39 @@ number_t& number_t::div_unit(unit_t x)
     if (len)
     {
         dunit_t rem = 0;
-        unit_t* q = dat + __abs(len);
+        slen_t l = __abs(len);
+        unit_t* q = dat + l;
         while (--q >= dat)
         {
             rem = __make_dunit(rem, *q);
             *q = unit_t(rem / x);
             rem %= x;
         }
-        __trim();
+        __trim_leading_zeros(dat, l);
+        len = l * __sign(len);
+    }
+    return *this;
+}
+
+number_t& number_t::div_word(word_t x)
+{
+    assert(x != 0);
+
+    if (len)
+    {
+        __pad_word(dat, len);
+
+        word_t *q, *e, rem = 0;
+        slen_t l = __abs(len), m = (l + (l & 1)) / 2;       
+
+        e = (word_t*)dat;
+        q = e + m;
+        while (--q >= e)
+        {
+            *q = __qunit_div_by_dunit(rem, *q, x, &rem);
+        }
+        __trim_leading_zeros(dat, l);
+        len = l * __sign(len);
     }
     return *this;
 }
@@ -553,7 +951,7 @@ number_t& number_t::mod_unit(unit_t x)
         }
         if (rem)
         {
-            *dat = rem;
+            *dat = (unit_t)rem;
             len = __sign(len);
         }
         else
@@ -564,9 +962,90 @@ number_t& number_t::mod_unit(unit_t x)
     return *this;
 }
 
-int number_t::bit_at(size_t x) const
+number_t& number_t::mod_word(word_t x)
 {
-    return len? __bit_at(x): 0;
+    assert(x != 0);
+
+    if (len)
+    {
+        __pad_word(dat, len);
+
+        word_t *q, *e, rem = 0;
+        slen_t l = __abs(len), m = (l + (l & 1)) / 2;       
+
+        e = (word_t*)dat;
+        q = e + m;
+        while (--q >= e)
+        {
+            rem = __qunit_mod_by_dunit(rem, *q, x);
+        }
+        if (rem)
+        {
+            *(word_t*)dat = rem;
+            len = 2;
+        }
+        else
+        {
+            set_zero();
+        }
+        __trim_leading_zeros(dat, l);
+        len = l * __sign(len);
+    }
+    return *this;
+}
+
+bool number_t::bit_at(size_t x) const
+{
+    if (slen_t(x / SHIFT) < len)
+    {
+        return (dat[x / SHIFT] & ((unit_t)1 << x % SHIFT)) != 0;
+    }
+    return 0;
+}
+
+void number_t::bit_set_one(size_t x)
+{
+    slen_t u = slen_t(x / SHIFT);
+    if (u < len)
+    {
+        dat[u] |= (unit_t)1 << x % SHIFT;
+    }
+    else
+    {
+        if (u >= cap)
+        {
+            slen_t newcap;
+            unit_t* tmp = __allocate_units(u + 1, &newcap);
+            __copy_units(tmp, dat, len);
+            __deallocate_units(dat);
+            dat = tmp;
+            cap = newcap;
+        }
+        dat[u] = (unit_t)1 << x % SHIFT;
+        __set_units_zero(dat + len, u - len);
+        len = u + 1;
+    }
+}
+
+void number_t::bit_set_zero(size_t x)
+{
+    slen_t u = slen_t(x / SHIFT);
+    if (u < len)
+    {
+        dat[u] &= ~((unit_t)1 << x % SHIFT);
+    }
+}
+
+void number_t::bit_set(size_t x, bool v)
+{
+    if (v)
+    {
+        bit_set_one(x);
+    }
+    else
+    {
+        bit_set_zero(x);
+    }
 }
 
 size_t number_t::bits_count() const
@@ -591,34 +1070,37 @@ bool number_t::is_even() const
 
 void number_t::copy(const number_t& another)
 {
-    if (this != &another)
+    if (this->is_not(another))
     {
-        __release();
         __copy(another);
     }
 }
 
-void number_t::steal(number_t& other)
+void number_t::steal(number_t& x)
 {
-    if (is_not(other))
+    if (this->is_not(x))
     {
-        __release();
-        dat = other.dat;
-        len = other.len;
-        other.dat = NULL;
-        other.len = 0;
+        __deallocate_units(dat);
+        dat = x.dat;
+        len = x.len;
+        cap = x.cap;
+        x.dat = NULL;
+        x.len = 0;
+        x.cap = 0;
     }
 }
 
 void number_t::set_zero()
 {
-    __release();
+    len = 0;
 }
 
 void number_t::set_one()
 {
-    __release();
-    __reserve(1);
+    if (!cap)
+    {
+        __reserve(1);
+    }
     *dat = 1;
     len = 1;
 }
@@ -665,12 +1147,12 @@ number_t& number_t::operator -- ()
 
 number_t& number_t::operator ++ (int)
 {
-    return this->add_unit(1);
+    return this->add(unit_t(1));
 }
 
 number_t& number_t::operator -- (int)
 {
-    return this->sub_unit(1);
+    return this->sub(unit_t(1));
 }
 
 number_t& number_t::operator += (const number_t& x)
@@ -723,6 +1205,21 @@ number_t& number_t::operator >>= (int x)
     return this->shr(x);
 }
 
+string_t number_t::operator () (int base)
+{
+    return this->to_string(base);
+}
+
+bool number_t::operator [] (size_t x) const
+{
+    return this->bit_at(x);
+}
+
+bitref_t number_t::operator [] (size_t x)
+{
+    return bitref_t(*this, x);
+}
+
 number_t::operator bool () const
 {
     return !is_zero();
@@ -735,39 +1232,34 @@ bool number_t::operator ! () const
 
 void number_t::__copy(const number_t& another)
 {
-    slen_t l = __abs(another.len);
-    dat = __allocate_units(l);
-    memcpy(dat, another.dat, l * sizeof(unit_t));
-    len = another.len;
+    assert(this->is_not(another));
+
+    if (another.dat)
+    {
+        if (cap != another.cap)
+        {
+            __deallocate_units(dat);
+            __reserve(another.cap);
+        }
+        len = another.len;
+        __copy_units(dat, another.dat, __abs(len));
+    }
+    else
+    {
+        dat = NULL;
+        len = another.len;
+        cap = another.cap;
+    }
 }
 
 void number_t::__reserve(slen_t units)
 {
-    dat = __allocate_units(units);
-}
-
-slen_t number_t::__bits_reserve(slen_t n)
-{
-    slen_t units = (n + SHIFT - 1) / SHIFT;
-    __reserve(units);
-    return units;
-}
-
-int number_t::__bit_at(size_t x) const
-{
-    return dat[x / SHIFT] & ((unit_t)1 << x % SHIFT);
+    dat = __allocate_units(units, &cap);
 }
 
 slen_t number_t::__vbits_count() const
 {
     return mynum::__vbits_count(dat[len - 1]) + (len - 1) * SHIFT;
-}
-
-void number_t::__release()
-{
-    __deallocate_units(dat);
-    dat = NULL;
-    len = 0;
 }
 
 /**
@@ -826,7 +1318,7 @@ slen_t number_t::__abs_add_unit(unit_t x)
     dunit_t carry = 0;
     unit_t* p = dat;
     unit_t* e = dat + l;
- 
+
     carry = (dunit_t)*p + x;
     *p = carry & MASK;
     carry >>= SHIFT;
@@ -838,11 +1330,62 @@ slen_t number_t::__abs_add_unit(unit_t x)
     }
     if (carry)
     {
-        unit_t* tmp = __allocate_units(l + 1);
-        __copy_units(tmp, dat, l);
-        tmp[l++] = carry & MASK;
-        __deallocate_units(dat);
-        dat = tmp;
+        if (cap > l)
+        {
+            *e = carry & MASK;
+        }
+        else
+        {
+            unit_t* tmp = __allocate_units((cap = l * 2));
+            __copy_units(tmp, dat, l);
+            tmp[l] = carry & MASK;
+            __deallocate_units(dat);
+            dat = tmp;
+        }
+        l++;
+    }
+    return l;
+}
+
+slen_t number_t::__abs_add_word(word_t x)
+{
+    assert(len != 0);
+
+    word_t *p, *e, tmp;
+    slen_t l = __abs(len), m = (l + (l & 1)) / 2;
+ 
+    p = (dunit_t*)dat;
+    e = p + m;
+    *p += x;
+    bool carry = *p < x;
+    while (++p != e && carry)
+    {
+        tmp = *p;
+        (*p)++;
+        carry = *p < tmp;
+    }
+    if (!carry)
+    {
+        if (p == e && *((unit_t*)p - 1))
+        {
+            l = (unit_t*)p - dat;
+        }
+    }
+    else
+    {
+        if (cap / 2 > m)
+        {
+            *e = 1;
+        }
+        else
+        {
+            unit_t* tmp = __allocate_units((cap = m * 4));
+            __copy_units(tmp, dat, m * 2);
+            *((word_t*)tmp + m) = 1;
+            __deallocate_units(dat);
+            dat = tmp;
+        }
+        l = 2 * m + 1;
     }
     return l;
 }
@@ -854,7 +1397,7 @@ slen_t number_t::__abs_sub_unit(unit_t x)
     dunit_t borrow = 0;
     unit_t* p = dat;
     unit_t* e = dat + __abs(len);
- 
+
     borrow = (dunit_t)*p - x;
     *p = borrow & MASK;
     borrow >>= SHIFT;
@@ -873,6 +1416,26 @@ slen_t number_t::__abs_sub_unit(unit_t x)
     return e - dat;
 }
 
+slen_t number_t::__abs_sub_word(word_t x)
+{
+    assert(len != 0);
+
+    word_t *p, *e;
+    slen_t l = __abs(len), m = (l + (l & 1)) / 2;
+
+    p = (word_t*)dat;
+    e = p + m;
+    bool borrow = *p < x;
+    *p -= x;
+    while (++p != e && borrow)
+    {
+        borrow = *p < 1;
+        (*p)--;
+    }
+    __trim_leading_zeros(dat, l);
+    return l;
+}
+
 static __always_inline(unit_t) __strbin_to_unit(const char* p, int l)
 {
     unit_t x = 0;
@@ -889,7 +1452,7 @@ static __always_inline(unit_t) __strbin_to_unit(const char* p, int l)
 
 void number_t::__construct_from_bin_string(const char* s, slen_t l)
 {
-    assert(len == 0 && dat == NULL);
+    assert(len == 0);
 
     int sign = 1;
     if (*s == '-' || *s == '+')
@@ -901,7 +1464,13 @@ void number_t::__construct_from_bin_string(const char* s, slen_t l)
 
     const char *p0 = s + l - UNITBITS;
     const char *p1 = s + l % UNITBITS;
-    __reserve((l + UNITBITS - 1) / UNITBITS);
+
+    slen_t n = (l + UNITBITS - 1) / UNITBITS;
+    if (n > cap)
+    {
+        __deallocate_units(dat);
+        __reserve(n);
+    }
     for (; p0 >= p1; p0 -= UNITBITS)
     {
         dat[len++] = __strbin_to_unit(p0, UNITBITS);
@@ -910,6 +1479,7 @@ void number_t::__construct_from_bin_string(const char* s, slen_t l)
     {
         dat[len++] = __strbin_to_unit(s, l % UNITBITS);
     }
+    __trim_leading_zeros(dat, len);
     len *= sign;
 }
 
@@ -926,7 +1496,7 @@ static __always_inline(unit_t) __strhex_to_unit(const char* p, int l)
 
 void number_t::__construct_from_hex_string(const char* s, slen_t l)
 {
-    assert(len == 0 && dat == NULL);
+    assert(len == 0);
 
     int sign = 1;
     if (*s == '-' || *s == '+')
@@ -940,7 +1510,12 @@ void number_t::__construct_from_hex_string(const char* s, slen_t l)
     const char *p0 = s + l - k;
     const char *p1 = s + l % k;
 
-    __reserve(l + k - 1 / k);
+    slen_t n = (l + k - 1) / k;
+    if (n > cap)
+    {
+        __deallocate_units(dat);
+        __reserve(n);
+    }
     for (; p0 >= p1; p0 -= k)
     {
         dat[len++] = __strhex_to_unit(p0, k);
@@ -949,6 +1524,7 @@ void number_t::__construct_from_hex_string(const char* s, slen_t l)
     {
         dat[len++] = __strhex_to_unit(s, l % k);
     }
+    __trim_leading_zeros(dat, len);
     len *= sign;
 }
 
@@ -963,14 +1539,19 @@ static __always_inline(unit_t) __str_to_unit(const char* p, int base, int l)
     return x;
 }
 
-void number_t::__construct_from_xbase_string(const char* s, slen_t l, unit_t base, float ln_base, unit_t inner_base, unit_t inner_base_digits)
+void number_t::__construct_from_xbase_string(const char* s, slen_t l, int base, float ln_base, unit_t inner_base, unit_t inner_base_digits)
 {
-    assert(len == 0 && dat == NULL && l >= 0 && base <= __max_base());
+    assert(len == 0 && l >= 0 && base <= __max_base());
 
     unit_t u;
     int i = 0, sign = 1, d;
-    __reserve(int(ln_base * l / LN_BASE + 1));
 
+    slen_t n = slen_t(ln_base * l / LN_BASE + 1);
+    if (n > cap)
+    {
+        __deallocate_units(dat);
+        __reserve(n);
+    }
     if (*s == '-' || *s == '+')
     {
         sign = *s == '-'? -1: 1;
@@ -993,12 +1574,13 @@ void number_t::__construct_from_xbase_string(const char* s, slen_t l, unit_t bas
             __add(d);
         }
     }
+    __trim_leading_zeros(dat, len);
     len *= sign;
 }
 
 void number_t::__construct_from_string(const char* s, slen_t l, int base)
 {
-    assert(len == 0 && dat == NULL && l >= 0 && base <= __max_base());
+    assert(len == 0 && l >= 0 && base <= __max_base());
 
     switch (base)
     {
@@ -1207,11 +1789,6 @@ string_t& number_t::__to_xbase_string(string_t& res, unit_t base, unit_t inner_b
     return res;
 }
 
-void number_t::__trim()
-{
-    __trim_leading_zeros(dat, len);
-}
-
 number_t& set_abs(number_t& a)                          { a.len = __abs(a.len); return a; }
 number_t& set_neg(number_t& a)                          { a.len = 0 - __abs(a.len); return a; }
 number_t& set_sign(number_t& a, int sign)               { a.len = __abs(a.len) * __sign(sign); return a; }
@@ -1392,7 +1969,7 @@ int check(const char* p, int base)
             return 0;
         }
     }
-    return p - q;
+    return int(p - q);
 }
 
 int check(const char* p, const char* e, int base)
@@ -1409,7 +1986,7 @@ int check(const char* p, const char* e, int base)
             return 0;
         }
     }
-    return p - q;
+    return int(p - q);
 }
 
 /** algorithms implementation */
@@ -1422,8 +1999,8 @@ static void __ksqr(const unit_t* x, slen_t lx, number_t& res);
 static void __div(const unit_t* a, slen_t la, const unit_t* b, slen_t lb, number_t& q, number_t& r);
 static void __div(const unit_t* a, slen_t la, const unit_t* b, slen_t lb, number_t& q);
 static bool __neq_core(const unit_t* x, const unit_t* y, slen_t l);
-static slen_t __cmp_same_len_core(const unit_t* x, const unit_t* y, slen_t l);
-static slen_t __cmp_core(const unit_t* x, slen_t lx, const unit_t* y, slen_t ly);
+static int __cmp_same_len_core(const unit_t* x, const unit_t* y, slen_t l);
+static int __cmp_core(const unit_t* x, slen_t lx, const unit_t* y, slen_t ly);
 static slen_t __add_core(const unit_t* x, slen_t lx, const unit_t* y, slen_t ly, unit_t* res);
 static slen_t __sub_core(const unit_t* x, slen_t lx, const unit_t* y, slen_t ly, unit_t* res);
 static slen_t __mul_core(const unit_t* x, slen_t lx, const unit_t* y, slen_t ly, unit_t* res);
@@ -1434,8 +2011,8 @@ static void __guess_sqrt(const number_t& a, number_t& res);
 static unit_t __truing_quotient(unit_t* x, const unit_t* y, slen_t len, unit_t trial);
 static slen_t __div_core(unit_t* x, slen_t lx, const unit_t* y, slen_t ly, unit_t* q);
 static void __shl_units(number_t& a, slen_t b);
-static slen_t __shl_core(unit_t* x, slen_t lx, int d);
-static unit_t __shr_core(unit_t* x, slen_t lx, int d);
+static slen_t __shl_core(unit_t* x, slen_t lx, slen_t d);
+static unit_t __shr_core(unit_t* x, slen_t lx, slen_t d);
 static slen_t __bit_and_core(const unit_t* x, const unit_t* y, slen_t lx, unit_t* res);
 static slen_t __bit_or_core(const unit_t* x, slen_t lx, const unit_t* y, slen_t ly, unit_t* res);
 static slen_t __bit_xor_core(const unit_t* x, slen_t lx, const unit_t* y, slen_t ly, unit_t* res);
@@ -1456,7 +2033,7 @@ int cmp_abs(const number_t& a, const number_t& b)
     slen_t lb = __abs(b.len);
     if (la - lb)
     {
-        return la - lb > 0? 1: -1;        
+        return la - lb > 0? 1: -1;
     }
     return __cmp_same_len_core(a.dat, b.dat, la);
 }
@@ -1472,97 +2049,98 @@ bool neq(const number_t& a, const number_t& b)
 
 void abs(const number_t& a, number_t& res)
 {
-    res.copy(a);
+    res.assign(a);
     res.len = __abs(res.len);
 }
 
 void neg(const number_t& a, number_t& res)
 {
-    res.copy(a);
+    res.assign(a);
     res.len = 0 - res.len;
 }
 
 void add(const number_t& a, const number_t& b, number_t& res)
 {
-    unit_t* tmp;
-    slen_t lr, la, lb, sign;
+    slen_t lr, la, lb, sa, sb, newcap;
+    unit_t *tmp, *pa = a.dat, *pb = b.dat;
 
     la = __abs(a.len);
     lb = __abs(b.len);
-
-    if (__same_sign(a.len, b.len))
+    sa = __sign(a.len);
+    sb = __sign(b.len);
+    if (la < lb || (la == lb && __cmp_same_len_core(pa, pb, la) == -1))
     {
-        if (la > lb)
+        tmp = pa; pa = pb;  pb = tmp;
+        la ^= lb; lb ^= la; la ^= lb;
+        sa ^= sb; sb ^= sa; sa ^= sb;
+    }
+    tmp = res.dat;
+    if (sa == sb)
+    {
+        if (res.cap < la + 1)
         {
-            tmp = __allocate_units(la + 1);
-            lr = __add_core(a.dat, la, b.dat, lb, tmp);
+            tmp = __allocate_units(la + 1, &newcap);
         }
-        else
-        {
-            tmp = __allocate_units(lb + 1);
-            lr = __add_core(b.dat, lb, a.dat, la, tmp);
-        }
-        sign = __sign(a.len);
+        lr = __add_core(pa, la, pb, lb, tmp);
     }
     else
     {
-        if ((sign = __cmp_core(a.dat, la, b.dat, lb)) == 1)
+        if (res.cap < la)
         {
-            tmp = __allocate_units(la);
-            lr = __sub_core(a.dat, la, b.dat, lb, tmp);
+            tmp = __allocate_units(la, &newcap);
         }
-        else
-        {
-            tmp = __allocate_units(lb);
-            lr = __sub_core(b.dat, lb, a.dat, la, tmp);
-        }
-        sign *= __sign(a.len);
+        lr = __sub_core(pa, la, pb, lb, tmp);
     }
-
-    res.__release();
-    res.dat = tmp;
-    res.len = lr * sign;
+    if (tmp != res.dat)
+    {
+        __deallocate_units(res.dat);
+        res.dat = tmp;
+        res.cap = newcap;
+    }
+    res.len = lr * sa;
 }
 
 void sub(const number_t& a, const number_t& b, number_t& res)
 {
-    unit_t* tmp;
-    slen_t lr, la, lb, sign;
-    
+    slen_t lr, la, lb, sa, sb, sign = 1, newcap;
+    unit_t *tmp, *pa = a.dat, *pb = b.dat;
+
     la = __abs(a.len);
     lb = __abs(b.len);
-
-    if (__same_sign(a.len, b.len))
+    sa = __sign(a.len);
+    sb = __sign(b.len);
+    if (la < lb || (la == lb && __cmp_same_len_core(pa, pb, la) == -1))
     {
-        if ((sign = __cmp_core(a.dat, la, b.dat, lb)) == 1)
+        tmp = pa; pa = pb;  pb = tmp;
+        la ^= lb; lb ^= la; la ^= lb;
+        sa ^= sb; sb ^= sa; sa ^= sb;
+        sign = -1;
+    }
+    tmp = res.dat;
+    if (sa == sb)
+    {
+        if (res.cap < la)
         {
-            tmp = __allocate_units(la);
-            lr = __sub_core(a.dat, la, b.dat, lb, tmp);
+            tmp = __allocate_units(la, &newcap);
         }
-        else
-        {
-            tmp = __allocate_units(lb);
-            lr = __sub_core(b.dat, lb, a.dat, la, tmp);
-        }
-        sign *= __sign(a.len);
+        lr = __sub_core(pa, la, pb, lb, tmp);
+        sign *= sa;
     }
     else
     {
-        if (la > lb)
+        if (res.cap < la + 1)
         {
-            tmp = __allocate_units(la + 1);
-            lr = __add_core(a.dat, la, b.dat, lb, tmp);
+            tmp = __allocate_units(la + 1, &newcap);
         }
-        else
-        {
-            tmp = __allocate_units(lb + 1);
-            lr = __add_core(b.dat, lb, a.dat, la, tmp);
-        }
+        lr = __add_core(pa, la, pb, lb, tmp);
         sign = __sign(a.len);
     }
-
-    res.__release();
-    res.dat = tmp;
+    if (tmp != res.dat)
+    {
+        __deallocate_units(res.dat);
+        res.dat = tmp;
+        res.cap = newcap;
+    }
     res.len = lr * sign;
 }
 
@@ -1572,10 +2150,94 @@ void mul(const number_t& a, const number_t& b, number_t& res)
     res.len *= __sign(a.len, b.len);
 }
 
-void kmul(const number_t& a, const number_t& b, number_t& res)
+void kmul(const number_t& u, const number_t& v, number_t& res)
 {
-    __kmul(a.dat, __abs(a.len), b.dat, __abs(b.len), res);
-    res.len *= __sign(a.len, b.len);
+    const unit_t *a, *b, *c, *d, *x, *y;
+    slen_t n, lx, ly, la, lb, lc, ld, newcap;
+
+    lx = __abs(u.len);
+    ly = __abs(v.len);
+
+    if (lx <= KMUL_THRESHOLD || ly <= KMUL_THRESHOLD)
+    {
+        mul(u, v, res);
+        return;
+    }
+
+    x = u.dat;
+    y = v.dat;
+    n = lx >= ly? lx >> 1: ly >> 1;
+    b = x;
+    d = y;
+    a = x + n;
+    c = y + n;
+    lb = n < lx? n: lx;
+    ld = n < ly? n: ly;
+    la = lx - n > 0? lx - n: 0;
+    lc = ly - n > 0? ly - n: 0;
+
+    __trim_leading_zeros(a, la);
+    __trim_leading_zeros(b, lb);
+    __trim_leading_zeros(c, lc);
+    __trim_leading_zeros(d, ld);
+
+    number_t ac, bd, a_bd_c;
+    
+    __kmul(a, la, c, lc, ac);
+    __kmul(b, lb, d, ld, bd);
+
+    unit_t* tmp = res.dat;
+    if (res.cap < lx + ly + 1)
+    {
+        tmp = __allocate_units(lx + ly + 1, &newcap);
+    }
+    else if (res.dat == x || res.dat == y)
+    {
+        tmp = __allocate_units(res.cap, &newcap);
+    }
+
+    slen_t s0, l0 = 0, s1, l1 = 0;
+    if ((s0 = __cmp_core(a, la, b, lb)) > 0)
+    {
+        l0 = __sub_core(a, la, b, lb, tmp);
+    }
+    else if (s0 < 0)
+    {
+        l0 = __sub_core(b, lb, a, la, tmp);
+    }
+    if ((s1 = __cmp_core(d, ld, c, lc)) > 0)
+    {
+        l1 = __sub_core(d, ld, c, lc, tmp + l0);
+    }
+    else if (s1 < 0)
+    {
+        l1 = __sub_core(c, lc, d, ld, tmp + l0);
+    }
+
+    __kmul(tmp, l0, tmp + l0, l1, a_bd_c);
+    __set_units_zero(tmp, lx + ly + 1);
+    __copy_units(tmp, bd.dat, bd.len);
+    __copy_units(tmp + 2 * n, ac.dat, ac.len);
+    __add_core(tmp + n, lx + ly + 1 - n, ac.dat, ac.len, tmp + n);
+    __add_core(tmp + n, lx + ly + 1 - n, bd.dat, bd.len, tmp + n);
+    if (s0 == s1)
+    {
+        __add_core(tmp + n, lx + ly + 1 - n, a_bd_c.dat, a_bd_c.len, tmp + n);
+    }
+    else
+    {
+        __sub_core(tmp + n, lx + ly + 1 - n, a_bd_c.dat, a_bd_c.len, tmp + n);
+    }
+
+    if (tmp != res.dat)
+    {
+        __deallocate_units(res.dat);
+        res.dat = tmp;
+        res.cap = newcap;
+    }
+    res.len = (lx + ly + 1);
+    __trim_leading_zeros(res.dat, res.len);
+    res.len *= __sign(u.len, v.len);
 }
 
 void sqr(const number_t& a, number_t& res)
@@ -1583,9 +2245,53 @@ void sqr(const number_t& a, number_t& res)
     __sqr(a.dat, __abs(a.len), res);
 }
 
-void ksqr(const number_t& a, number_t& res)
+void ksqr(const number_t& u, number_t& res)
 {
-    __ksqr(a.dat, __abs(a.len), res);
+    const unit_t *a, *b, *x = u.dat;
+    slen_t n, la, lb, lx = __abs(u.len), newcap;
+
+    if (lx <= KSQR_THRESHOLD)
+    {
+        sqr(u, res);
+        return;
+    }
+    n = lx >> 1;
+    b = x;
+    a = x + n;
+    lb = n;
+    la = lx - n;
+    __trim_leading_zeros(a, la);
+    __trim_leading_zeros(b, lb);
+
+    number_t aa, ab, bb;
+
+    __ksqr(a, la, aa);
+    __kmul(a, la, b, lb, ab);
+    __ksqr(b, lb, bb);
+
+    unit_t* tmp = res.dat;
+    if (res.cap < 2 * lx)
+    {
+        tmp = __allocate_units(2 * lx, &newcap);
+    }
+    else if (res.dat == x)
+    {
+        tmp = __allocate_units(res.cap, &newcap);
+    }
+    __set_units_zero(tmp, 2 * lx);
+    __copy_units(tmp, bb.dat, bb.len);
+    __copy_units(tmp + 2 * n, aa.dat, aa.len);
+    __add_core(tmp + n, 2 * lx - n, ab.dat, ab.len, tmp + n);
+    __add_core(tmp + n, 2 * lx - n, ab.dat, ab.len, tmp + n);
+
+    if (tmp != res.dat)
+    {
+        __deallocate_units(res.dat);
+        res.dat = tmp;
+        res.cap = newcap;
+    }
+    res.len = 2 * lx;
+    __trim_leading_zeros(res.dat, res.len);
 }
 
 int div(const number_t& a, const number_t& b, number_t& q, number_t& r)
@@ -1651,12 +2357,14 @@ int mod(const number_t& a, const number_t& b, number_t& r)
     return 0;
 }
 
-int floor_div(const number_t& a, const number_t& b, number_t& q, number_t& r)
+int floor_div(const number_t& a, const number_t& b, number_t& q, number_t& r)    // XXX
 {
     if (!b.is_zero())
     {
-        slen_t la = __abs(a.len);
-        slen_t lb = __abs(b.len);
+        slen_t la, lb, lr, sign, rnewcap;
+
+        la = __abs(a.len);
+        lb = __abs(b.len);
         if (la >= lb)
         {
             __div(a.dat, la, b.dat, lb, q, r);
@@ -1667,7 +2375,7 @@ int floor_div(const number_t& a, const number_t& b, number_t& q, number_t& r)
             abs(a, r);
         }
 
-        slen_t sign = __sign(a.len);
+        sign = __sign(a.len);
         if (__same_sign(a.len, b.len))
         {
             r.len *= sign;
@@ -1676,12 +2384,13 @@ int floor_div(const number_t& a, const number_t& b, number_t& q, number_t& r)
         {
             if (!r.is_zero())
             {
-                add(q, 1, q);
-                unit_t* tmp = __allocate_units(lb);
-                slen_t lr = __sub_core(b.dat, lb, r.dat, r.len, tmp);
-                r.__release();
+                q.add_unit(1);
+                unit_t* tmp = __allocate_units(lb, &rnewcap);
+                lr = __sub_core(b.dat, lb, r.dat, r.len, tmp);
+                __deallocate_units(r.dat);
                 r.dat = tmp;
                 r.len = lr;
+                r.cap = rnewcap;
             }
             q.len *= -1;
             r.len *= -sign;
@@ -1693,18 +2402,30 @@ int floor_div(const number_t& a, const number_t& b, number_t& q, number_t& r)
 
 void shr(const number_t& a, size_t b, number_t& res)
 {
-    slen_t n = b / SHIFT;
-    slen_t m = b % SHIFT;
-    slen_t l = __abs(a.len) - n;
+    slen_t n, m, l, newcap;
+
+    n = b / SHIFT;
+    m = b % SHIFT;
+    l = __abs(a.len) - n;
+
     if (l > 0)
     {
-        unit_t* tmp = __allocate_units(l);
-        __copy_units(tmp, a.dat + n, l);
+        unit_t* tmp = res.dat;
+        if (res.cap < l)
+        {
+            tmp = __allocate_units(l, &newcap);
+        }
+        __move_units(tmp, a.dat + n, l);
         __shr_core(tmp, l, m);
-        res.__release();
-        res.dat = tmp;
-        res.len = l * __sign(a.len);
-        res.__trim();
+        if (tmp != res.dat)
+        {
+            __deallocate_units(res.dat);
+            res.dat = tmp;
+            res.cap = newcap;
+        }
+        res.len = l;
+        __trim_leading_zeros(res.dat, res.len);
+        res.len *= __sign(a.len);
     }
     else
     {
@@ -1714,20 +2435,31 @@ void shr(const number_t& a, size_t b, number_t& res)
 
 void shl(const number_t& a, size_t b, number_t& res)
 {
-    slen_t n = b / SHIFT;
-    slen_t m = b % SHIFT;
-    slen_t l = __abs(a.len) + n;
-    unit_t* tmp = __allocate_units(l + 1);
-    __set_units_zero(tmp, n);
-    __copy_units(tmp + n, a.dat, a.len);
+    slen_t n, m, l, newcap;
+    n = b / SHIFT;
+    m = b % SHIFT;
+    l = __abs(a.len) + n;
+
+    unit_t* tmp = res.dat;
+    if (res.cap < l + 1)
+    {
+        tmp = __allocate_units(l + 1, &newcap);
+    }
+    __move_units(tmp + n, a.dat, a.len);
     if (m && __shl_core(tmp + n, a.len, m) > a.len)
     {
         l++;
     }
-    res.__release();
-    res.dat = tmp;
-    res.len = l * __sign(a.len);
-    res.__trim();
+    __set_units_zero(tmp, n);
+    if (tmp != res.dat)
+    {
+        __deallocate_units(res.dat);
+        res.dat = tmp;
+        res.cap = newcap;
+    }
+    res.len = l;
+    __trim_leading_zeros(res.dat, res.len);
+    res.len *= __sign(a.len);
 }
 
 void pow(const number_t& a, const number_t& b, number_t& res)
@@ -1907,58 +2639,82 @@ int sqrt(const number_t& a, number_t& res)
 
 void bit_and(const number_t& a, const number_t& b, number_t& res)
 {
-    unit_t* tmp;
-    slen_t la = __abs(a.len), lb = __abs(b.len), lr;
-    if (la >= lb)
+    unit_t* tmp = res.dat;
+    slen_t la = __abs(a.len), lb = __abs(b.len), lr = la, newcap;
+
+    if (la > lb)
     {
-        tmp = __allocate_units(lb);
-        lr = __bit_and_core(a.dat, b.dat, lb, tmp);
+        lr = lb;
     }
-    else
+    if (res.cap < lr)
     {
-        tmp = __allocate_units(la);
-        lr = __bit_and_core(a.dat, b.dat, la, tmp);
+        tmp = __allocate_units(lr, &newcap);
     }
-    res.__release();
-    res.dat = tmp;
+    lr = __bit_and_core(a.dat, b.dat, lr, tmp);
+    if (tmp != res.dat)
+    {
+        __deallocate_units(res.dat);
+        res.dat = tmp;
+        res.cap = newcap;
+    }
     res.len = lr * __sign(a.len, b.len);
 }
 
 void bit_or(const number_t& a, const number_t& b, number_t& res)
 {
-    unit_t* tmp;
-    slen_t la = __abs(a.len), lb = __abs(b.len), lr;
+    unit_t* tmp = res.dat;
+    slen_t la = __abs(a.len), lb = __abs(b.len), lr, newcap;
     if (la > lb)
     {
-        tmp = __allocate_units(la);
+        if (res.cap < la)
+        {
+            tmp = __allocate_units(la, &newcap);
+        }
         lr = __bit_or_core(a.dat, la, b.dat, lb, tmp);
     }
     else
     {
-        tmp = __allocate_units(lb);
+        if (res.cap < lb)
+        {
+            tmp = __allocate_units(lb, &newcap);
+        }
         lr = __bit_or_core(b.dat, lb, a.dat, la, tmp);  
     }
-    res.__release();
-    res.dat = tmp;
+    if (tmp != res.dat)
+    {
+        __deallocate_units(res.dat);
+        res.dat = tmp;
+        res.cap = newcap;
+    }
     res.len = lr * __sign(a.len, b.len);
 }
 
 void bit_xor(const number_t& a, const number_t& b, number_t& res)
 {
-    unit_t* tmp;
-    slen_t la = __abs(a.len), lb = __abs(b.len), lr;
+    unit_t* tmp = res.dat;
+    slen_t la = __abs(a.len), lb = __abs(b.len), lr, newcap;
     if (la > lb)
     {
-        tmp = __allocate_units(la);
+        if (res.cap < la)
+        {
+            tmp = __allocate_units(la, &newcap);
+        }
         lr = __bit_xor_core(a.dat, la, b.dat, lb, tmp);
     }
     else
     {
-        tmp = __allocate_units(lb);
-        lr = __bit_xor_core(b.dat, lb, a.dat, la, tmp);  
+        if (res.cap < lb)
+        {
+            tmp = __allocate_units(lb, &newcap);
+        }
+        lr = __bit_xor_core(b.dat, lb, a.dat, la, tmp);
     }
-    res.__release();
-    res.dat = tmp;
+    if (tmp != res.dat)
+    {
+        __deallocate_units(res.dat);
+        res.dat = tmp;
+        res.cap = newcap;
+    }
     res.len = lr * __sign(a.len, b.len);
 }
 
@@ -1966,11 +2722,19 @@ void bit_not(const number_t& a, number_t& res)
 {
     if (a.len)
     {
-        slen_t la = __abs(a.len);
-        unit_t* tmp = __allocate_units(la);
-        slen_t lr = __bit_not_core(a.dat, la, tmp);
-        res.__release();
-        res.dat = tmp;
+        unit_t* tmp = res.dat;
+        slen_t la = __abs(a.len), lr, newcap;
+        if (res.cap < la)
+        {
+            tmp = __allocate_units(la, &newcap);
+        }
+        lr = __bit_not_core(a.dat, la, tmp);
+        if (tmp != res.dat)
+        {
+            __deallocate_units(res.dat);
+            res.dat = tmp;
+            res.cap = newcap;
+        }
         res.len = lr * __sign(a.len);
     }
 }
@@ -1980,49 +2744,9 @@ void swap(number_t& a, number_t& b)
     unit_t* tmp = a.dat;
     a.dat = b.dat;
     b.dat = tmp;
-    a.len ^= b.len;
-    b.len ^= a.len;
-    a.len ^= b.len;
-}
-
-void bits_reserve_1(number_t& a, int n)
-{
-    if (n)
-    {
-        a.__release();
-        a.len = a.__bits_reserve(n);
-        slen_t extra = a.len * SHIFT - n;
-        const unit_t max_shift = unit_t(1) << (SHIFT - 1);
-        __set_units_zero(a.dat, a.len);
-        a.dat[a.len - 1] = max_shift >> extra;
-    }
-    else
-    {
-        a.set_zero();
-    }
-}
-
-void bits_reserve_max(number_t& a, int n)
-{
-    if (n)
-    {
-        a.__release();
-        a.len = a.__bits_reserve(n);
-        slen_t extra = a.len * SHIFT - n;
-        unit_t* p = a.dat;
-        unit_t* e = a.dat + a.len - 1;
-        while (p != e)
-        {
-            *p++ = MASK;
-        }
-        *p = MASK;
-        *p <<= extra;
-        *p >>= extra;
-    }
-    else
-    {
-        a.set_zero();
-    }
+    a.len ^= b.len; a.cap ^= b.cap;
+    b.len ^= a.len; b.cap ^= a.cap;
+    a.len ^= b.len; a.cap ^= b.cap;
 }
 
 bool is_power2(const number_t& a)
@@ -2064,12 +2788,26 @@ void __mul(const unit_t* x, slen_t lx, const unit_t* y, slen_t ly, number_t& res
 
     if (lx && ly)
     {
-        unit_t* tmp = __allocate_units(lx + ly);
-        __set_units_zero(tmp, lx + ly);
-        slen_t lr = __mul_core(x, lx, y, ly, tmp);
-        res.__release();
+        unit_t* tmp = res.dat;
+        slen_t lr, newcap, lxy = lx + ly;
+
+        if (res.cap < lxy)
+        {
+            tmp = __allocate_units(lxy, &newcap);
+        }
+        else if (res.dat == x || res.dat == y)
+        {
+            tmp = __allocate_units(res.cap, &newcap);
+        }
+        __set_units_zero(tmp, lxy);
+        lr = __mul_core(x, lx, y, ly, tmp);
+        if (res.dat != tmp)
+        {
+            __deallocate_units(res.dat);
+            res.dat = tmp;
+            res.cap = newcap;
+        }
         res.len = lr;
-        res.dat = tmp;
     }
     else
     {
@@ -2104,7 +2842,7 @@ void __kmul(const unit_t* x, slen_t lx, const unit_t* y, slen_t ly, number_t& re
     __trim_leading_zeros(d, ld);
 
     number_t ac, bd, a_bd_c;
-    
+
     __kmul(a, la, c, lc, ac);
     __kmul(b, lb, d, ld, bd);
 
@@ -2119,7 +2857,6 @@ void __kmul(const unit_t* x, slen_t lx, const unit_t* y, slen_t ly, number_t& re
     {
         l0 = __sub_core(b, lb, a, la, tmp);
     }
-
     if ((s1 = __cmp_core(d, ld, c, lc)) > 0)
     {
         l1 = __sub_core(d, ld, c, lc, tmp + l0);
@@ -2130,14 +2867,11 @@ void __kmul(const unit_t* x, slen_t lx, const unit_t* y, slen_t ly, number_t& re
     }
 
     __kmul(tmp, l0, tmp + l0, l1, a_bd_c);
-
     __set_units_zero(tmp, lx + ly + 1);
     __copy_units(tmp, bd.dat, bd.len);
     __copy_units(tmp + 2 * n, ac.dat, ac.len);
-
     __add_core(tmp + n, lx + ly + 1 - n, ac.dat, ac.len, tmp + n);
     __add_core(tmp + n, lx + ly + 1 - n, bd.dat, bd.len, tmp + n);
-
     if (s0 == s1)
     {
         __add_core(tmp + n, lx + ly + 1 - n, a_bd_c.dat, a_bd_c.len, tmp + n);
@@ -2146,22 +2880,35 @@ void __kmul(const unit_t* x, slen_t lx, const unit_t* y, slen_t ly, number_t& re
     {
         __sub_core(tmp + n, lx + ly + 1 - n, a_bd_c.dat, a_bd_c.len, tmp + n);
     }
-
-    res.__release();
+    __deallocate_units(res.dat);
     res.len = lx + ly + 1;
     res.dat = tmp;
-    res.__trim();
+    __trim_leading_zeros(res.dat, res.len);
 }
 
 void __sqr(const unit_t* x, slen_t lx, number_t& res)
 {
     if (lx)
     {
-        unit_t* tmp = __allocate_units(2 * lx);
-        slen_t lr = __sqr_core(x, lx, tmp);
-        res.__release();
+        slen_t lr, newcap;
+        unit_t* tmp = res.dat;
+
+        if (res.cap < 2 * lx)
+        {
+            tmp = __allocate_units(2 * lx, &newcap);
+        }
+        else if (res.dat == x)
+        {
+            tmp = __allocate_units(res.cap, &newcap);
+        }
+        lr = __sqr_core(x, lx, tmp);
+        if (tmp != res.dat)
+        {
+            __deallocate_units(res.dat);
+            res.dat = tmp;
+            res.cap = newcap;
+        }
         res.len = lr;
-        res.dat = tmp;
     }
     else
     {
@@ -2195,18 +2942,15 @@ void __ksqr(const unit_t* x, slen_t lx, number_t& res)
     __ksqr(b, lb, bb);
 
     unit_t* tmp = __allocate_units(2 * lx);
-
     __set_units_zero(tmp, 2 * lx);
     __copy_units(tmp, bb.dat, bb.len);
     __copy_units(tmp + 2 * n, aa.dat, aa.len);
-
     __add_core(tmp + n, 2 * lx - n, ab.dat, ab.len, tmp + n);
     __add_core(tmp + n, 2 * lx - n, ab.dat, ab.len, tmp + n);
-
-    res.__release();
+    __deallocate_units(res.dat);
     res.len = 2 * lx;
     res.dat = tmp;
-    res.__trim();
+    __trim_leading_zeros(res.dat, res.len);
 }
 
 void __div(const unit_t* a, slen_t la, const unit_t* b, slen_t lb, number_t& q, number_t& r)
@@ -2215,14 +2959,23 @@ void __div(const unit_t* a, slen_t la, const unit_t* b, slen_t lb, number_t& q, 
 
     if (lb > 1)
     {
-        slen_t lx = la;
-        slen_t ly = lb;
-        unit_t* x = __allocate_units(lx + 1);
-        unit_t* y = __allocate_units(ly);
+        unit_t *x, *y = r.dat, *tmp = q.dat;
+        slen_t n = 0, lx, ly, lr, qnewcap, rnewcap;
+
+        lx = la;
+        ly = lb;
+        x = __allocate_units(lx + 1);
+        if (r.cap < ly)
+        {
+            y = __allocate_units(ly, &rnewcap);
+        }
+        else if (r.dat == a || r.dat == b)
+        {
+            y = __allocate_units(r.cap, &rnewcap);
+        }
         __copy_units(x, a, lx);
         __copy_units(y, b, ly);
 
-        slen_t n = 0;
         if (*(x + lx - 1) >= *(y + ly - 1))
         {
             n = SHIFT - __vbits_count(*(y + ly - 1));
@@ -2234,10 +2987,17 @@ void __div(const unit_t* a, slen_t la, const unit_t* b, slen_t lb, number_t& q, 
             }
         }
 
-        unit_t* tmp = __allocate_units(lx - ly);
-        slen_t lr = __div_core(x, lx, y, ly, tmp);
-        q.__release();
-        q.dat = tmp;
+        if (q.cap < lx - ly)
+        {
+            tmp = __allocate_units(lx - ly, &qnewcap);
+        }
+        lr = __div_core(x, lx, y, ly, tmp);
+        if (tmp != q.dat)
+        {
+            __deallocate_units(q.dat);
+            q.dat = tmp;
+            q.cap = qnewcap;
+        }
         q.len = lr;
 
         if (n)
@@ -2245,24 +3005,52 @@ void __div(const unit_t* a, slen_t la, const unit_t* b, slen_t lb, number_t& q, 
             __shr_core(x, ly, n);
         }
         __copy_units(y, x, ly);
-        r.__release();
-        r.dat = y;
+        if (y != r.dat)
+        {
+            __deallocate_units(r.dat);
+            r.dat = y;
+            r.cap = rnewcap;
+        }
         r.len = ly;
-        r.__trim();
+        __trim_leading_zeros(r.dat, r.len);
 
         __deallocate_units(x);
     }
     else
     {
-        unit_t* tmpq = __allocate_units(la);
-        unit_t* tmpr = __allocate_units(1);
-        slen_t lq, lr;
+        slen_t lq, lr, qnewcap, rnewcap;
+        unit_t *tmpq = q.dat, *tmpr = r.dat;
+
+        if (q.cap < la)
+        {
+            tmpq = __allocate_units(la, &qnewcap);
+        }
+        else if (q.dat == a || q.dat == b)
+        {
+            tmpq = __allocate_units(q.cap, &qnewcap);
+        }
+        if (r.cap < 1)
+        {
+            tmpr = __allocate_units(1, &rnewcap);
+        }
+        else if (r.dat == a || r.dat == b)
+        {
+            tmpr = __allocate_units(r.cap, &rnewcap);
+        }
         __div_unit_core(a, la, *b, tmpq, &lq, tmpr, &lr);
-        q.__release();
-        r.__release();
-        q.dat = tmpq;
+        if (tmpq != q.dat)
+        {
+            __deallocate_units(q.dat);
+            q.dat = tmpq;
+            q.cap = qnewcap;
+        }
+        if (tmpr != r.dat)
+        {
+            __deallocate_units(r.dat);
+            r.dat = tmpr;
+            r.cap = rnewcap;
+        }
         q.len = lq;
-        r.dat = tmpr;
         r.len = lr;
     }
 }
@@ -2273,14 +3061,16 @@ void __div(const unit_t* a, slen_t la, const unit_t* b, slen_t lb, number_t& q)
 
     if (lb > 1)
     {
-        slen_t lx = la;
-        slen_t ly = lb;
-        unit_t* x = __allocate_units(lx + 1);
-        unit_t* y = __allocate_units(ly);
+        unit_t *x, *y, *tmp = q.dat;
+        slen_t n = 0, lx, ly, lr, newcap;
+
+        lx = la;
+        ly = lb;
+        x = __allocate_units(lx + 1);
+        y = __allocate_units(ly);
         __copy_units(x, a, lx);
         __copy_units(y, b, ly);
 
-        slen_t n = 0;
         if (*(x + lx - 1) >= *(y + ly - 1))
         {
             n = SHIFT - __vbits_count(*(y + ly - 1));
@@ -2292,24 +3082,42 @@ void __div(const unit_t* a, slen_t la, const unit_t* b, slen_t lb, number_t& q)
             }
         }
 
-        unit_t* tmp = __allocate_units(lx - ly);
-        slen_t lr = __div_core(x, lx, y, ly, tmp);
-        q.__release();
-        q.dat = tmp;
+        if (q.cap < lx - ly)
+        {
+            tmp = __allocate_units(lx - ly, &newcap);
+        }
+        lr = __div_core(x, lx, y, ly, tmp);
+        if (tmp != q.dat)
+        {
+            __deallocate_units(q.dat);
+            q.dat = tmp;
+            q.cap = newcap;
+        }
         q.len = lr;
         __deallocate_units(x);
         __deallocate_units(y);
     }
     else
     {
-        slen_t lq, lr;
-        unit_t* tmpq = __allocate_units(la);
-        unit_t* tmpr = __allocate_units(1);
-        __div_unit_core(a, la, *b, tmpq, &lq, tmpr, &lr);
-        q.__release();
-        q.dat = tmpq;
+        unit_t *tmp = q.dat, r;
+        slen_t lq, lr, newcap;
+
+        if (q.cap < la)
+        {
+            tmp = __allocate_units(la, &newcap);
+        }
+        else if (q.dat == a || q.dat == b)
+        {
+            tmp = __allocate_units(q.cap, &newcap);
+        }
+        __div_unit_core(a, la, *b, tmp, &lq, &r, &lr);
+        if (tmp != q.dat)
+        {
+            __deallocate_units(q.dat);
+            q.dat = tmp;
+            q.cap = newcap;
+        }
         q.len = lq;
-        __deallocate_units(tmpr);
     }
 }
 
@@ -2320,10 +3128,10 @@ void __shl_units(number_t& a, int b)
     unit_t* tmp = __allocate_units(a.len + b);
     __set_units_zero(tmp, b);
     __copy_units(tmp + b, a.dat, a.len);
-    a.__release();
+    __deallocate_units(a.dat);
     a.dat = tmp;
     a.len = a.len + b;
-    a.__trim();
+    __trim_leading_zeros(a.dat, a.len);
 }
 
 void __sub(const number_t& a, const number_t& b, number_t& res)
@@ -2332,7 +3140,7 @@ void __sub(const number_t& a, const number_t& b, number_t& res)
 
     unit_t* tmp = __allocate_units(a.len);
     slen_t lr = __sub_core(a.dat, a.len, b.dat, b.len, tmp);
-    res.__release();
+    __deallocate_units(res.dat);
     res.dat = tmp;
     res.len = lr;
 }
@@ -2343,8 +3151,9 @@ void __guess_sqrt(const number_t& a, number_t& res)
 
     slen_t n = a.__vbits_count();
     n = n & 1? (n + 1) >> 1 : n >> 1;
-    res.__release();
-    res.len = res.__bits_reserve(n);
+    __deallocate_units(res.dat);
+    res.len = (n + SHIFT - 1) / SHIFT;
+    res.__reserve(res.len);
     __set_units_zero(res.dat, res.len);
 
     dunit_t h;
@@ -2368,7 +3177,7 @@ void __guess_sqrt(const number_t& a, number_t& res)
     rem.len = 4;
     *(dunit_t*)rem.dat = *p;
     *((dunit_t*)rem.dat + 1) = h - *pr * *pr;
-    rem.__trim();
+    __trim_leading_zeros(rem.dat, rem.len);
 
     slen_t times = a.len / 10? a.len / 10: 4;
     do
@@ -2438,8 +3247,7 @@ void __guess_sqrt(const number_t& a, number_t& res)
             __shl_units(rem, 2);
             *(dunit_t*)(rem.dat) = *p;
         }
-    }
-    while (--times > 0 && p != e);
+    } while (--times > 0 && p != e);
 
     unit_t* pe = est.dat + est.len - 1;
     while (pe >= est.dat)
@@ -2447,7 +3255,7 @@ void __guess_sqrt(const number_t& a, number_t& res)
         *pr-- = *pe--;
     }
 
-    res.__trim();
+    __trim_leading_zeros(res.dat, res.len);
 }
 
 bool __neq_core(const unit_t* x, const unit_t* y, slen_t l)
@@ -2482,7 +3290,7 @@ bool __neq_core(const unit_t* x, const unit_t* y, slen_t l)
     return false;
 }
 
-__always_inline(slen_t) __cmp_same_len_core(const unit_t* x, const unit_t* y, slen_t l)
+__always_inline(int) __cmp_same_len_core(const unit_t* x, const unit_t* y, slen_t l)
 {
     assert(l >= 0);
 
@@ -2511,7 +3319,7 @@ __always_inline(slen_t) __cmp_same_len_core(const unit_t* x, const unit_t* y, sl
     return 0;
 }
 
-slen_t __cmp_core(const unit_t* x, slen_t lx, const unit_t* y, slen_t ly)
+int __cmp_core(const unit_t* x, slen_t lx, const unit_t* y, slen_t ly)
 {
     assert(lx >= 0 && ly >= 0);
 
@@ -2522,6 +3330,9 @@ slen_t __cmp_core(const unit_t* x, slen_t lx, const unit_t* y, slen_t ly)
     return __cmp_same_len_core(x, y, lx);
 }
 
+/*
+ * x, y, res can be the same, this is an inplace algorithm
+ */
 slen_t __add_core(const unit_t* x, slen_t lx, const unit_t* y, slen_t ly, unit_t* res)
 {
     assert(lx >= ly);
@@ -2548,8 +3359,13 @@ slen_t __add_core(const unit_t* x, slen_t lx, const unit_t* y, slen_t ly, unit_t
     return i;
 }
 
+/*
+ * x, y, res can be the same, this is an inplace algorithm
+ */
 slen_t __sub_core(const unit_t* x, slen_t lx, const unit_t* y, slen_t ly, unit_t* res)
 {
+    assert(lx >= ly);
+
     dunit_t borrow = 0;
     slen_t i = 0;
     for (; i < ly; i++)
@@ -2570,8 +3386,13 @@ slen_t __sub_core(const unit_t* x, slen_t lx, const unit_t* y, slen_t ly, unit_t
     return i;
 }
 
+/*
+ * not inplace
+ */
 slen_t __mul_core(const unit_t* x, slen_t lx, const unit_t* y, slen_t ly, unit_t* res)
 {
+    assert(res != x && res != y);
+
     unit_t* pr;
     const unit_t* py;       
     for (slen_t i = 0; i < lx; i++)
@@ -2595,18 +3416,21 @@ slen_t __mul_core(const unit_t* x, slen_t lx, const unit_t* y, slen_t ly, unit_t
     return lx;
 }
 
+/*
+ * not inplace
+ */
 slen_t __sqr_core(const unit_t* x, slen_t lx, unit_t* res)
 {
-    __set_units_zero(res, 2 * lx);
+    assert(res != x);
 
-    unit_t cflag;
+    unit_t cflag, *r;
     dunit_t m, carry;
     const unit_t* p, *q;
     const unit_t* pend = x + lx - 1;
     const unit_t* qend = x + lx;
-    unit_t* r;
 
     slen_t i = 0;
+    __set_units_zero(res, 2 * lx);
     for (p = x; p != pend; p++, i++)
     {
         r = res + (i << 1);
@@ -2728,7 +3552,7 @@ slen_t __div_core(unit_t* x, slen_t lx, const unit_t* y, slen_t ly, unit_t* q)
     return k;
 }
 
-slen_t __shl_core(unit_t* x, slen_t lx, int d)
+slen_t __shl_core(unit_t* x, slen_t lx, slen_t d)
 {
     slen_t i = 0;
     unit_t carry = 0;
@@ -2745,7 +3569,7 @@ slen_t __shl_core(unit_t* x, slen_t lx, int d)
     return i;
 }
 
-unit_t __shr_core(unit_t* x, slen_t lx, int d)
+unit_t __shr_core(unit_t* x, slen_t lx, slen_t d)
 {
     slen_t i = lx;
     unit_t mask = ((unit_t)1 << d) - 1, carry = 0;
@@ -2861,15 +3685,106 @@ bool __char_digit_valid(char c, int base)
     return __CHAR_DIGIT[(unsigned char)c] < base;
 }
 
+static __always_inline(dunit_t) __childishly_div_dunit(dunit_t h, dunit_t l, dunit_t d, dunit_t* r)
+{
+    assert(h < d && d != 0);
+
+    dunit_t q1, q2, rx, u, v;
+    unit_t d1 = d >> SHIFT, d2 = d & MASK;
+    unit_t l1 = l >> SHIFT, l2 = l & MASK;
+
+    if (d1)
+    {
+        q1 = h / d1;
+        rx = h % d1;
+        if (q1 >= BASE)
+        {
+            q1 = MASK;
+            rx = h - MASK * d1;
+        }
+        u = q1 * d2;
+        v = __make_dunit(rx, l1);
+        while (rx < BASE && v < u)
+        {
+            u = --q1 * d2;
+            v = __make_dunit(rx += d1, l1);
+        }
+        *r = v - u;
+
+        q2 = *r / d1;
+        rx = *r % d1;
+        if (q2 >= BASE)
+        {
+            q2 = MASK;
+            rx = *r - MASK * d1;
+        }
+        u = q2 * d2;
+        v = __make_dunit(rx, l2);
+        while (rx < BASE && v < u)
+        {
+            u = --q2 * d2;
+            v = __make_dunit(rx += d1, l2);
+        }
+        *r = v - u;
+    }
+    else
+    {
+        u = __make_dunit(h, l1);
+        q1 = u / d2;
+        *r = u % d2;
+        v = __make_dunit(*r, l2);
+        q2 = v / d2;
+        *r = v % d2;
+    }
+    return __make_dunit(q1, q2);  // Oh~ It's too slowwwww
+}
+
 #ifdef __GNUC__
+
 slen_t __vbits_count(unit_t x)
 {
     assert(x != 0);
 
     return UNITBITS - __builtin_clz((unsigned int)x << (32 - UNITBITS));
 }
+
+#if UNITBITS == 16
+typedef unsigned long long __qunit_t;
+#elif UNITBITS == 32
+typedef __uint128_t __qunit_t;
+#endif
+
+dunit_t __mul_add_dunit(dunit_t x, dunit_t y, dunit_t z, dunit_t* l)
+{
+    __qunit_t m = __qunit_t(x) * y + z;
+    *l = m & DMASK;
+    return m >> (UNITBITS * 2);
+}
+
+dunit_t __qunit_div_by_dunit(dunit_t h, dunit_t l, dunit_t d, dunit_t* r)
+{
+    assert(h < d);
+
+    __qunit_t qunit = __qunit_t(h) << (UNITBITS * 2) | l;
+    dunit_t q = dunit_t(qunit / d);
+    *r = dunit_t(qunit % d);
+    return q;
+}
+
+dunit_t __qunit_mod_by_dunit(dunit_t h, dunit_t l, dunit_t d)
+{
+    assert(h < d);
+
+    __qunit_t qunit = __qunit_t(h) << (UNITBITS * 2) | l;
+    return dunit_t(qunit % d);
+}
+
 #elif defined(_MSC_VER)
+
 #include <intrin.h>
+
+#pragma intrinsic(_BitScanReverse)
+
 slen_t __vbits_count(unit_t x)
 {
     assert(x != 0);
@@ -2878,7 +3793,57 @@ slen_t __vbits_count(unit_t x)
     _BitScanReverse(&b, x);
     return b + 1;
 }
+
+#if UNITBITS == 16
+
+#pragma intrinsic(__emulu)
+dunit_t __mul_add_dunit(dunit_t x, dunit_t y, dunit_t z, dunit_t* l)
+{
+    unsigned __int64 r = __emulu(x, y) + z;
+    *l = r & DMASK;
+    return r >> (UNITBITS * 2);
+}
+
+dunit_t __qunit_div_by_dunit(dunit_t h, dunit_t l, dunit_t d, dunit_t* r)
+{
+    return __childishly_div_dunit(h, l, d, r);
+
+    //assert(h < d);
+
+    //unsigned __int64 qunit = (unsigned __int64)h << (UNITBITS * 2) | l;
+    //dunit_t q = dunit_t(qunit / d);
+    //*r = dunit_t(qunit % d);
+    //return q;
+}
+
+dunit_t __qunit_mod_by_dunit(dunit_t h, dunit_t l, dunit_t d)
+{
+    assert(h < d);
+
+    unsigned __int64 qunit = (unsigned __int64)h << (UNITBITS * 2) | l;
+    return dunit_t(qunit % d);
+}
+
+#elif UNITBITS == 32
+
+#pragma intrinsic(_umul128)
+dunit_t __mul_add_dunit(dunit_t x, dunit_t y, dunit_t z, dunit_t* l)
+{
+    unsigned __int64 h, t;
+    t = *l = _umul128(x, y, &h);
+    *l += z;
+    return h + (*l < t);
+}
+
+dunit_t __qunit_div_by_dunit(dunit_t h, dunit_t l, dunit_t d, dunit_t* r)
+{
+    return __childishly_div_dunit(h, l, d, r);
+}
+
+#endif
+
 #else
+
 static const char __msb_256_table[256] =
 {
     0, 0, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3,
@@ -2921,6 +3886,39 @@ slen_t __vbits_count(unit_t x)
 
     return __bsr32((unsigned int)x) + 1;
 }
+
+dunit_t __mul_add_dunit(dunit_t x, dunit_t y, dunit_t z, dunit_t* l)
+{
+    dunit_t a, b, c, d;
+    dunit_t m, n, o, h;
+
+    a = x >> UNITBITS; b = x & MASK;
+    c = y >> UNITBITS; d = y & MASK;
+    m = d * a + (d * b >> UNITBITS);    // never overflow
+    n = c * b;
+    o = m + n;   // maybe overflow, if overflow o < m
+
+    h = a * c + (o >> UNITBITS) + (dunit_t(o < m) << UNITBITS);
+    *l = x * y;
+
+    a = *l;
+    *l += z;
+    h += *l < a;
+    return h;
+}
+
+dunit_t __qunit_div_by_dunit(dunit_t h, dunit_t l, dunit_t d, dunit_t* r)
+{
+    return __childishly_div_dunit(h, l, d, r);
+}
+
+dunit_t __qunit_mod_by_dunit(dunit_t h, dunit_t l, dunit_t d)
+{
+    dunit_t r;
+    __childishly_div_dunit(h, l, d, &r);
+    return r;
+}
+
 #endif
 
 } // namespace end

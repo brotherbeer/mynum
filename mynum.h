@@ -8,43 +8,46 @@
 
 namespace mynum {
 
-#if ULONG_MAX == 0xffffffffUL
+#if SIZE_MAX == 0xffffffffUL
 #define UNITBITS 16
 typedef unsigned short unit_t;
 typedef unsigned int dunit_t;
 typedef int slen_t;
-#elif ULONG_MAX == 0xffffffffffffffffUL
+#elif SIZE_MAX == 0xffffffffffffffffULL
 #define UNITBITS 32
 typedef unsigned int unit_t;
 typedef unsigned long long dunit_t;
 typedef long long slen_t;
 #else
-#error ULONG_MAX unknown
+#error SIZE_MAX unknown
 #endif
 
+typedef dunit_t word_t;
 
 struct _base_number_t
 {
     unit_t* dat;
-    slen_t  len;
+    slen_t len;
+    slen_t cap;
 
-    _base_number_t(): dat(NULL), len(0)
+    _base_number_t(): dat(NULL), len(0), cap(0)
     {}
 };
 
 struct string_t;
+struct bitref_t;
 struct number_t: public _base_number_t
 {
     number_t() {}
     number_t(const char*);
     number_t(const char*, int base);
     number_t(const char* s, size_t length, int base);
-    number_t(long x)                { __assign(x);  }
-    number_t(long long x)           { __assign(x);  }
-    number_t(int x)                 { __assign(x);  }
-    number_t(unsigned long x)       { __uassign(x); }
-    number_t(unsigned long long x)  { __uassign(x); } 
-    number_t(unsigned int x)        { __uassign(x); }
+    number_t(long x);
+    number_t(long long x);
+    number_t(int x);
+    number_t(unsigned long x);
+    number_t(unsigned long long x);
+    number_t(unsigned int x);
     number_t(const number_t&);
 
     number_t& assign(const number_t&);
@@ -113,8 +116,18 @@ struct number_t: public _base_number_t
     number_t& div_unit(unit_t);
     number_t& mod_unit(unit_t);
 
-    int bit_at(size_t) const;
+    number_t& add_word(word_t);
+    number_t& sub_word(word_t);
+    number_t& mul_word(word_t);
+    number_t& div_word(word_t);
+    number_t& mod_word(word_t);
+
+    bool bit_at(size_t) const;
+    void bit_set(size_t, bool v = 1);
+    void bit_set_one(size_t);
+    void bit_set_zero(size_t);
     size_t bits_count() const;
+    void bits_reserve(size_t);
 
     number_t& operator = (const number_t&);
     number_t& operator = (short);
@@ -128,8 +141,8 @@ struct number_t: public _base_number_t
     number_t& operator = (unsigned long long);
     number_t& operator = (unsigned char);
     number_t& operator = (unsigned int);
-    number_t operator + () const;
-    number_t operator - () const;
+    number_t  operator + () const;
+    number_t  operator - () const;
     number_t& operator ~ ();
     number_t& operator ++ ();
     number_t& operator -- ();
@@ -145,44 +158,25 @@ struct number_t: public _base_number_t
     number_t& operator ^= (const number_t&);
     number_t& operator <<= (int);
     number_t& operator >>= (int);
+    string_t operator () (int);
+    bool operator [] (size_t) const;
+    bitref_t operator [] (size_t);
     operator bool () const;
     bool operator ! () const;
 
     void __reserve(slen_t units);
-    void __release();
-    void __trim();
     void __add(unit_t);
     void __mul(unit_t);
     slen_t __abs_add_unit(unit_t);
     slen_t __abs_sub_unit(unit_t);
+    slen_t __abs_add_word(word_t);
+    slen_t __abs_sub_word(word_t);
     slen_t __bits_reserve(slen_t);
     slen_t __vbits_count() const;
-
     void __copy(const number_t&);
-    int __bit_at(size_t x) const;
-
-    template <class T> void __uassign(T x)
-    {
-        __reserve((len = (sizeof(T) + sizeof(unit_t) - 1) / sizeof(unit_t)));
-        *dat = 0;
-        *(T*)dat = x;
-        __trim();
-    }
-
-    template <class T> void __assign(T x)
-    {
-        slen_t sign = x > 0? 1: -1;
-        x = x > 0? x: -x;
-        __reserve((len = (sizeof(T) + sizeof(unit_t) - 1) / sizeof(unit_t)));
-        *dat = 0;
-        *(T*)dat = x;
-        __trim();
-        len *= sign;
-    }
-
     void __construct_from_bin_string(const char*s, slen_t l);
     void __construct_from_hex_string(const char* s, slen_t l);
-    void __construct_from_xbase_string(const char* s, slen_t l, unit_t base, float ln_base, unit_t inner_base, unit_t inner_base_digits);
+    void __construct_from_xbase_string(const char* s, slen_t l, int base, float ln_base, unit_t inner_base, unit_t inner_base_digits);
     void __construct_from_string(const char* s, slen_t l, int base);
 
     string_t& __to_bin_string(string_t&) const;
@@ -224,8 +218,6 @@ void bit_xor(const number_t& a, const number_t& b, number_t& res);
 void bit_not(const number_t& a, number_t& res);
 
 void swap(number_t& a, number_t& b);
-void bits_reserve_1(number_t& a, int n);
-void bits_reserve_max(number_t& a, int n);
 
 bool is_power2(const number_t& a);
 bool is_odd(const number_t& a);
@@ -295,6 +287,51 @@ int check(const char* p, int base);
 int check(const char* p, const char* e, int base);
 
 const char* find_valid(const char* p, const char* e, int base, size_t* size);
+
+struct bitref_t
+{
+    number_t& _ref;
+    size_t _x;
+
+    bitref_t(number_t& ref, size_t x): _ref(ref), _x(x) {}
+
+    operator bool () const
+    {
+        return _ref.bit_at(_x);
+    }
+
+    bool operator ~ () const
+    {
+        return !_ref.bit_at(_x) ;
+    }
+
+    bool operator = (bool v)
+    {
+        _ref.bit_set(_x, v);
+        return v;
+    }
+
+    bool operator |= (bool v)
+    {
+        bool u = _ref.bit_at(_x);
+        _ref.bit_set(_x, u | v);
+        return v;
+    }
+
+    bool operator &= (bool v)
+    {
+        bool u = _ref.bit_at(_x);
+        _ref.bit_set(_x, u & v);
+        return v;
+    }
+
+    bool operator ^= (bool v)
+    {
+        bool u = _ref.bit_at(_x);
+        _ref.bit_set(_x, u ^ v);
+        return v;
+    }
+};
 
 }  //namespace end
 

@@ -41,13 +41,13 @@ struct number_t: public _base_number_t
     number_t() {}
     number_t(const char*);
     number_t(const char*, int base);
-    number_t(const char* s, size_t length, int base);
-    number_t(long x);
-    number_t(long long x);
-    number_t(int x);
-    number_t(unsigned long x);
-    number_t(unsigned long long x);
-    number_t(unsigned int x);
+    number_t(const char*, size_t length, int base);
+    number_t(long);
+    number_t(long long);
+    number_t(int);
+    number_t(unsigned long);
+    number_t(unsigned long long);
+    number_t(unsigned int);
     number_t(const number_t&);
 
     number_t& assign(const number_t&);
@@ -57,8 +57,9 @@ struct number_t: public _base_number_t
     number_t& assign(unsigned int);
     number_t& assign(unsigned long);
     number_t& assign(unsigned long long);
-    number_t& assign(const char*, int base = 10);
-    number_t& assign(const char*, size_t length, int base = 10);
+    number_t& assign(const char*);
+    number_t& assign(const char*, int base);
+    number_t& assign(const char*, size_t length, int base);
 
     ~number_t();
 
@@ -68,6 +69,8 @@ struct number_t: public _base_number_t
     bool is_one() const {return len == 1 && dat[0] == 1;}
     bool is_power2() const;
     bool is_zero() const {return len == 0;}
+    bool is_pos() const {return len > 0;}
+    bool is_neg() const {return len < 0;}
 
     string_t& to_bin_string(string_t&) const;
     string_t& to_oct_string(string_t&) const;
@@ -158,7 +161,7 @@ struct number_t: public _base_number_t
     number_t& operator ^= (const number_t&);
     number_t& operator <<= (int);
     number_t& operator >>= (int);
-    string_t operator () (int);
+    string_t operator () (int) const;
     bool operator [] (size_t) const;
     bitref_t operator [] (size_t);
     operator bool () const;
@@ -174,10 +177,10 @@ struct number_t: public _base_number_t
     slen_t __bits_reserve(slen_t);
     slen_t __vbits_count() const;
     void __copy(const number_t&);
-    void __construct_from_bin_string(const char*s, slen_t l);
-    void __construct_from_hex_string(const char* s, slen_t l);
-    void __construct_from_xbase_string(const char* s, slen_t l, int base, float ln_base, unit_t inner_base, unit_t inner_base_digits);
-    void __construct_from_string(const char* s, slen_t l, int base);
+    void __construct_from_bin_string(const char*, slen_t);
+    void __construct_from_hex_string(const char*, slen_t);
+    void __construct_from_xbase_string(const char*, slen_t l, int base, float ln_base, unit_t inner_base, unit_t inner_base_digits);
+    void __construct_from_string(const char*, slen_t, int base);
 
     string_t& __to_bin_string(string_t&) const;
     string_t& __to_hex_string(string_t&) const;

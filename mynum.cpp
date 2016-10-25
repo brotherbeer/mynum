@@ -420,6 +420,20 @@ number_t& number_t::assign(unsigned long long x)
     return *this;
 }
 
+number_t& number_t::assign(const char* s)
+{
+    len = 0;
+    if (s)
+    {
+        slen_t l = (slen_t)strlen(s);
+        if (l > 0)
+        {
+            __construct_from_xbase_string(s, l, 10, LN_10, INNERDEC_BASE, INNERDEC_BASE_DIGITS);
+        }
+    }
+    return *this;
+}
+
 number_t& number_t::assign(const char* s, int base)
 {
     len = 0;
@@ -1207,7 +1221,7 @@ number_t& number_t::operator >>= (int x)
     return this->shr(x);
 }
 
-string_t number_t::operator () (int base)
+string_t number_t::operator () (int base) const
 {
     return this->to_string(base);
 }

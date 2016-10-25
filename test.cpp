@@ -1,9 +1,8 @@
 #include "mynum.h"
 #include "myoperators.h"
-#include <cstdlib>
 #include <ctime>
-#include <string>
 #include <iostream>
+
 
 using namespace mynum;
 
@@ -312,6 +311,15 @@ void test_assign()
         a.assign(b);
         assert(a == 0);
     }
+    {
+        NN a("1111111111111111");
+        a.assign("");
+        assert(a == 0);
+        a.assign("1234567890", 3, 10);
+        assert(a == 123);
+        a.assign(NULL);
+        assert(a == 0);
+    }
 }
 
 void test_copy()
@@ -393,11 +401,9 @@ void test_abs()
         NN a("-1234567890000000000000");
         a.set_abs();
         assert(cmp(a, NN("1234567890000000000000")) == 0);
-    }
-    {
-        NN a("-1234567890000000000000");
-        set_abs(a);
-        assert(cmp(a, NN("1234567890000000000000")) == 0);
+        NN b("-1234567890000000000000");
+        set_abs(b);
+        assert(cmp(b, NN("1234567890000000000000")) == 0);
     }
 }
 
@@ -1732,6 +1738,15 @@ void test_property()
         assert(is_power2(e));
         NN z;
         assert(!is_power2(z));
+    }
+    {
+        NN a(1), b(-1), c(0);
+        assert(a.is_pos());
+        assert(!a.is_neg());
+        assert(!b.is_pos());
+        assert(b.is_neg());
+        assert(!c.is_pos());
+        assert(!c.is_neg());
     }
 }
 

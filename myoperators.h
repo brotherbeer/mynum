@@ -399,4 +399,22 @@ inline bool operator <  (const string_t& a, const string_t& b) { return cmp(a, b
 inline bool operator >= (const string_t& a, const string_t& b) { return cmp(a, b) >= 0; }
 inline bool operator <= (const string_t& a, const string_t& b) { return cmp(a, b) <= 0; }
 
+inline bool operator == (const bitref_t& b, bool x) { return b.value() == x; }
+inline bool operator != (const bitref_t& b, bool x) { return b.value() != x; }
+inline bool operator == (const bitref_t& b, int x) { return (int)b.value() == x; }
+inline bool operator != (const bitref_t& b, int x) { return (int)b.value() != x; }
+inline bool operator >  (const bitref_t& b, int x) { return (int)b.value() >  x; }
+inline bool operator <  (const bitref_t& b, int x) { return (int)b.value() <  x; }
+inline bool operator >= (const bitref_t& b, int x) { return (int)b.value() >= x; }
+inline bool operator <= (const bitref_t& b, int x) { return (int)b.value() <= x; }
+
+inline bool operator == (bool x, const bitref_t& b) { return x == b.value(); }
+inline bool operator != (bool x, const bitref_t& b) { return x != b.value(); }
+inline bool operator == (int x, const bitref_t& b) { return x == (int)b.value(); }
+inline bool operator != (int x, const bitref_t& b) { return x != (int)b.value(); }
+inline bool operator >  (int x, const bitref_t& b) { return x >  (int)b.value(); }
+inline bool operator <  (int x, const bitref_t& b) { return x <  (int)b.value(); }
+inline bool operator >= (int x, const bitref_t& b) { return x >= (int)b.value(); }
+inline bool operator <= (int x, const bitref_t& b) { return x <= (int)b.value(); }
+
 } // namespace end

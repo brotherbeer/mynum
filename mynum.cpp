@@ -2229,7 +2229,6 @@ int check(const char* p, const char* e, int base)
 
 /** algorithms implementation */
 
-static void __sub(const number_t& a, const number_t& b, number_t& res);
 static void __mul(const unit_t* x, slen_t lx, const unit_t* y, slen_t ly, number_t& res);
 static void __kmul(const unit_t* x, slen_t lx, const unit_t* y, slen_t ly, number_t& res);
 static void __sqr(const unit_t* x, slen_t lx, number_t& res);
@@ -2248,7 +2247,6 @@ static unit_t __guess_quotient(unit_t x1, unit_t x2, unit_t x3, unit_t y1, unit_
 static void __guess_sqrt(const number_t& a, number_t& res);
 static unit_t __truing_quotient(unit_t* x, const unit_t* y, slen_t len, unit_t trial);
 static slen_t __div_core(unit_t* x, slen_t lx, const unit_t* y, slen_t ly, unit_t* q);
-static void __shl_units(number_t& a, slen_t b);
 static slen_t __shl_core(unit_t* x, slen_t lx, slen_t d);
 static unit_t __shr_core(unit_t* x, slen_t lx, slen_t d);
 static slen_t __bit_and_core(const unit_t* x, const unit_t* y, slen_t lx, unit_t* res);
@@ -3923,7 +3921,7 @@ bool __char_digit_valid(char c, int base)
     return __CHAR_DIGIT[(unsigned char)c] < base;
 }
 
-static __always_inline(dunit_t) __original_div_4by2(dunit_t h, dunit_t l, dunit_t d, dunit_t* r)
+__always_inline(dunit_t) __original_div_4by2(dunit_t h, dunit_t l, dunit_t d, dunit_t* r)
 {
     assert(h < d && d != 0);
 

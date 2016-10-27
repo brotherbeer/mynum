@@ -314,14 +314,19 @@ struct bitref_t
 
     bitref_t(number_t& ref, size_t x): _ref(ref), _x(x) {}
 
-    operator bool () const
+    bool value() const
     {
         return _ref.bit_at(_x);
     }
 
+    operator bool () const
+    {
+        return value();
+    }
+
     bool operator ~ () const
     {
-        return !_ref.bit_at(_x) ;
+        return !value();
     }
 
     bool operator = (bool v)
@@ -330,23 +335,54 @@ struct bitref_t
         return v;
     }
 
+    bool operator = (const bitref_t& b)
+    {
+        bool v = b.value();
+        _ref.bit_set(_x, v);
+        return v;
+    }
+
     bool operator |= (bool v)
     {
-        bool u = _ref.bit_at(_x);
+        bool u = value();
+        _ref.bit_set(_x, u | v);
+        return v;
+    }
+
+    bool operator |= (const bitref_t& b)
+    {
+        bool u = value();
+        bool v = b.value();
         _ref.bit_set(_x, u | v);
         return v;
     }
 
     bool operator &= (bool v)
     {
-        bool u = _ref.bit_at(_x);
+        bool u = value();
+        _ref.bit_set(_x, u & v);
+        return v;
+    }
+
+    bool operator &= (const bitref_t& b)
+    {
+        bool u = value();
+        bool v = b.value();
         _ref.bit_set(_x, u & v);
         return v;
     }
 
     bool operator ^= (bool v)
     {
-        bool u = _ref.bit_at(_x);
+        bool u = value();
+        _ref.bit_set(_x, u ^ v);
+        return v;
+    }
+
+    bool operator ^= (const bitref_t& b)
+    {
+        bool u = value();
+        bool v = b.value();
         _ref.bit_set(_x, u ^ v);
         return v;
     }

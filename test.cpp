@@ -1749,7 +1749,9 @@ void test_bits()
         a.bit_set_one(4); assert(eq(a, 31)); assert(const_a_ref[4] == 1);
         a.bit_set_one(16); assert(eq(a, 65567)); assert(const_a_ref[16] == 1);
 
-        assert(a[0] == 1); assert(!a[0] == 0); assert(~a[0] == 0);
+        assert(a[0] == 1); assert(1 == a[0]); assert(a[0] > 0); assert(0 < a[0]); assert(a[0] >= 0); assert(0 <= a[0]);
+        assert(!a[0] == 0); assert(~a[0] == 0);
+        assert(a[0] == true); assert(true == a[0]); assert(a[0] != false); assert(false != a[0]);
 
         a[32] = 1; assert(a(2) == "100000000000000010000000000011111"); assert(const_a_ref[32] == 1);
         a[33] = 1; assert(a(2) == "1100000000000000010000000000011111"); assert(const_a_ref[33] == 1);
@@ -2302,7 +2304,7 @@ void test_basic_type_convertion()
         NN a, b(UINT_MAX), c(ULONG_MAX), d(ULLONG_MAX);
         assert(a.in_range_uint()); assert(a.in_range_ulong());assert(a.in_range_ulonglong());
         assert(!b.in_range_int()); assert(b.in_range_uint()); assert(b.in_range_ulong()); assert(b.in_range_ulonglong());
-        assert(!c.in_range_int()); assert(c.in_range_uint()); assert(c.in_range_ulong()); assert(c.in_range_ulonglong());
+        assert(!c.in_range_int()); assert(c.in_range_ulong()); assert(c.in_range_ulonglong());
         assert(b.to_uint() == UINT_MAX); assert(c.to_ulong() == ULONG_MAX); assert(d.to_ulonglong() == ULLONG_MAX);
         b++; assert(!b.in_range_int()); assert(!b.in_range_uint());
         c++; assert(!c.in_range_long()); assert(!c.in_range_ulong());

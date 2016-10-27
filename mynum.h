@@ -49,6 +49,7 @@ struct number_t: public _base_number_t
     number_t(unsigned long long);
     number_t(unsigned int);
     number_t(const number_t&);
+    ~number_t();
 
     number_t& assign(const number_t&);
     number_t& assign(int);
@@ -60,8 +61,6 @@ struct number_t: public _base_number_t
     number_t& assign(const char*);
     number_t& assign(const char*, int base);
     number_t& assign(const char*, size_t length, int base);
-
-    ~number_t();
 
     bool is_even() const;
     bool is_not(const number_t& another) const {return this != &another;}
@@ -98,6 +97,7 @@ struct number_t: public _base_number_t
     string_t to_hex_string() const;
     string_t to_string(int base = 10) const;
 
+    void clear();
     void copy(const number_t&);
     void set_one();
     void set_zero();

@@ -460,10 +460,7 @@ number_t& number_t::assign(const char* s, size_t l, int base)
 
 number_t::~number_t()
 {
-    __deallocate_units(dat);
-    dat = NULL;
-    len = 0;
-    cap = 0;
+    clear();
 }
 
 void number_t::bits_reserve(size_t n)
@@ -1082,6 +1079,14 @@ bool number_t::is_odd() const
 bool number_t::is_even() const
 {
     return mynum::is_even(*this);
+}
+
+void number_t::clear()
+{
+    __deallocate_units(dat);
+    dat = NULL;
+    len = 0;
+    cap = 0;
 }
 
 void number_t::copy(const number_t& another)

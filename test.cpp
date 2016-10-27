@@ -203,8 +203,8 @@ void test_construct()
         assert(eq(a, b));
     }
     {
-        NN a("1234567890"); a.~number_t(); assert(a.is_zero());
-        NN b; b.~number_t(); assert(b.is_zero());
+        NN a("1234567890"); a.clear(); assert(a.is_zero());
+        NN b; b.clear(); assert(b.is_zero());
     }
     {
         NN a("2132314432123432323234", 5);  assert(eq(a, "1116483718636069"));
@@ -309,7 +309,7 @@ void test_assign()
         slen_t cap1 = c.cap;
         assert(c == a);
         assert(cap0 == cap1);
-        b.~number_t();
+        b.clear();
         a.assign(b);
         assert(a == 0);
     }
@@ -336,7 +336,7 @@ void test_copy()
         assert(eq(b, a));
         a.copy(b);
         assert(eq(b, a));
-        b.~number_t();
+        b.clear();
         a.copy(b);
         assert(eq(b, a));
         assert(a.is_zero());
@@ -1958,7 +1958,7 @@ void test_add_samll()
         a.add_unit(4321); a.add_unit(8907); a.add_unit(0);
         assert(a == 0);
 
-        a.~number_t();
+        a.clear();
         a.bits_reserve(1111);
         a.add_unit(32452); a.add_unit(5648); a.add_unit(57); a.add_unit(4);
         a.add_unit(56756); a.add_unit(332); a.add_unit(8976); a.add_unit(993);

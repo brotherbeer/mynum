@@ -39,6 +39,7 @@ void test_sub_samll();
 void test_mul_samll();
 void test_div_samll();
 void test_mod_samll();
+void test_basic_type_convertion();
 
 void test_detail()
 {
@@ -76,6 +77,7 @@ void test_detail()
     test_mul_samll();
     test_div_samll();
     test_mod_samll();
+    test_basic_type_convertion();
 }
 
 int main(int argc, char* argv[])
@@ -1713,40 +1715,25 @@ void test_property()
 {
     {
         NN a, b(12347), c(12348), d(65536);
-        assert(!a.is_odd());
-        assert(a.is_even());
-        assert(a.is_zero());
-        assert(b.is_odd());
-        assert(!b.is_even());
-        assert(c.is_even());
-        assert(!c.is_odd());
-        assert(d.is_power2());
-        NN e(1);
-        assert(!e.is_zero());
-        assert(e.is_one());
-        e <<= 300;
-        assert(e.is_power2());
+        assert(!a.is_odd()); assert(a.is_even()); assert(a.is_zero()); assert(!a.is_po2());
+        assert(b.is_odd()); assert(!b.is_even());
+        assert(c.is_even()); assert(!c.is_odd());
+        assert(d.is_even()); assert(d.is_po2());
+        NN e(1); assert(!e.is_zero()); assert(e.is_one());
+        e <<= 300; assert(e.is_po2());
     }
     {
         NN a(1), b(1), c(3), d(0xFFFF);
-        assert(is_power2(a));
-        b.shl(1027);
-        assert(is_power2(b));
-        assert(!is_power2(c));
-        assert(!is_power2(d));
-        NN e("107839786668602559178668060348078522694548577690162289924414440996864");
-        assert(is_power2(e));
-        NN z;
-        assert(!is_power2(z));
+        assert(is_po2(a));
+        b.shl(1027); assert(is_po2(b));
+        assert(!is_po2(c)); assert(!is_po2(d));
+        NN e("107839786668602559178668060348078522694548577690162289924414440996864"); assert(is_po2(e));
+        NN z; assert(!is_po2(z));
     }
     {
         NN a(1), b(-1), c(0);
-        assert(a.is_pos());
-        assert(!a.is_neg());
-        assert(!b.is_pos());
-        assert(b.is_neg());
-        assert(!c.is_pos());
-        assert(!c.is_neg());
+        assert(a.is_pos()); assert(!a.is_neg()); assert(!b.is_pos());
+        assert(b.is_neg()); assert(!c.is_pos()); assert(!c.is_neg());
     }
 }
 
@@ -1762,9 +1749,7 @@ void test_bits()
         a.bit_set_one(4); assert(eq(a, 31)); assert(const_a_ref[4] == 1);
         a.bit_set_one(16); assert(eq(a, 65567)); assert(const_a_ref[16] == 1);
 
-        assert(a[0] == 1);
-        assert(!a[0] == 0);
-        assert(~a[0] == 0);
+        assert(a[0] == 1); assert(!a[0] == 0); assert(~a[0] == 0);
 
         a[32] = 1; assert(a(2) == "100000000000000010000000000011111"); assert(const_a_ref[32] == 1);
         a[33] = 1; assert(a(2) == "1100000000000000010000000000011111"); assert(const_a_ref[33] == 1);
@@ -1935,14 +1920,28 @@ void test_string()
     string_t a("abcd");
     string_t b("ABCD");
     assert(a != b);
+    assert(a.valid());
     assert(b.to_lower() == "abcd");
     assert(a.to_lower() == b.to_lower());
     assert(a.to_upper() == "ABCD");
     assert(a.to_upper() == b.to_upper());
     string_t c, d("");
-    assert(a.valid());
-    assert(d.valid());
-    assert(!c.valid());
+    assert(d.valid()); assert(!c.valid());
+
+    string_t e("1234567890", 3); assert(e == "123");
+    string_t f("1234567890", 0); assert(f == "");
+    string_t g(NULL, 123); assert(!g.valid());
+    assert(g == "");
+
+    string_t h(e); assert(h == e && h == "123");
+    string_t i(g); assert(i == g && !i.valid());
+
+    string_t o("abcd");
+    assert(o[0] == 'a'); assert(o[1] == 'b');
+    o[0] = '0';
+    assert(o == "0bcd");
+
+    // TODO: add cases about 'check' function
 }
 
 void test_add_samll()
@@ -2175,6 +2174,140 @@ void test_mod_samll()
     a.set_zero();
     assert(a.mod_unit(3) == 0);
     assert(a.mod_unit(33399) == 0);
+}
+
+void test_basic_type_convertion()
+{
+    {
+        NN a(INT_MAX), b(LONG_MAX), c(LLONG_MAX);
+        assert(a(10) == "2147483647");
+        a++; assert(a(10) == "2147483648");
+        a++; assert(a(10) == "2147483649");
+        assert(c(10) == "9223372036854775807");
+        c++; assert(c(10) == "9223372036854775808");
+        c++; assert(c(10) == "9223372036854775809");
+        if (sizeof(long) == 4) {
+            assert(b(10) == "2147483647");
+            b++; assert(b(10) == "2147483648");
+            b++; assert(b(10) == "2147483649");
+        } else {
+            assert(b(10) == "9223372036854775807");
+            b++; assert(b(10) == "9223372036854775808");
+            b++; assert(b(10) == "9223372036854775809");
+        }
+    }{
+        NN a(INT_MIN), b(LONG_MIN), c(LLONG_MIN);
+        assert(a(10) == "-2147483648");
+        a--; assert(a(10) == "-2147483649");
+        a--; assert(a(10) == "-2147483650");
+        assert(c(10) == "-9223372036854775808");
+        c--; assert(c(10) == "-9223372036854775809");
+        c--; assert(c(10) == "-9223372036854775810");
+        if (sizeof(long) == 4)
+        {
+            assert(b(10) == "-2147483648");
+            b--; assert(b(10) == "-2147483649");
+            b--; assert(b(10) == "-2147483650");
+        } else {
+            assert(b(10) == "-9223372036854775808");
+            b--; assert(b(10) == "-9223372036854775809");
+            b--; assert(b(10) == "-9223372036854775810");
+        }
+    }{
+        NN a(INT_MAX), b(INT_MIN), c(LONG_MAX), d(LONG_MIN), e(LLONG_MAX), f(LLONG_MIN);
+        assert((a + 3) * 456 == a * 456 + 3 * 456); assert((b + 3) * 456 == b * 456 + 3 * 456);
+        assert((c + 3) * 456 == c * 456 + 3 * 456); assert((d + 3) * 456 == d * 456 + 3 * 456);
+        assert((e + 3) * 456 == e * 456 + 3 * 456); assert((f + 3) * 456 == f * 456 + 3 * 456);
+        assert((a - 8) * 456 == a * 456 - 8 * 456); assert((b - 8) * 456 == b * 456 - 8 * 456);
+        assert((c - 8) * 456 == c * 456 - 8 * 456); assert((d - 8) * 456 == d * 456 - 8 * 456);
+        assert((e - 8) * 456 == e * 456 - 8 * 456); assert((f - 8) * 456 == f * 456 - 8 * 456);
+        assert(a - (a - 1) == 1); assert(b - (b - 1) == 1); assert(c - (c - 1) == 1); assert(d - (d - 1) == 1);
+        assert(e - (e - 1) == 1); assert(e - (e - 1) == 1); assert(a - (a - b) == b); assert(b - (b - c) == c);
+        assert(c - (c - a) == a); assert(d - (d - f) == f); assert(e - (e - e) == e); assert(e - (e - d) == d);
+    }{
+        NN a1(123), a2(65536), a3(0xffffff), a4(0xaabbccdd), a5(0xaabbccddee), a6(0xaabbccddeeffULL), a7(0x11aabbccddeeffULL), a8(0x1122aabbccddeeffULL);
+        assert(a1.in_range_int()); assert(a2.in_range_int()); assert(a3.in_range_int());
+        assert(!a5.in_range_int()); assert(!a5.in_range_uint());
+        assert(!a6.in_range_int()); assert(!a6.in_range_uint());
+        assert(a6.in_range_ulonglong());
+        assert(!a7.in_range_int()); assert(!a7.in_range_uint()); assert(a7.in_range_ulonglong());
+        assert(!a8.in_range_int()); assert(!a8.in_range_uint()); assert(a8.in_range_ulonglong());
+        assert(a1.to_int() == 123);       assert(a2.to_int() == 65536);       assert(a3.to_int() == 0xffffff);
+        assert(a1.to_uint() == 123);      assert(a2.to_uint() == 65536);      assert(a3.to_uint() == 0xffffff);
+        assert(a1.to_long() == 123);      assert(a2.to_long() == 65536);      assert(a3.to_long() == 0xffffff);
+        assert(a1.to_uint() == 123);      assert(a2.to_uint() == 65536);      assert(a3.to_ulong() == 0xffffff);
+        assert(a1.to_longlong() == 123);  assert(a2.to_longlong() == 65536);  assert(a3.to_longlong() == 0xffffff);
+        assert(a1.to_ulonglong() == 123); assert(a2.to_ulonglong() == 65536); assert(a3.to_ulonglong() == 0xffffff);
+        assert(!a4.in_range_int()); assert(a4.in_range_uint());
+        assert(a4.to_long() == 0xaabbccdd); assert(a4.to_ulong() == 0xaabbccdd);
+        assert(a4.to_longlong() == 0xaabbccdd); assert(a4.to_ulonglong() == 0xaabbccdd);
+
+        assert(!a5.in_range_int()); assert(!a5.in_range_uint());
+        if (sizeof(long) > 4) {
+            assert(a5.to_long() == 0xaabbccddee); assert(a5.to_ulong() == 0xaabbccddee);
+        } else {
+            assert(!a5.in_range_long()); assert(!a5.in_range_ulong());
+        }
+        assert(a5.to_longlong() == 0xaabbccddee); assert(a5.to_ulonglong() == 0xaabbccddee);
+
+        assert(!a6.in_range_int()); assert(!a6.in_range_uint());
+        if (sizeof(long) > 4){
+            assert(a6.to_long() == 0xaabbccddeeffULL); assert(a6.to_ulong() == 0xaabbccddeeffULL);
+        } else {
+            assert(!a6.in_range_long()); assert(!a6.in_range_ulong());
+        }
+        assert(a6.to_longlong() == 0xaabbccddeeffULL); assert(a6.to_ulonglong() == 0xaabbccddeeffULL);
+
+        assert(!a7.in_range_int()); assert(!a7.in_range_uint());
+        if (sizeof(long) > 4)
+        {
+            assert(a7.to_long() == 0x11aabbccddeeffULL); assert(a7.to_ulong() == 0x11aabbccddeeffULL);
+        } else {
+            assert(!a7.in_range_long()); assert(!a7.in_range_ulong());
+        }
+        assert(a7.to_longlong() == 0x11aabbccddeeffULL); assert(a7.to_ulonglong() == 0x11aabbccddeeffULL);
+
+        assert(!a8.in_range_int()); assert(!a8.in_range_uint());
+        if (sizeof(long) > 4) {
+            assert(a8.to_long() == 0x1122aabbccddeeffULL); assert(a8.to_ulong() == 0x1122aabbccddeeffULL);
+        } else {
+            assert(!a8.in_range_long()); assert(!a8.in_range_ulong());
+        }
+        assert(a8.to_longlong() == 0x1122aabbccddeeffULL); assert(a8.to_ulonglong() == 0x1122aabbccddeeffULL);
+    }{
+        NN a, b(INT_MAX), c(INT_MIN), d(LONG_MAX), e(LONG_MIN), f(LLONG_MAX), g(LLONG_MIN);
+        assert(a.in_range_int()); assert(a.in_range_uint()); assert(a.in_range_long()); assert(a.in_range_ulong()); assert(a.in_range_longlong()); assert(a.in_range_ulonglong());
+        assert(b.in_range_int()); assert(b.in_range_uint()); assert(b.in_range_long()); assert(b.in_range_ulong()); assert(b.in_range_longlong()); assert(b.in_range_ulonglong());
+        assert(c.in_range_int()); assert(c.in_range_uint()); assert(c.in_range_long()); assert(c.in_range_ulong()); assert(c.in_range_longlong()); assert(c.in_range_ulonglong());
+        assert(d.in_range_long()); assert(d.in_range_ulong()); assert(d.in_range_longlong()); assert(d.in_range_ulonglong());
+        assert(e.in_range_long()); assert(e.in_range_ulong()); assert(e.in_range_longlong()); assert(e.in_range_ulonglong());
+        assert(f.in_range_longlong()); assert(f.in_range_ulonglong());
+        assert(g.in_range_longlong()); assert(g.in_range_ulonglong());
+        assert(b.to_int() == INT_MAX); assert(c.to_int() == INT_MIN);
+        assert(d.to_long() == LONG_MAX); assert(e.to_long() == LONG_MIN);
+        assert(f.to_longlong() == LLONG_MAX); assert(g.to_longlong() == LLONG_MIN);
+        b++; assert(!b.in_range_int()); b++; assert(!b.in_range_int());
+        b--; assert(!b.in_range_int()); b--; assert(b.in_range_int());
+        c++; assert(c.in_range_int()); c++; assert(c.in_range_int());
+        c--; assert(c.in_range_int()); c--; assert(c.in_range_int()); c--; assert(!c.in_range_int());
+        d++; assert(!d.in_range_long()); d++; assert(!d.in_range_long());
+        d--; assert(!d.in_range_long()); d--; assert(d.in_range_long());
+        e++; assert(e.in_range_long()); e++; assert(e.in_range_long());
+        e--; assert(e.in_range_long()); e--; assert(e.in_range_long()); e--; assert(!e.in_range_long());
+        f++; assert(!f.in_range_longlong()); f++; assert(!f.in_range_longlong());
+        f--; assert(!f.in_range_longlong()); f--; assert(f.in_range_longlong());
+        g++; assert(g.in_range_longlong()); g++; assert(g.in_range_longlong());
+        g--; assert(g.in_range_longlong()); g--; assert(g.in_range_longlong()); g--; assert(!g.in_range_longlong());
+    }{
+        NN a, b(UINT_MAX), c(ULONG_MAX), d(ULLONG_MAX);
+        assert(a.in_range_uint()); assert(a.in_range_ulong());assert(a.in_range_ulonglong());
+        assert(!b.in_range_int()); assert(b.in_range_uint()); assert(b.in_range_ulong()); assert(b.in_range_ulonglong());
+        assert(!c.in_range_int()); assert(c.in_range_uint()); assert(c.in_range_ulong()); assert(c.in_range_ulonglong());
+        assert(b.to_uint() == UINT_MAX); assert(c.to_ulong() == ULONG_MAX); assert(d.to_ulonglong() == ULLONG_MAX);
+        b++; assert(!b.in_range_int()); assert(!b.in_range_uint());
+        c++; assert(!c.in_range_long()); assert(!c.in_range_ulong());
+        d++; assert(!d.in_range_longlong()); assert(!d.in_range_ulonglong());
+    }
 }
 
 bool chance(int n)

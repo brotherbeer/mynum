@@ -65,12 +65,26 @@ struct number_t: public _base_number_t
 
     bool is_even() const;
     bool is_not(const number_t& another) const {return this != &another;}
+    bool is_neg() const  { return len < 0; }
     bool is_odd() const;
-    bool is_one() const {return len == 1 && dat[0] == 1;}
-    bool is_power2() const;
-    bool is_zero() const {return len == 0;}
-    bool is_pos() const {return len > 0;}
-    bool is_neg() const {return len < 0;}
+    bool is_one() const  { return len == 1 && dat[0] == 1; }
+    bool is_po2() const;
+    bool is_pos() const  { return len > 0; }
+    bool is_zero() const { return len == 0; }
+
+    bool in_range_int() const;
+    bool in_range_long() const;
+    bool in_range_longlong() const;
+    bool in_range_uint() const;
+    bool in_range_ulong() const;
+    bool in_range_ulonglong() const;
+
+    int to_int() const;
+    long to_long() const;
+    long long to_longlong() const;
+    unsigned int to_uint() const;
+    unsigned long to_ulong() const;
+    unsigned long long to_ulonglong() const;
 
     string_t& to_bin_string(string_t&) const;
     string_t& to_oct_string(string_t&) const;
@@ -222,7 +236,7 @@ void bit_not(const number_t& a, number_t& res);
 
 void swap(number_t& a, number_t& b);
 
-bool is_power2(const number_t& a);
+bool is_po2(const number_t& a);
 bool is_odd(const number_t& a);
 bool is_even(const number_t& a);
 
@@ -280,6 +294,8 @@ struct string_t
     string_t& operator = (const char*);
     string_t& operator = (const string_t&);
     char operator [] (size_t x) const { return dat[x]; }
+    char& operator [] (size_t x) { return dat[x]; }
+
     const char* c_str() const { return dat; }
 
     void __copy(const char* p, size_t l);

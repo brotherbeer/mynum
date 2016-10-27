@@ -1069,9 +1069,9 @@ size_t number_t::bits_count() const
     return len? __vbits_count(): 0;
 }
 
-bool number_t::is_power2() const
+bool number_t::is_po2() const
 {
-    return mynum::is_power2(*this);
+    return mynum::is_po2(*this);
 }
 
 bool number_t::is_odd() const
@@ -1244,6 +1244,223 @@ number_t::operator bool () const
 bool number_t::operator ! () const
 {
     return is_zero();
+}
+
+#define return_if_in_range(type) do\
+    { \
+        slen_t l = __abs(len); \
+        slen_t m = sizeof(type) / sizeof(unit_t); \
+        if (l < m) return true; \
+        else if (l == m) return *(type*)dat > 0 || len < 0 && *(type*)dat == ((unsigned type)1 << (sizeof(type) * 8 - 1)); \
+        return false; \
+    } while (0)
+
+#define return_if_in_unsigned_range(type) do\
+    { \
+        return __abs(len) <= sizeof(type) / sizeof(unit_t); \
+    } while (0)
+
+bool number_t::in_range_int() const
+{
+    return_if_in_range(int);
+}
+
+bool number_t::in_range_long() const
+{
+    return_if_in_range(long);
+}
+
+bool number_t::in_range_longlong() const
+{
+    return_if_in_range(long long);
+}
+
+bool number_t::in_range_uint() const
+{
+    return_if_in_unsigned_range(unsigned int);
+}
+
+bool number_t::in_range_ulong() const
+{
+    return_if_in_unsigned_range(unsigned long);
+}
+
+bool number_t::in_range_ulonglong() const
+{
+    return_if_in_unsigned_range(unsigned long long);
+}
+
+#if INT_MAX != 2147483647 || UINT_MAX != 0xffffffff
+#error int is not 32-bit, temporarily not supported
+#endif
+#if LLONG_MAX != 9223372036854775807LL || ULLONG_MAX != 0xffffffffffffffffULL
+#error long long is not 64-bit, temporarily not supported
+#endif
+
+#if UNITBITS == 32
+
+int number_t::to_int() const
+{
+    if (len)
+    {
+        return len > 0? *(int*)dat: -*(int*)dat;
+    }
+    return 0;
+}
+
+long long number_t::to_longlong() const
+{
+    long long v;
+    switch (__abs(len))
+    {
+        case 0:
+            v = 0;
+            break;
+        case 1:
+            v = dat[0];
+            break;
+        case 2:
+        default:
+            v = *(long long*)dat;
+            break;
+    }
+    return len > 0? v: -v;
+}
+
+unsigned int number_t::to_uint() const
+{
+    if (len)
+    {
+        return *(unsigned int*)dat;
+    }
+    return 0;
+}
+
+unsigned long long number_t::to_ulonglong() const
+{
+    unsigned long long v;
+    switch (__abs(len))
+    {
+        case 0:
+            v = 0;
+            break;
+        case 1:
+            v = dat[0];
+            break;
+        case 2:
+        default:
+            v = *(unsigned long long*)dat;
+            break;
+    }
+    return v;
+}
+
+#elif UNITBITS == 16
+
+int number_t::to_int() const
+{
+    int v = 0;
+    if (len)
+    {
+        v = *(int*)dat;
+        if (__abs(len) < 2)
+        {
+            v &= MASK;
+        }
+    }
+    return len >0? v: -v;
+}
+
+long long number_t::to_longlong() const
+{
+    long long v;
+    switch (__abs(len))
+    {
+        case 0:
+            v = 0;
+            break;
+        case 1:
+            v = dat[0];
+            break;
+        case 2:
+            v = *(dunit_t*)dat;
+            break;
+        case 3:
+            v = dat[2];
+            v <<= 32;
+            v |= *(dunit_t*)dat;
+            break;
+        case 4:
+        default:
+            v = *(long long*)dat;
+            break;
+    }
+    return len > 0? v: -v;
+}
+
+unsigned int number_t::to_uint() const
+{
+    unsigned int v = 0;
+    if (len)
+    {
+        v = *(unsigned int*)dat;
+        if (__abs(len) < 2)
+        {
+            v &= MASK;
+        }
+    }
+    return v;
+}
+
+unsigned long long number_t::to_ulonglong() const
+{
+    unsigned long long v;
+    switch (__abs(len))
+    {
+        case 0:
+            v = 0;
+            break;
+        case 1:
+            v = dat[0];
+            break;
+        case 2:
+            v = *(dunit_t*)dat;
+            break;
+        case 3:
+            v = dat[2];
+            v <<= 32;
+            v |= *(dunit_t*)dat;
+            break;
+        case 4:
+        default:
+            v = *(unsigned long long*)dat;
+            break;
+    }
+    return v;
+}
+
+#endif
+
+long number_t::to_long() const
+{
+#if LONG_MAX == 2147483647L
+    return (long)to_int();
+#elif LONG_MAX == 9223372036854775807LL
+    return (long)to_longlong();
+#else
+    #error long is neither 32-bit nor 64-bit, temporarily not supported
+#endif
+}
+
+unsigned long number_t::to_ulong() const
+{
+#if ULONG_MAX == 0xffffffffUL
+    return (unsigned long)to_uint();
+#elif ULONG_MAX == 0xffffffffffffffffULL
+    return (unsigned long)to_ulonglong();
+#else
+    #error long is neither 32-bit nor 64-bit, temporarily not supported
+#endif
 }
 
 void number_t::__copy(const number_t& another)
@@ -2765,7 +2982,7 @@ void swap(number_t& a, number_t& b)
     a.len ^= b.len; a.cap ^= b.cap;
 }
 
-bool is_power2(const number_t& a)
+bool is_po2(const number_t& a)
 {
     if (!a.is_zero())
     {

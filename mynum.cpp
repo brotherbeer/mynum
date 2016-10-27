@@ -3980,7 +3980,7 @@ static __always_inline(dunit_t) __original_div_4by2(dunit_t h, dunit_t l, dunit_
         q2 = v / d2;
         *r = v % d2;
     }
-    return __make_dunit(q1, q2);  // Oh~ It's too slowwwww
+    return __make_dunit(q1, q2 & MASK);  // Oh~ It's too slowwwww
 }
 
 #ifdef __GNUC__
@@ -4050,14 +4050,12 @@ dunit_t __mul_add_dunit(dunit_t x, dunit_t y, dunit_t z, dunit_t* l)
 
 dunit_t __qunit_div_by_dunit(dunit_t h, dunit_t l, dunit_t d, dunit_t* r)
 {
-    return __original_div_4by2(h, l, d, r);
+    assert(h < d);
 
-    //assert(h < d);
-
-    //unsigned __int64 qunit = (unsigned __int64)h << (UNITBITS * 2) | l;
-    //dunit_t q = dunit_t(qunit / d);
-    //*r = dunit_t(qunit % d);
-    //return q;
+    unsigned __int64 qunit = (unsigned __int64)h << (UNITBITS * 2) | l;
+    dunit_t q = dunit_t(qunit / d);
+    *r = dunit_t(qunit % d);
+    return q;
 }
 
 dunit_t __qunit_mod_by_dunit(dunit_t h, dunit_t l, dunit_t d)
@@ -4082,6 +4080,13 @@ dunit_t __mul_add_dunit(dunit_t x, dunit_t y, dunit_t z, dunit_t* l)
 dunit_t __qunit_div_by_dunit(dunit_t h, dunit_t l, dunit_t d, dunit_t* r)
 {
     return __original_div_4by2(h, l, d, r);
+}
+
+dunit_t __qunit_mod_by_dunit(dunit_t h, dunit_t l, dunit_t d)
+{
+	dunit_t r;
+	__original_div_4by2(h, l, d, &r);
+	return r;
 }
 
 #endif

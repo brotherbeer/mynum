@@ -8,16 +8,18 @@
 
 namespace mynum {
 
-#if SIZE_MAX == 0xffffffffUL
+#if SIZE_MAX == 4294967295UL
 #define UNITBITS 16
 typedef unsigned short unit_t;
 typedef unsigned int dunit_t;
 typedef int slen_t;
-#elif SIZE_MAX == 0xffffffffffffffffULL
+
+#elif SIZE_MAX == 18446744073709551615ULL
 #define UNITBITS 32
 typedef unsigned int unit_t;
 typedef unsigned long long dunit_t;
 typedef long long slen_t;
+
 #else
 #error SIZE_MAX unknown
 #endif
@@ -63,7 +65,7 @@ struct number_t: public _base_number_t
     number_t& assign(const char*, size_t length, int base);
 
     bool is_even() const;
-    bool is_not(const number_t& another) const {return this != &another;}
+    bool is_not(const number_t& another) const { return this != &another; }
     bool is_neg() const  { return len < 0; }
     bool is_odd() const;
     bool is_one() const  { return len == 1 && dat[0] == 1; }
@@ -71,16 +73,24 @@ struct number_t: public _base_number_t
     bool is_pos() const  { return len > 0; }
     bool is_zero() const { return len == 0; }
 
+    bool in_range_char() const;
+    bool in_range_short() const;
     bool in_range_int() const;
     bool in_range_long() const;
     bool in_range_longlong() const;
+    bool in_range_uchar() const;
+    bool in_range_ushort() const;
     bool in_range_uint() const;
     bool in_range_ulong() const;
     bool in_range_ulonglong() const;
 
+    char to_char() const;
+    short to_short() const;
     int to_int() const;
     long to_long() const;
     long long to_longlong() const;
+    unsigned char to_uchar() const;
+    unsigned short to_ushort() const;
     unsigned int to_uint() const;
     unsigned long to_ulong() const;
     unsigned long long to_ulonglong() const;

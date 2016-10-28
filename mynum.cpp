@@ -177,20 +177,19 @@ static __always_inline(dunit_t) __make_dunit(dunit_t high, unit_t low)
 
 /** class number_t implementation */
 
-#define __trim_leading_zeros(dat, len) do\
-    {\
-        assert(len >= 0); \
-        const unit_t *e = dat - 1, *p = e + len; \
-        while (p != e && !*p) {p--;} \
-        len = slen_t(p - e); \
-    } while (0)
+#define __trim_leading_zeros(dat, len) \
+{\
+    assert(len >= 0); \
+    const unit_t *e = dat - 1, *p = e + len; \
+    while (p != e && !*p) {p--;} \
+    len = slen_t(p - e); \
+}
 
-#define __pad_word(dat, len) do\
-    { \
-        slen_t l = __abs(len); \
-        if ((l) & 1) *((dat) + l) = 0; \
-    } while (0)
-
+#define __pad_word(dat, len) \
+{ \
+    slen_t l = __abs(len); \
+    if ((l) & 1) *((dat) + l) = 0; \
+}
 
 number_t::number_t(const char* s)
 {
@@ -1251,48 +1250,108 @@ bool number_t::operator ! () const
     return is_zero();
 }
 
-#define return_if_in_range(type) do\
-    { \
-        slen_t l = __abs(len); \
-        slen_t m = sizeof(type) / sizeof(unit_t); \
-        if (l < m) return true; \
-        else if (l == m) return *(type*)dat > 0 || len < 0 && *(type*)dat == ((unsigned type)1 << (sizeof(type) * 8 - 1)); \
-        return false; \
-    } while (0)
+bool number_t::in_range_char() const
+{
+    if (len == 0)
+    {
+        return true;
+    }
+    else if (len == 1)
+    {
+        return *dat <= CHAR_MAX;
+    }
+    else if (len == -1)
+    {
+        return *dat <= CHAR_MAX + 1;
+    }
+    return false;
+}
 
-#define return_if_in_unsigned_range(type) do\
-    { \
-        return __abs(len) <= sizeof(type) / sizeof(unit_t); \
-    } while (0)
+bool number_t::in_range_short() const
+{
+    if (len == 0)
+    {
+        return true;
+    }
+    else if (len == 1)
+    {
+        return *dat <= SHRT_MAX;
+    }
+    else if (len == -1)
+    {
+        return *dat <= SHRT_MAX + 1;
+    }
+    return false;
+}
+
+#define __judge_signed_range(type, typemax, typemin) \
+{ \
+    slen_t m = sizeof(type) / sizeof(unit_t); \
+    if (__abs(len) < m) return true; \
+    else if (len ==  m) return *(unsigned type*)dat <=  typemax; \
+    else if (len == -m) return *(unsigned type*)dat <= -typemin; \
+    return false; \
+}
+
+#define __judge_unsigned_range(type) \
+{ \
+    return len == 0 || (len > 0 && len <= sizeof(type) / sizeof(unit_t)); \
+}
 
 bool number_t::in_range_int() const
 {
-    return_if_in_range(int);
+    __judge_signed_range(int, INT_MAX, INT_MIN);
 }
 
 bool number_t::in_range_long() const
 {
-    return_if_in_range(long);
+    __judge_signed_range(long, LONG_MAX, LONG_MIN);
 }
 
 bool number_t::in_range_longlong() const
 {
-    return_if_in_range(long long);
+    __judge_signed_range(long long, LLONG_MAX, LLONG_MIN);
+}
+
+bool number_t::in_range_uchar() const
+{
+    if (len == 0)
+    {
+        return true;
+    }
+    else if (len == 1)
+    {
+        return *dat <= UCHAR_MAX;
+    }
+    return false;
+}
+
+bool number_t::in_range_ushort() const
+{
+    if (len == 0)
+    {
+        return true;
+    }
+    else if (len == 1)
+    {
+        return *dat <= USHRT_MAX;
+    }
+    return false;
 }
 
 bool number_t::in_range_uint() const
 {
-    return_if_in_unsigned_range(unsigned int);
+    __judge_unsigned_range(unsigned int);
 }
 
 bool number_t::in_range_ulong() const
 {
-    return_if_in_unsigned_range(unsigned long);
+    __judge_unsigned_range(unsigned long);
 }
 
 bool number_t::in_range_ulonglong() const
 {
-    return_if_in_unsigned_range(unsigned long long);
+    __judge_unsigned_range(unsigned long long);
 }
 
 #if INT_MAX != 2147483647 || UINT_MAX != 0xffffffff
@@ -1301,6 +1360,31 @@ bool number_t::in_range_ulonglong() const
 #if LLONG_MAX != 9223372036854775807LL || ULLONG_MAX != 0xffffffffffffffffULL
 #error long long is not 64-bit, temporarily not supported
 #endif
+#if LONG_MAX != INT_MAX && LONG_MAX != LLONG_MAX
+#error long is neither 32-bit nor 64-bit, temporarily not supported
+#endif
+
+char number_t::to_char() const
+{
+    unit_t v = len? *dat: 0;
+    return char(len >= 0? v: -v);
+}
+
+short number_t::to_short() const
+{
+    unit_t v = len? *dat: 0;
+    return short(len >= 0? v: -v);
+}
+
+unsigned char number_t::to_uchar() const
+{
+    return unsigned char(len? *dat: 0);
+}
+
+unsigned short number_t::to_ushort() const
+{
+    return unsigned short(len? *dat: 0);
+}
 
 #if UNITBITS == 32
 
@@ -1373,7 +1457,7 @@ int number_t::to_int() const
             v &= MASK;
         }
     }
-    return len >0? v: -v;
+    return len >= 0? v: -v;
 }
 
 long long number_t::to_longlong() const
@@ -1452,8 +1536,6 @@ long number_t::to_long() const
     return (long)to_int();
 #elif LONG_MAX == 9223372036854775807LL
     return (long)to_longlong();
-#else
-    #error long is neither 32-bit nor 64-bit, temporarily not supported
 #endif
 }
 
@@ -1463,8 +1545,6 @@ unsigned long number_t::to_ulong() const
     return (unsigned long)to_uint();
 #elif ULONG_MAX == 0xffffffffffffffffULL
     return (unsigned long)to_ulonglong();
-#else
-    #error long is neither 32-bit nor 64-bit, temporarily not supported
 #endif
 }
 

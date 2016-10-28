@@ -2280,26 +2280,20 @@ void test_basic_type_convertion()
         NN a, b(INT_MAX), c(INT_MIN), d(LONG_MAX), e(LONG_MIN), f(LLONG_MAX), g(LLONG_MIN);
         assert(a.in_range_int()); assert(a.in_range_uint()); assert(a.in_range_long()); assert(a.in_range_ulong()); assert(a.in_range_longlong()); assert(a.in_range_ulonglong());
         assert(b.in_range_int()); assert(b.in_range_uint()); assert(b.in_range_long()); assert(b.in_range_ulong()); assert(b.in_range_longlong()); assert(b.in_range_ulonglong());
-        assert(c.in_range_int()); assert(c.in_range_uint()); assert(c.in_range_long()); assert(c.in_range_ulong()); assert(c.in_range_longlong()); assert(c.in_range_ulonglong());
+        assert(c.in_range_int()); assert(!c.in_range_uint()); assert(c.in_range_long()); assert(c.in_range_longlong());
         assert(d.in_range_long()); assert(d.in_range_ulong()); assert(d.in_range_longlong()); assert(d.in_range_ulonglong());
-        assert(e.in_range_long()); assert(e.in_range_ulong()); assert(e.in_range_longlong()); assert(e.in_range_ulonglong());
+        assert(e.in_range_long()); assert(e.in_range_longlong());
         assert(f.in_range_longlong()); assert(f.in_range_ulonglong());
-        assert(g.in_range_longlong()); assert(g.in_range_ulonglong());
+        assert(g.in_range_longlong()); assert(!g.in_range_ulonglong());
         assert(b.to_int() == INT_MAX); assert(c.to_int() == INT_MIN);
         assert(d.to_long() == LONG_MAX); assert(e.to_long() == LONG_MIN);
         assert(f.to_longlong() == LLONG_MAX); assert(g.to_longlong() == LLONG_MIN);
-        b++; assert(!b.in_range_int()); b++; assert(!b.in_range_int());
-        b--; assert(!b.in_range_int()); b--; assert(b.in_range_int());
-        c++; assert(c.in_range_int()); c++; assert(c.in_range_int());
-        c--; assert(c.in_range_int()); c--; assert(c.in_range_int()); c--; assert(!c.in_range_int());
-        d++; assert(!d.in_range_long()); d++; assert(!d.in_range_long());
-        d--; assert(!d.in_range_long()); d--; assert(d.in_range_long());
-        e++; assert(e.in_range_long()); e++; assert(e.in_range_long());
-        e--; assert(e.in_range_long()); e--; assert(e.in_range_long()); e--; assert(!e.in_range_long());
-        f++; assert(!f.in_range_longlong()); f++; assert(!f.in_range_longlong());
-        f--; assert(!f.in_range_longlong()); f--; assert(f.in_range_longlong());
-        g++; assert(g.in_range_longlong()); g++; assert(g.in_range_longlong());
-        g--; assert(g.in_range_longlong()); g--; assert(g.in_range_longlong()); g--; assert(!g.in_range_longlong());
+        b++; assert(!b.in_range_int()); b++; assert(!b.in_range_int()); b--; assert(!b.in_range_int()); b--; assert(b.in_range_int());
+        c++; assert(c.in_range_int()); c++; assert(c.in_range_int()); c--; assert(c.in_range_int()); c--; assert(c.in_range_int()); c--; assert(!c.in_range_int());
+        d++; assert(!d.in_range_long()); d++; assert(!d.in_range_long()); d--; assert(!d.in_range_long()); d--; assert(d.in_range_long());
+        e++; assert(e.in_range_long()); e++; assert(e.in_range_long()); e--; assert(e.in_range_long()); e--; assert(e.in_range_long()); e--; assert(!e.in_range_long());
+        f++; assert(!f.in_range_longlong()); f++; assert(!f.in_range_longlong()); f--; assert(!f.in_range_longlong()); f--; assert(f.in_range_longlong());
+        g++; assert(g.in_range_longlong()); g++; assert(g.in_range_longlong()); g--; assert(g.in_range_longlong()); g--; assert(g.in_range_longlong()); g--; assert(!g.in_range_longlong());
     }{
         NN a, b(UINT_MAX), c(ULONG_MAX), d(ULLONG_MAX);
         assert(a.in_range_uint()); assert(a.in_range_ulong());assert(a.in_range_ulonglong());
@@ -2309,6 +2303,17 @@ void test_basic_type_convertion()
         b++; assert(!b.in_range_int()); assert(!b.in_range_uint());
         c++; assert(!c.in_range_long()); assert(!c.in_range_ulong());
         d++; assert(!d.in_range_longlong()); assert(!d.in_range_ulonglong());
+    }{
+        NN a(CHAR_MAX), b(CHAR_MIN), c(SHRT_MAX), d(SHRT_MIN);
+        assert(a.in_range_char()); assert(a.in_range_uchar()); assert(a.in_range_ushort()); assert(a.in_range_uint());
+        assert(b.in_range_char()); assert(!b.in_range_uchar()); assert(b.in_range_short()); assert(!b.in_range_uint());
+        assert(!c.in_range_char()); assert(!c.in_range_uchar()); assert(c.in_range_short()); assert(c.in_range_ushort());
+        assert(!d.in_range_char()); assert(!d.in_range_uchar()); assert(d.in_range_short()); assert(!d.in_range_ushort()); assert(d.in_range_int());
+        assert(a.to_char() == CHAR_MAX); assert(b.to_char() == CHAR_MIN); assert(c.to_short() == SHRT_MAX); assert(d.to_short() == SHRT_MIN);
+        a--; assert(a.in_range_char()); a--; assert(a.in_range_char()); a++; assert(a.in_range_char()); a++; assert(a.in_range_char());
+        b--; assert(!b.in_range_char()); b--; assert(!b.in_range_char()); b++; assert(!b.in_range_char()); b++; assert(b.in_range_char());
+        c--; assert(c.in_range_short()); c--; assert(c.in_range_short()); c++; assert(c.in_range_short()); c++; assert(c.in_range_short());
+        d--; assert(!d.in_range_short()); d--; assert(!d.in_range_short()); d++; assert(!d.in_range_short()); d++; assert(d.in_range_short());
     }
 }
 

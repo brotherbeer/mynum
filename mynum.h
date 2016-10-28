@@ -10,13 +10,17 @@ namespace mynum {
 
 #if SIZE_MAX == 4294967295UL
 #define UNITBITS 16
+typedef short sunit_t;
 typedef unsigned short unit_t;
+typedef int sdunit_t;
 typedef unsigned int dunit_t;
 typedef int slen_t;
 
 #elif SIZE_MAX == 18446744073709551615ULL
 #define UNITBITS 32
+typedef int sunit_t;
 typedef unsigned int unit_t;
+typedef long long sdunit_t;
 typedef unsigned long long dunit_t;
 typedef long long slen_t;
 
@@ -25,6 +29,7 @@ typedef long long slen_t;
 #endif
 
 typedef dunit_t word_t;
+typedef sdunit_t sword_t;
 
 struct _base_number_t
 {
@@ -62,53 +67,11 @@ struct number_t: public _base_number_t
     number_t& assign(unsigned long long);
     number_t& assign(const char*);
     number_t& assign(const char*, int base);
-    number_t& assign(const char*, size_t length, int base);
-
-    bool is_even() const;
-    bool is_not(const number_t& another) const { return this != &another; }
-    bool is_neg() const  { return len < 0; }
-    bool is_odd() const;
-    bool is_one() const  { return len == 1 && dat[0] == 1; }
-    bool is_po2() const;
-    bool is_pos() const  { return len > 0; }
-    bool is_zero() const { return len == 0; }
-
-    bool in_range_char() const;
-    bool in_range_short() const;
-    bool in_range_int() const;
-    bool in_range_long() const;
-    bool in_range_longlong() const;
-    bool in_range_uchar() const;
-    bool in_range_ushort() const;
-    bool in_range_uint() const;
-    bool in_range_ulong() const;
-    bool in_range_ulonglong() const;
-
-    char to_char() const;
-    short to_short() const;
-    int to_int() const;
-    long to_long() const;
-    long long to_longlong() const;
-    unsigned char to_uchar() const;
-    unsigned short to_ushort() const;
-    unsigned int to_uint() const;
-    unsigned long to_ulong() const;
-    unsigned long long to_ulonglong() const;
-
-    string_t& to_bin_string(string_t&) const;
-    string_t& to_oct_string(string_t&) const;
-    string_t& to_dec_string(string_t&) const;
-    string_t& to_hex_string(string_t&) const;
-    string_t& to_string(string_t& res, int base = 10) const;
-
-    string_t to_bin_string() const;
-    string_t to_oct_string() const;
-    string_t to_dec_string() const;
-    string_t to_hex_string() const;
-    string_t to_string(int base = 10) const;
+    number_t& assign(const char*, size_t length, int base);   
 
     void clear();
     void copy(const number_t&);
+
     void set_one();
     void set_zero();
     void steal(number_t&);
@@ -142,12 +105,44 @@ struct number_t: public _base_number_t
     number_t& mul_unit(unit_t);
     number_t& div_unit(unit_t);
     number_t& mod_unit(unit_t);
-
     number_t& add_word(word_t);
     number_t& sub_word(word_t);
     number_t& mul_word(word_t);
     number_t& div_word(word_t);
     number_t& mod_word(word_t);
+
+    number_t& add_int(int);
+    number_t& sub_int(int);
+    number_t& mul_int(int);
+    number_t& div_int(int);
+    number_t& mod_int(int);
+    number_t& add_uint(unsigned int);
+    number_t& sub_uint(unsigned int);
+    number_t& mul_uint(unsigned int);
+    number_t& div_uint(unsigned int);
+    number_t& mod_uint(unsigned int);
+
+    number_t& add_long(long);
+    number_t& sub_long(long);
+    number_t& mul_long(long);
+    number_t& div_long(long);
+    number_t& mod_long(long);
+    number_t& add_ulong(unsigned long);
+    number_t& sub_ulong(unsigned long);
+    number_t& mul_ulong(unsigned long);
+    number_t& div_ulong(unsigned long);
+    number_t& mod_ulong(unsigned long);
+
+    number_t& add_longlong(long long);
+    number_t& sub_longlong(long long);
+    number_t& mul_longlong(long long);
+    number_t& div_longlong(long long);
+    number_t& mod_longlong(long long);
+    number_t& add_ulonglong(unsigned long long);
+    number_t& sub_ulonglong(unsigned long long);
+    number_t& mul_ulonglong(unsigned long long);
+    number_t& div_ulonglong(unsigned long long);
+    number_t& mod_ulonglong(unsigned long long);
 
     bool bit_at(size_t) const;
     void bit_set(size_t, bool v = 1);
@@ -155,6 +150,49 @@ struct number_t: public _base_number_t
     void bit_set_zero(size_t);
     size_t bits_count() const;
     void bits_reserve(size_t);
+
+    bool is_even() const;
+    bool is_not(const number_t& another) const { return this != &another; }
+    bool is_neg() const  { return len < 0; }
+    bool is_odd() const;
+    bool is_one() const  { return len == 1 && dat[0] == 1; }
+    bool is_po2() const;
+    bool is_pos() const  { return len > 0; }
+    bool is_zero() const { return len == 0; }
+
+    string_t& to_bin_string(string_t&) const;
+    string_t& to_oct_string(string_t&) const;
+    string_t& to_dec_string(string_t&) const;
+    string_t& to_hex_string(string_t&) const;
+    string_t& to_string(string_t& res, int base = 10) const;
+
+    string_t to_bin_string() const;
+    string_t to_oct_string() const;
+    string_t to_dec_string() const;
+    string_t to_hex_string() const;
+    string_t to_string(int base = 10) const;
+
+    bool in_range_char() const;
+    bool in_range_short() const;
+    bool in_range_int() const;
+    bool in_range_long() const;
+    bool in_range_longlong() const;
+    bool in_range_uchar() const;
+    bool in_range_ushort() const;
+    bool in_range_uint() const;
+    bool in_range_ulong() const;
+    bool in_range_ulonglong() const;
+
+    char to_char() const;
+    short to_short() const;
+    int to_int() const;
+    long to_long() const;
+    long long to_longlong() const;
+    unsigned char to_uchar() const;
+    unsigned short to_ushort() const;
+    unsigned int to_uint() const;
+    unsigned long to_ulong() const;
+    unsigned long long to_ulonglong() const;
 
     number_t& operator = (const number_t&);
     number_t& operator = (short);

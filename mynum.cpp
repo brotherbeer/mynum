@@ -1006,6 +1006,235 @@ number_t& number_t::mod_word(word_t x)
     return *this;
 }
 
+number_t& number_t::add_int(int x)
+{
+#if UNITBITS == 16
+    return x > 0? add_word(x): sub_word(-x);
+#elif UNITBITS == 32
+    return x > 0? add_unit(x): sub_unit(-x);
+#endif
+}
+
+number_t& number_t::sub_int(int x)
+{
+#if UNITBITS == 16
+    return x > 0? sub_word(x): add_word(-x);
+#elif UNITBITS == 32
+    return x > 0? sub_unit(x): add_unit(-x);
+#endif
+}
+
+number_t& number_t::mul_int(int x)
+{
+#if UNITBITS == 16
+    if (x >= 0)   return mul_word(x);
+    mul_word(-x); return set_neg();
+#elif UNITBITS == 32
+    if (x >= 0)   return mul_unit(x);
+    mul_unit(-x); return set_neg();
+#endif
+}
+
+number_t& number_t::div_int(int x)  // TO TEST
+{
+#if UNITBITS == 16
+    if (x > 0)   return div_word(x);
+    div_word(-x); return set_neg();
+#elif UNITBITS == 32
+    if (x > 0)   return div_unit(x);
+    div_unit(-x); return set_neg();
+#endif
+}
+
+number_t& number_t::mod_int(int x)  // TO TEST
+{
+#if UNITBITS == 16
+    return x > 0? mod_word(x): mod_word(-x);
+#elif UNITBITS == 32
+    return x > 0? mod_unit(x): mod_unit(-x);
+#endif
+}
+
+number_t& number_t::add_uint(unsigned int x)
+{
+#if UNITBITS == 16
+    return add_word(x);
+#elif UNITBITS == 32
+    return add_unit(x);
+#endif
+}
+
+number_t& number_t::sub_uint(unsigned int x)
+{
+#if UNITBITS == 16
+    return sub_word(x);
+#elif UNITBITS == 32
+    return sub_unit(x);
+#endif
+}
+
+number_t& number_t::mul_uint(unsigned int x)
+{
+#if UNITBITS == 16
+    return mul_word(x);
+#elif UNITBITS == 32
+    return mul_unit(x);
+#endif
+}
+
+number_t& number_t::div_uint(unsigned int x)
+{
+#if UNITBITS == 16
+    return div_word(x);
+#elif UNITBITS == 32
+    return div_unit(x);
+#endif
+}
+
+number_t& number_t::mod_uint(unsigned int x)
+{
+#if UNITBITS == 16
+    return mod_word(x);
+#elif UNITBITS == 32
+    return mod_unit(x);
+#endif
+}
+
+number_t& number_t::add_long(long x)
+{
+#if LONG_MAX == INT_MAX
+    return add_int(x);
+#elif LONG_MAX == LLONG_MAX
+    return add_longlong(x);
+#endif
+}
+
+number_t& number_t::sub_long(long x)
+{
+#if LONG_MAX == INT_MAX
+    return sub_int(x);
+#elif LONG_MAX == LLONG_MAX
+    return sub_longlong(x);
+#endif
+}
+
+number_t& number_t::mul_long(long x)
+{
+#if LONG_MAX == INT_MAX
+    return mul_int(x);
+#elif LONG_MAX == LLONG_MAX
+    return mul_longlong(x);
+#endif
+}
+
+number_t& number_t::div_long(long x)
+{
+#if LONG_MAX == INT_MAX
+    return div_int(x);
+#elif LONG_MAX == LLONG_MAX
+    return div_longlong(x);
+#endif
+}
+
+number_t& number_t::mod_long(long x)
+{
+#if LONG_MAX == INT_MAX
+    return div_int(x);
+#elif LONG_MAX == LLONG_MAX
+    return div_longlong(x);
+#endif
+}
+
+number_t& number_t::add_ulong(unsigned long x)
+{
+#if ULONG_MAX == UINT_MAX
+    return add_uint(x);
+#elif ULONG_MAX == ULLONG_MAX
+    return add_ulonglong(x);
+#endif
+}
+
+number_t& number_t::sub_ulong(unsigned long x)
+{
+#if ULONG_MAX == UINT_MAX
+    return sub_uint(x);
+#elif ULONG_MAX == ULLONG_MAX
+    return sub_ulonglong(x);
+#endif
+}
+
+number_t& number_t::mul_ulong(unsigned long x)
+{
+#if ULONG_MAX == UINT_MAX
+    return mul_uint(x);
+#elif ULONG_MAX == ULLONG_MAX
+    return mul_ulonglong(x);
+#endif
+}
+
+number_t& number_t::div_ulong(unsigned long x)
+{
+#if ULONG_MAX == UINT_MAX
+    return div_uint(x);
+#elif ULONG_MAX == ULLONG_MAX
+    return div_ulonglong(x);
+#endif
+}
+
+number_t& number_t::mod_ulong(unsigned long x)
+{
+#if ULONG_MAX == UINT_MAX
+    return mod_uint(x);
+#elif ULONG_MAX == ULLONG_MAX
+    return mod_ulonglong(x);
+#endif
+}
+
+number_t& number_t::add_ulonglong(unsigned long long x)
+{
+#if UNITBITS == 32
+    return add_word(x);
+#else
+    return add(x);
+#endif
+}
+
+number_t& number_t::sub_ulonglong(unsigned long long x)
+{
+#if UNITBITS == 32
+    return sub_word(x);
+#else
+    return sub(x);
+#endif
+}
+
+number_t& number_t::mul_ulonglong(unsigned long long x)
+{
+#if UNITBITS == 32
+    return mul_word(x);
+#else
+    return mul(x);
+#endif
+}
+
+number_t& number_t::div_ulonglong(unsigned long long x)
+{
+#if UNITBITS == 32
+    return div_word(x);
+#else
+    return div(x);
+#endif
+}
+
+number_t& number_t::mod_ulonglong(unsigned long long x)
+{
+#if UNITBITS == 32
+    return mod_unit(x);
+#else
+    return mod(x);
+#endif
+}
+
 bool number_t::bit_at(size_t x) const
 {
     if (slen_t(x / SHIFT) < len)

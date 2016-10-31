@@ -15,7 +15,6 @@ void test_zero();
 void test_cmp();
 void test_mul();
 void test_sqr();
-void test_sqrt();
 void test_kmul();
 void test_ksqr();
 void test_add();
@@ -64,7 +63,6 @@ void test_detail()
     test_div();
     test_pow();
     test_pom();
-    test_sqrt();
     test_and();
     test_or();
     test_xor();
@@ -1322,28 +1320,6 @@ void test_div()
         div(h, g, q, r);
         assert(q * g + r == h);
     }
-    {
-        NN q, r;
-        floor_div("128937492387492874", "-23489234897", q, r);
-        assert(eq(q, "-5489217"));
-        assert(eq(r, "-15126112775"));
-
-        floor_div("-128937492387492874", "23489234897", q, r);
-        assert(eq(q, "-5489217"));
-        assert(eq(r, "15126112775"));
-
-        floor_div("-128937492387492874", "-23489234897", q, r);
-        assert(eq(q, "5489216"));
-        assert(eq(r, "-8363122122"));
-
-        floor_div(-1, 12334234234ULL, q, r);
-        assert(eq(q, -1));
-        assert(eq(r, 12334234233ULL));
-
-        floor_div("-1293847912374", 2, q, r);
-        assert(eq(q, "-646923956187"));
-        assert(eq(r, 0));
-    }
     for (int i = 0; i < 2000; i++)
     {
         NN a, b, q, r;
@@ -1671,43 +1647,6 @@ void test_pom()
         NN a(0), b(1), c(1), res;
         pom(a, b, c, res);
         assert(eq(res, 0));
-    }
-}
-
-void test_sqrt()
-{
-    assert(sqrt(0) == 0); assert(sqrt(1) == 1); assert(sqrt(2) == 1); assert(sqrt(3) == 1);
-    assert(sqrt(4) == 2); assert(sqrt(5) == 2); assert(sqrt(6) == 2); assert(sqrt(7) == 2);
-    assert(sqrt(8) == 2); assert(sqrt(9) == 3); assert(sqrt(0xabcd) == 209); assert(sqrt(0xabcdabcd) == 53687);
-    {
-        const char* astr[] = {
-            "0", "1", "123456789123456789123456789",
-            "4256789213891234512345967852946578348912433519142345678945678916789123451234567891234567878912345678912",
-            "6583092801273542762845769392437456587439210161525364374586977463",
-            "574746345769392437456587439210161524275364374586975658309280127353745658743921376958924269392487439210109280127354273746365874392101615201615253643745869774636542762865280092769392436180801273836286568309628451273542762845769392437456587439210161525364374586977463457525364374586977463457693924374565874335427374565830928012735427628658309628451273542762845769392392101615253643745869753643745869655764839203473521314325466879809586977463457693924374565874392101615253643745869774635427376928009276939243924280801273836286565809280127"
-        };
-        for (int i = 0; i < sizeof(astr) / sizeof(char*); i++)
-        {
-            NN a(astr[i]), b;
-            NN res;
-            sqrt(a, res);
-            sqr(res, b);
-            assert(cmp(b, a) <= 0);
-            res.add(1);
-            sqr(res, b);
-            assert(cmp(b, a) > 0);
-        }
-    }
-    for (int i = 0; i < 200; i++)
-    {
-        NN a, res, b;
-        create_big(a, rand() % 100);
-        sqrt(a, res);
-        sqr(res, b);
-        assert(cmp(b, a) <= 0);
-        res.add(1);
-        sqr(res, b);
-        assert(cmp(b, a) > 0);
     }
 }
 

@@ -96,7 +96,6 @@ struct number_t: public _base_number_t
     number_t& bit_not();
     number_t& sqr();
     number_t& ksqr();
-    number_t& sqrt();
     number_t& pow(const number_t&);
     number_t& pom(const number_t&, const number_t&);
 
@@ -273,10 +272,7 @@ int  div(const number_t& a, const number_t& b, number_t& q, number_t& r);
 int  div(const number_t& a, const number_t& b, number_t& q);
 int  mod(const number_t& a, const number_t& b, number_t& r);
 int  pom(const number_t& a, const number_t& b, const number_t& c, number_t& res);
-int  floor_div(const number_t& a, const number_t& b, number_t& q, number_t& r);
 
-unit_t sqrt(dunit_t x);
-int sqrt(const number_t& a, number_t& res);
 void bit_and(const number_t& a, const number_t& b, number_t& res);
 void bit_or(const number_t& a, const number_t& b, number_t& res);
 void bit_xor(const number_t& a, const number_t& b, number_t& res);
@@ -305,7 +301,6 @@ number_t mod(const number_t& a, const number_t& b);
 number_t shr(const number_t& a, size_t b);
 number_t shl(const number_t& a, size_t b);
 number_t pow(const number_t& a, const number_t& b);
-number_t sqrt(const number_t& a);
 number_t bit_and(const number_t& a, const number_t& b);
 number_t bit_or(const number_t& a, const number_t& b);
 number_t bit_xor(const number_t& a, const number_t& b);

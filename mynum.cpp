@@ -666,14 +666,6 @@ number_t& number_t::ksqr()
     return *this;
 }
 
-number_t& number_t::sqrt()
-{
-    number_t tmp;
-    mynum::sqrt(*this, tmp);
-    steal(tmp);
-    return *this;
-}
-
 number_t& number_t::pow(const number_t& x)
 {
     mynum::pow(*this, x, *this);
@@ -2352,7 +2344,6 @@ number_t mod(const number_t& a, const number_t& b)      { number_t res, dummy; d
 number_t shr(const number_t& a, size_t b)               { number_t res; shr(a, b, res); return res; }
 number_t shl(const number_t& a, size_t b)               { number_t res; shl(a, b, res); return res; }
 number_t pow(const number_t& a, const number_t& b)      { number_t res; pow(a, b, res); return res; }
-number_t sqrt(const number_t& a)                        { number_t res; sqrt(a, res); return res; }
 number_t bit_and(const number_t& a, const number_t& b)  { number_t res; bit_and(a, b, res); return res; }
 number_t bit_or(const number_t& a, const number_t& b)   { number_t res; bit_or(a, b, res); return res; }
 number_t bit_xor(const number_t& a, const number_t& b)  { number_t res; bit_xor(a, b, res); return res; }
@@ -2553,7 +2544,6 @@ static slen_t __mul_core(const unit_t* x, slen_t lx, const unit_t* y, slen_t ly,
 static slen_t __sqr_core(const unit_t* x, slen_t lx, unit_t* res);
 static void __div_unit_core(const unit_t* x, slen_t lx, unit_t y, unit_t* q, slen_t* lq, unit_t* r, slen_t* lr);
 static unit_t __guess_quotient(unit_t x1, unit_t x2, unit_t x3, unit_t y1, unit_t y2);
-static void __guess_sqrt(const number_t& a, number_t& res);
 static unit_t __truing_quotient(unit_t* x, const unit_t* y, slen_t len, unit_t trial);
 static slen_t __div_core(unit_t* x, slen_t lx, const unit_t* y, slen_t ly, unit_t* q);
 static slen_t __shl_core(unit_t* x, slen_t lx, slen_t d);
@@ -2902,49 +2892,6 @@ int mod(const number_t& a, const number_t& b, number_t& r)
     return 0;
 }
 
-int floor_div(const number_t& a, const number_t& b, number_t& q, number_t& r)    // XXX
-{
-    if (!b.is_zero())
-    {
-        slen_t la, lb, lr, sign, rnewcap;
-
-        la = __abs(a.len);
-        lb = __abs(b.len);
-        if (la >= lb)
-        {
-            __div(a.dat, la, b.dat, lb, q, r);
-        }
-        else
-        {
-            q.set_zero();
-            abs(a, r);
-        }
-
-        sign = __sign(a.len);
-        if (__same_sign(a.len, b.len))
-        {
-            r.len *= sign;
-        }
-        else
-        {
-            if (!r.is_zero())
-            {
-                q.add_unit(1);
-                unit_t* tmp = __allocate_units(lb, &rnewcap);
-                lr = __sub_core(b.dat, lb, r.dat, r.len, tmp);
-                __deallocate_units(r.dat);
-                r.dat = tmp;
-                r.len = lr;
-                r.cap = rnewcap;
-            }
-            q.len *= -1;
-            r.len *= -sign;
-        }
-        return 1;
-    }
-    return 0;
-}
-
 void shr(const number_t& a, size_t b, number_t& res)
 {
     slen_t n, m, l, newcap;
@@ -3079,107 +3026,6 @@ int pom(const number_t& a, const number_t& b, const number_t& c, number_t& res)
         return 1;
     }
     return 0;
-}
-
-unit_t sqrt(dunit_t x)
-{
-    static byte_t __sqrt_table[] =
-    {
-        0, 1, 1, 1, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 4, 4, 
-        5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 7,
-        7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8,
-        8, 8, 8, 8, 8, 8, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9,
-        10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10,
-        10, 10, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11,
-        11, 11, 11, 11, 11, 11, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12,
-        12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 13, 13, 13, 13, 13, 13, 13,
-        13, 13, 13, 13, 13, 13, 13, 13, 13, 13, 13, 13, 13, 13, 13, 13, 13, 13, 13,
-        13, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14,
-        14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 15, 15, 15, 15, 15, 15, 15, 15,
-        15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15,
-        15, 15, 15, 15
-    };
-
-    if (x)
-    {
-        dunit_t t0, t1;
-        byte_t* p = (byte_t*)&x;
-        t0  = __sqrt_table[*p++];
-        t0 |= __sqrt_table[*p++] << 4;
-        t0 |= __sqrt_table[*p++] << 8;
-        t0 |= __sqrt_table[*p] << 12;
-#if UNITBITS == 32
-        t0 |= __sqrt_table[*p++] << 16;
-        t0 |= __sqrt_table[*p++] << 20;
-        t0 |= __sqrt_table[*p++] << 24;
-        t0 |= __sqrt_table[*p] << 28;
-#endif
-
-        /* newton iteration: t0 = (t0 + x / t0) >> 1; */
-        ITERATION:
-        {
-            t1 = x / t0;
-            switch (t0 - t1)
-            {
-                case 0:
-                case ~0:
-                    return (unit_t)t0;
-                case 1:
-                    return (unit_t)t1;
-                default:
-                    t0 = (t0 + t1) >> 1;
-            }
-        }
-        goto ITERATION;
-    }
-    return 0;
-}
-
-int sqrt(const number_t& a, number_t& res)
-{
-    if (a.is_not(res))
-    {
-        if (a.len > 2)
-        {
-            number_t res1, rem, d;
-            __guess_sqrt(a, res);
-
-            ITERATION:
-            {
-                div(a, res, res1, rem);
-                sub(res1, res, d);
-                res.add(res1).shr(1);
-                if (d.is_zero() || d.is_one())
-                {
-                    return 1;
-                }
-            }
-            goto ITERATION;
-        }
-        else switch (a.len)
-        {
-            case 0:
-                res.set_zero();
-                return 1;
-            case 1:
-                res.assign(sqrt((dunit_t)a.dat[0]));
-                return 1;
-            case 2:
-                res.assign(sqrt(*(dunit_t*)a.dat));
-                return 1;
-        }
-        return 0;
-    }
-    else
-    {
-        int r;
-        number_t tmp;
-        if ((r = sqrt(a, tmp)))
-        {
-            res.steal(tmp);
-        }
-        return r;
-    }
 }
 
 void bit_and(const number_t& a, const number_t& b, number_t& res)
@@ -3664,143 +3510,6 @@ void __div(const unit_t* a, slen_t la, const unit_t* b, slen_t lb, number_t& q)
         }
         q.len = lq;
     }
-}
-
-void __shl_units(number_t& a, int b)
-{
-    assert(a.len >= 0);
-
-    unit_t* tmp = __allocate_units(a.len + b);
-    __set_units_zero(tmp, b);
-    __copy_units(tmp + b, a.dat, a.len);
-    __deallocate_units(a.dat);
-    a.dat = tmp;
-    a.len = a.len + b;
-    __trim_leading_zeros(a.dat, a.len);
-}
-
-void __sub(const number_t& a, const number_t& b, number_t& res)
-{
-    assert(cmp(a, b) >= 0);
-
-    unit_t* tmp = __allocate_units(a.len);
-    slen_t lr = __sub_core(a.dat, a.len, b.dat, b.len, tmp);
-    __deallocate_units(res.dat);
-    res.dat = tmp;
-    res.len = lr;
-}
-
-void __guess_sqrt(const number_t& a, number_t& res)
-{
-    assert(a.len > 2 && a.is_not(res));
-
-    slen_t n = a.__vbits_count();
-    n = n & 1? (n + 1) >> 1 : n >> 1;
-    __deallocate_units(res.dat);
-    res.len = (n + SHIFT - 1) / SHIFT;
-    res.__reserve(res.len);
-    __set_units_zero(res.dat, res.len);
-
-    dunit_t h;
-    dunit_t *p, *e = (dunit_t*)a.dat - 1;
-    unit_t* pr = res.dat + res.len - 1;
-    if (a.len & 1)
-    {
-        h = *(a.dat + a.len - 1);
-        p = (dunit_t*)(a.dat + a.len - 3);
-    }
-    else
-    {
-        h = *(dunit_t*)(a.dat + a.len - 2);
-        p = (dunit_t*)(a.dat + a.len - 4);
-    }
-
-    *pr = sqrt(h);
-    unit_t x;
-    number_t rem, q, r, est(*pr), est2b;
-    rem.__reserve(4);
-    rem.len = 4;
-    *(dunit_t*)rem.dat = *p;
-    *((dunit_t*)rem.dat + 1) = h - *pr * *pr;
-    __trim_leading_zeros(rem.dat, rem.len);
-
-    slen_t times = a.len / 10? a.len / 10: 4;
-    do
-    {
-        shl(est, SHIFT + 1, est2b);  // est2b = est * 2 * BASE
-        div(rem, est2b, q, r);
-
-        if (q.len == 1)
-        {
-            x = q.dat[0];
-        }
-        else if (q.len > 1)
-        {
-            x = MASK;
-        }
-        else
-        {
-            x = 0;
-        }
-
-        __shl_units(est, 1);
-
-        if (x) while (1)
-        {
-            /*
-             tmp = (est * 2 * BASE + x) * x
-             */
-            number_t tmp;
-            tmp.__reserve(est2b.len + 1);
-            __copy_units(tmp.dat, est2b.dat, est2b.len);
-            tmp.len = est2b.len;
-            tmp.dat[0] = x;
-            tmp.__mul(x);
-
-            if (cmp(tmp, rem) <= 0)
-            {
-                est.dat[0] = x;
-                __sub(rem, tmp, rem);
-                break;
-            }
-            else
-            {
-                __sub(tmp, rem, tmp);
-
-                number_t tmp1;
-                tmp1.__reserve(est2b.len + 1);
-                __copy_units(tmp1.dat, est2b.dat, est2b.len);
-                tmp1.len = est2b.len;
-                tmp1.dat[0] = x;
-                tmp1.__add(x);
-
-                div(tmp, tmp1, q, r);
-
-                if (!q.is_zero())
-                {
-                    x -= q.dat[0];
-                }
-                else if (!tmp.is_zero())
-                {
-                    x--;
-                }
-            }
-        }
-
-        if (--p != e)
-        {
-            __shl_units(rem, 2);
-            *(dunit_t*)(rem.dat) = *p;
-        }
-    } while (--times > 0 && p != e);
-
-    unit_t* pe = est.dat + est.len - 1;
-    while (pe >= est.dat)
-    {
-        *pr-- = *pe--;
-    }
-
-    __trim_leading_zeros(res.dat, res.len);
 }
 
 bool __neq_core(const unit_t* x, const unit_t* y, slen_t l)

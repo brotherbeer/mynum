@@ -49,12 +49,12 @@ struct number_t: public _base_number_t
     number_t(const char*);
     number_t(const char*, int base);
     number_t(const char*, size_t length, int base);
+    number_t(int);
     number_t(long);
     number_t(long long);
-    number_t(int);
+    number_t(unsigned int);
     number_t(unsigned long);
     number_t(unsigned long long);
-    number_t(unsigned int);
     number_t(const number_t&);
     ~number_t();
 
@@ -96,6 +96,7 @@ struct number_t: public _base_number_t
     number_t& bit_not();
     number_t& sqr();
     number_t& ksqr();
+    number_t& pow(size_t);    // TODO
     number_t& pow(const number_t&);
     number_t& pom(const number_t&, const number_t&);
 
@@ -104,44 +105,69 @@ struct number_t: public _base_number_t
     number_t& mul_unit(unit_t);
     number_t& div_unit(unit_t);
     number_t& mod_unit(unit_t);
+    number_t& and_unit(unit_t);
+    number_t&  or_unit(unit_t);
+    number_t& xor_unit(unit_t);
+
     number_t& add_word(word_t);
     number_t& sub_word(word_t);
     number_t& mul_word(word_t);
     number_t& div_word(word_t);
     number_t& mod_word(word_t);
+    number_t& and_word(word_t);
+    number_t&  or_word(word_t);
+    number_t& xor_word(word_t);
 
     number_t& add_int(int);
     number_t& sub_int(int);
     number_t& mul_int(int);
     number_t& div_int(int);
     number_t& mod_int(int);
+    number_t& and_int(int);
+    number_t&  or_int(int);
+    number_t& xor_int(int);
     number_t& add_uint(unsigned int);
     number_t& sub_uint(unsigned int);
     number_t& mul_uint(unsigned int);
     number_t& div_uint(unsigned int);
     number_t& mod_uint(unsigned int);
+    number_t& and_uint(unsigned int);
+    number_t&  or_uint(unsigned int);
+    number_t& xor_uint(unsigned int);
 
     number_t& add_long(long);
     number_t& sub_long(long);
     number_t& mul_long(long);
     number_t& div_long(long);
     number_t& mod_long(long);
+    number_t& and_long(long);
+    number_t&  or_long(long);
+    number_t& xor_long(long);
     number_t& add_ulong(unsigned long);
     number_t& sub_ulong(unsigned long);
     number_t& mul_ulong(unsigned long);
     number_t& div_ulong(unsigned long);
     number_t& mod_ulong(unsigned long);
+    number_t& and_ulong(unsigned long);
+    number_t&  or_ulong(unsigned long);
+    number_t& xor_ulong(unsigned long);
 
     number_t& add_longlong(long long);
     number_t& sub_longlong(long long);
     number_t& mul_longlong(long long);
     number_t& div_longlong(long long);
     number_t& mod_longlong(long long);
+    number_t& and_longlong(long long);
+    number_t&  or_longlong(long long);
+    number_t& xor_longlong(long long);
     number_t& add_ulonglong(unsigned long long);
     number_t& sub_ulonglong(unsigned long long);
     number_t& mul_ulonglong(unsigned long long);
     number_t& div_ulonglong(unsigned long long);
     number_t& mod_ulonglong(unsigned long long);
+    number_t& and_ulonglong(unsigned long long);
+    number_t&  or_ulonglong(unsigned long long);
+    number_t& xor_ulonglong(unsigned long long);
 
     bool bit_at(size_t) const;
     void bit_set(size_t, bool v = 1);
@@ -153,6 +179,7 @@ struct number_t: public _base_number_t
     bool is_even() const;
     bool is_not(const number_t& another) const { return this != &another; }
     bool is_neg() const  { return len < 0; }
+    bool is_neg_one() const  { return len == -1 && dat[0] == 1; }
     bool is_odd() const;
     bool is_one() const  { return len == 1 && dat[0] == 1; }
     bool is_po2() const;
@@ -193,6 +220,8 @@ struct number_t: public _base_number_t
     unsigned long to_ulong() const;
     unsigned long long to_ulonglong() const;
 
+    number_t  operator + () const;
+    number_t  operator - () const;
     number_t& operator = (const number_t&);
     number_t& operator = (short);
     number_t& operator = (long);
@@ -205,8 +234,6 @@ struct number_t: public _base_number_t
     number_t& operator = (unsigned long long);
     number_t& operator = (unsigned char);
     number_t& operator = (unsigned int);
-    number_t  operator + () const;
-    number_t  operator - () const;
     number_t& operator ~ ();
     number_t& operator ++ ();
     number_t& operator -- ();
@@ -220,6 +247,54 @@ struct number_t: public _base_number_t
     number_t& operator |= (const number_t&);
     number_t& operator &= (const number_t&);
     number_t& operator ^= (const number_t&);
+    number_t& operator += (int);
+    number_t& operator -= (int);
+    number_t& operator *= (int);
+    number_t& operator /= (int);
+    number_t& operator %= (int);
+    number_t& operator &= (int);
+    number_t& operator |= (int);
+    number_t& operator ^= (int);
+    number_t& operator += (unsigned int);
+    number_t& operator -= (unsigned int);
+    number_t& operator *= (unsigned int);
+    number_t& operator /= (unsigned int);
+    number_t& operator %= (unsigned int);
+    number_t& operator &= (unsigned int);
+    number_t& operator |= (unsigned int);
+    number_t& operator ^= (unsigned int);
+    number_t& operator += (long);
+    number_t& operator -= (long);
+    number_t& operator *= (long);
+    number_t& operator /= (long);
+    number_t& operator %= (long);
+    number_t& operator &= (long);
+    number_t& operator |= (long);
+    number_t& operator ^= (long);
+    number_t& operator += (unsigned long);
+    number_t& operator -= (unsigned long);
+    number_t& operator *= (unsigned long);
+    number_t& operator /= (unsigned long);
+    number_t& operator %= (unsigned long);
+    number_t& operator &= (unsigned long);
+    number_t& operator |= (unsigned long);
+    number_t& operator ^= (unsigned long);
+    number_t& operator += (long long);
+    number_t& operator -= (long long);
+    number_t& operator *= (long long);
+    number_t& operator /= (long long);
+    number_t& operator %= (long long);
+    number_t& operator &= (long long);
+    number_t& operator |= (long long);
+    number_t& operator ^= (long long);
+    number_t& operator += (unsigned long long);
+    number_t& operator -= (unsigned long long);
+    number_t& operator *= (unsigned long long);
+    number_t& operator /= (unsigned long long);
+    number_t& operator %= (unsigned long long);
+    number_t& operator &= (unsigned long long);
+    number_t& operator |= (unsigned long long);
+    number_t& operator ^= (unsigned long long);
     number_t& operator <<= (int);
     number_t& operator >>= (int);
     string_t operator () (int) const;
@@ -267,6 +342,7 @@ void ksqr(const number_t& a, number_t& res);
 void kmul(const number_t& a, const number_t& b, number_t& res);
 void shr(const number_t& a, size_t b, number_t& res);
 void shl(const number_t& a, size_t b, number_t& res);
+void pow(const number_t& a, size_t b, number_t& res);  // TODO
 void pow(const number_t& a, const number_t& b, number_t& res);
 int  div(const number_t& a, const number_t& b, number_t& q, number_t& r);
 int  div(const number_t& a, const number_t& b, number_t& q);
@@ -277,6 +353,61 @@ void bit_and(const number_t& a, const number_t& b, number_t& res);
 void bit_or(const number_t& a, const number_t& b, number_t& res);
 void bit_xor(const number_t& a, const number_t& b, number_t& res);
 void bit_not(const number_t& a, number_t& res);
+
+void add(const number_t& a, int b, number_t& res);  // TODO
+void add(const number_t& a, long b, number_t& res);
+void add(const number_t& a, long long b, number_t& res);
+void add(const number_t& a, unsigned int b, number_t& res);
+void add(const number_t& a, unsigned long b, number_t& res);
+void add(const number_t& a, unsigned long long b, number_t& res);
+void sub(const number_t& a, int b, number_t& res);
+void sub(const number_t& a, long b, number_t& res);
+void sub(const number_t& a, long long b, number_t& res);
+void sub(const number_t& a, unsigned int b, number_t& res);
+void sub(const number_t& a, unsigned long b, number_t& res);
+void sub(const number_t& a, unsigned long long b, number_t& res);
+void mul(const number_t& a, int b, number_t& res);
+void mul(const number_t& a, long b, number_t& res);
+void mul(const number_t& a, long long b, number_t& res);
+void mul(const number_t& a, unsigned int b, number_t& res);
+void mul(const number_t& a, unsigned long b, number_t& res);
+void mul(const number_t& a, unsigned long long b, number_t& res);
+void div(const number_t& a, int b, number_t& q, number_t& r);
+void div(const number_t& a, long b, number_t& q, number_t& r);
+void div(const number_t& a, long long b, number_t& q, number_t& r);
+void div(const number_t& a, unsigned int b, number_t& q, number_t& r);
+void div(const number_t& a, unsigned long b, number_t& q, number_t& r);
+void div(const number_t& a, unsigned long long b, number_t& q, number_t& r);
+void div(const number_t& a, int b, number_t& res);
+void div(const number_t& a, long b, number_t& res);
+void div(const number_t& a, long long b, number_t& res);
+void div(const number_t& a, unsigned int b, number_t& res);
+void div(const number_t& a, unsigned long b, number_t& res);
+void div(const number_t& a, unsigned long long b, number_t& res);
+void mod(const number_t& a, int b, number_t& res);
+void mod(const number_t& a, long b, number_t& res);
+void mod(const number_t& a, long long b, number_t& res);
+void mod(const number_t& a, unsigned int b, number_t& res);
+void mod(const number_t& a, unsigned long b, number_t& res);
+void mod(const number_t& a, unsigned long long b, number_t& res);
+void bit_and(const number_t& a, int b, number_t& res);
+void bit_and(const number_t& a, long b, number_t& res);
+void bit_and(const number_t& a, long long b, number_t& res);
+void bit_and(const number_t& a, unsigned int b, number_t& res);
+void bit_and(const number_t& a, unsigned long b, number_t& res);
+void bit_and(const number_t& a, unsigned long long b, number_t& res);
+void bit_or(const number_t& a, int b, number_t& res);
+void bit_or(const number_t& a, long b, number_t& res);
+void bit_or(const number_t& a, long long b, number_t& res);
+void bit_or(const number_t& a, unsigned int b, number_t& res);
+void bit_or(const number_t& a, unsigned long b, number_t& res);
+void bit_or(const number_t& a, unsigned long long b, number_t& res);
+void bit_xor(const number_t& a, int b, number_t& res);
+void bit_xor(const number_t& a, long b, number_t& res);
+void bit_xor(const number_t& a, long long b, number_t& res);
+void bit_xor(const number_t& a, unsigned int b, number_t& res);
+void bit_xor(const number_t& a, unsigned long b, number_t& res);
+void bit_xor(const number_t& a, unsigned long long b, number_t& res);
 
 void swap(number_t& a, number_t& b);
 
@@ -306,8 +437,8 @@ number_t bit_or(const number_t& a, const number_t& b);
 number_t bit_xor(const number_t& a, const number_t& b);
 number_t bit_not(const number_t& a);
 
-inline int sign(const number_t& a)                          { return (a.len >> (sizeof(slen_t) * 8 - 1)) | 1; }
-inline int sign(const number_t& a, const number_t& b)       { return ((a.len ^ b.len) >> (sizeof(slen_t) * 8 - 1)) | 1; }
+inline int sign(const number_t& a)  { return (a.len >> (sizeof(slen_t) * 8 - 1)) | 1; }
+inline int sign(const number_t& a, const number_t& b)  { return ((a.len ^ b.len) >> (sizeof(slen_t) * 8 - 1)) | 1; }
 inline bool same_sign(const number_t& a, const number_t& b) { return (a.len ^ b.len) >> (sizeof(slen_t) * 8 - 1) == 0; }
 
 int max_base();

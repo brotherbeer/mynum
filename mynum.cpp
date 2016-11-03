@@ -1084,25 +1084,16 @@ number_t& number_t::bit_xor_ui(word_t x)
 
 number_t& number_t::add_si(sword_t x)
 {
-#if UNITBITS == 16
     return x > 0? add_ui(x): sub_ui(-x);
-#elif UNITBITS == 32
-    return x > 0? add_unit(x): sub_unit(-x);
-#endif
 }
 
 number_t& number_t::sub_si(sword_t x)
 {
-#if UNITBITS == 16
     return x > 0? sub_ui(x): add_ui(-x);
-#elif UNITBITS == 32
-    return x > 0? sub_unit(x): add_unit(-x);
-#endif
 }
 
 number_t& number_t::mul_si(sword_t x)
 {
-#if UNITBITS == 16
     if (x >= 0)
     {
         return mul_ui(x);
@@ -1112,22 +1103,10 @@ number_t& number_t::mul_si(sword_t x)
         mul_ui(-x);
         return set_neg();
     }
-#elif UNITBITS == 32
-    if (x >= 0)
-    {
-        return mul_unit(x);
-    }
-    else
-    {
-        mul_unit(-x);
-        return set_neg();
-    }
-#endif
 }
 
-number_t& number_t::div_si(sword_t x)  // TO TEST
+number_t& number_t::div_si(sword_t x)
 {
-#if UNITBITS == 16
     if (x > 0)
     {
         return div_ui(x);
@@ -1137,31 +1116,15 @@ number_t& number_t::div_si(sword_t x)  // TO TEST
         div_ui(-x);
         return set_neg();
     }
-#elif UNITBITS == 32
-    if (x > 0)
-    {
-        return div_unit(x);
-    }
-    else
-    {
-        div_unit(-x);
-        return set_neg();
-    }
-#endif
 }
 
-number_t& number_t::mod_si(sword_t x)  // TO TEST
+number_t& number_t::mod_si(sword_t x)
 {
-#if UNITBITS == 16
     return x > 0? mod_ui(x): mod_ui(-x);
-#elif UNITBITS == 32
-    return x > 0? mod_unit(x): mod_unit(-x);
-#endif
 }
 
-number_t& number_t::bit_and_si(int x)
+number_t& number_t::bit_and_si(sword_t x)
 {
-#if UNITBITS == 16
     if (x >= 0)
     {
         return bit_and_ui(x);
@@ -1171,22 +1134,10 @@ number_t& number_t::bit_and_si(int x)
         bit_and_ui(-x);
         return set_neg();
     }
-#elif UNITBITS == 32
-    if (x >= 0)
-    {
-        return bit_and_unit(x);
-    }
-    else
-    {
-        bit_and_unit(-x);
-        return set_neg();
-    }
-#endif
 }
 
 number_t& number_t::bit_or_si(sword_t x)
 {
-#if UNITBITS == 16
     if (x >= 0)
     {
         return bit_or_ui(x);
@@ -1196,22 +1147,10 @@ number_t& number_t::bit_or_si(sword_t x)
         bit_or_ui(-x);
         return set_neg();
     }
-#elif UNITBITS == 32
-    if (x >= 0)
-    {
-        return bit_or_unit(x);
-    }
-    else
-    {
-        bit_or_unit(-x);
-        return set_neg();
-    }
-#endif
 }
 
 number_t& number_t::bit_xor_si(sword_t x)
 {
-#if UNITBITS == 16
     if (x >= 0)
     {
         return bit_xor_ui(x);
@@ -1221,17 +1160,6 @@ number_t& number_t::bit_xor_si(sword_t x)
         bit_xor_ui(-x);
         return set_neg();
     }
-#elif UNITBITS == 32
-    if (x >= 0)
-    {
-        return bit_xor_unit(x);
-    }
-    else
-    {
-        bit_xor_unit(-x);
-        return set_neg();
-    }
-#endif
 }
 
 number_t& number_t::add(int x)                     { return add_si(x); }
@@ -1562,14 +1490,14 @@ bool number_t::in_range_ulonglong() const
 
 char number_t::to_char() const
 {
-    unit_t v = len? *dat: 0;
-    return char(len >= 0? v: -v);
+    char v = char(len? *dat: 0);
+    return len >= 0? v: -v;
 }
 
 short number_t::to_short() const
 {
-    unit_t v = len? *dat: 0;
-    return short(len >= 0? v: -v);
+    short v = short(len? *dat: 0);
+    return len >= 0? v: -v;
 }
 
 unsigned char number_t::to_uchar() const
@@ -1728,18 +1656,18 @@ unsigned long long number_t::to_ulonglong() const
 
 long number_t::to_long() const
 {
-#if LONG_MAX == 2147483647L
+#if LONG_MAX == INT_MAX
     return (long)to_int();
-#elif LONG_MAX == 9223372036854775807LL
+#elif LONG_MAX == LLONG_MAX
     return (long)to_longlong();
 #endif
 }
 
 unsigned long number_t::to_ulong() const
 {
-#if ULONG_MAX == 0xffffffffUL
+#if ULONG_MAX == UINT_MAX
     return (unsigned long)to_uint();
-#elif ULONG_MAX == 0xffffffffffffffffULL
+#elif ULONG_MAX == ULLONG_MAX
     return (unsigned long)to_ulonglong();
 #endif
 }

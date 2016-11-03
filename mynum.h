@@ -31,14 +31,67 @@ typedef long long slen_t;
 typedef dunit_t word_t;
 typedef sdunit_t sword_t;
 
+#define __pad_word(dat, len) \
+{ \
+    slen_t l = __abs(len); \
+    if ((l) & 1) *((dat) + l) = 0; \
+}
+
+#define __trim_leading_zeros(dat, len) \
+{\
+    assert(len >= 0); \
+    const unit_t *e = dat - 1, *p = e + len; \
+    while (p != e && !*p) {p--;} \
+    len = slen_t(p - e); \
+}
+
 struct _base_number_t
 {
     unit_t* dat;
     slen_t len;
     slen_t cap;
 
-    _base_number_t(): dat(NULL), len(0), cap(0)
+    _base_number_t():
+        dat(NULL), len(0), cap(0)
     {}
+
+    _base_number_t(unit_t* a, slen_t b, slen_t c):
+        dat(a), len(b), cap(c)
+    {}
+};
+
+template <class T> struct _stype_ref_t: public _base_number_t
+{
+    T value;
+
+    _stype_ref_t(T x):
+        _base_number_t((unit_t*)&value, sizeof(T) / sizeof(unit_t), 0)
+    {
+        int s;
+        if (x >= 0)
+        {
+            value = x;
+            s = 1;
+        }
+        else
+        {
+            value = -x;
+            s = -1;
+        }
+        __trim_leading_zeros(dat, len);
+        len *= s;
+    }
+};
+
+template <class T> struct _utype_ref_t: public _base_number_t
+{
+    T value;
+
+    _utype_ref_t(T x):
+        _base_number_t((unit_t*)&value, sizeof(T) / sizeof(unit_t), 0), value(x)
+    {
+        __trim_leading_zeros(dat, len);
+    }
 };
 
 struct string_t;
@@ -46,16 +99,20 @@ struct bitref_t;
 struct number_t: public _base_number_t
 {
     number_t() {}
-    number_t(const char*);
-    number_t(const char*, int base);
-    number_t(const char*, size_t length, int base);
     number_t(int);
     number_t(long);
     number_t(long long);
     number_t(unsigned int);
     number_t(unsigned long);
     number_t(unsigned long long);
+    number_t(const char*);
+    number_t(const char*, int base);
+    number_t(const char*, size_t length, int base);
+    number_t(const string_t&);      // TODO
+    number_t(const string_t&, int base);
+    number_t(const string_t&, size_t length, int base);
     number_t(const number_t&);
+
     ~number_t();
 
     number_t& assign(const number_t&);
@@ -67,7 +124,10 @@ struct number_t: public _base_number_t
     number_t& assign(unsigned long long);
     number_t& assign(const char*);
     number_t& assign(const char*, int base);
-    number_t& assign(const char*, size_t length, int base);   
+    number_t& assign(const char*, size_t length, int base);
+    number_t& assign(const string_t&);   // TODO
+    number_t& assign(const string_t&, int base);
+    number_t& assign(const string_t&, size_t length, int base);
 
     void clear();
     void copy(const number_t&);
@@ -76,8 +136,8 @@ struct number_t: public _base_number_t
     void set_zero();
     void steal(number_t&);
 
-    number_t abs();
-    number_t neg();
+    number_t abs() const;
+    number_t neg() const;
     number_t& set_abs();
     number_t& set_neg();
     number_t& set_sign(int sign);
@@ -96,78 +156,85 @@ struct number_t: public _base_number_t
     number_t& bit_not();
     number_t& sqr();
     number_t& ksqr();
-    number_t& pow(size_t);    // TODO
+    number_t& pow(size_t);
     number_t& pow(const number_t&);
     number_t& pom(const number_t&, const number_t&);
+
+    number_t& add_ui(word_t);
+    number_t& sub_ui(word_t);
+    number_t& mul_ui(word_t);
+    number_t& div_ui(word_t);
+    number_t& mod_ui(word_t);
+    number_t& bit_and_ui(word_t);
+    number_t& bit_or_ui(word_t);
+    number_t& bit_xor_ui(word_t);
+
+    number_t& add_si(sword_t);
+    number_t& sub_si(sword_t);
+    number_t& mul_si(sword_t);
+    number_t& div_si(sword_t);
+    number_t& mod_si(sword_t);
+    number_t& bit_and_si(sword_t);
+    number_t& bit_or_si(sword_t);
+    number_t& bit_xor_si(sword_t);
+
+    number_t& add(int x);
+    number_t& add(unsigned int x);
+    number_t& add(long x);
+    number_t& add(unsigned long x);
+    number_t& add(long long x);
+    number_t& add(unsigned long long x);
+    number_t& sub(int x);
+    number_t& sub(unsigned int x);
+    number_t& sub(long x);
+    number_t& sub(unsigned long x);
+    number_t& sub(long long x);
+    number_t& sub(unsigned long long x);
+    number_t& mul(int x);
+    number_t& mul(unsigned int x);
+    number_t& mul(long x);
+    number_t& mul(unsigned long x);
+    number_t& mul(long long x);
+    number_t& mul(unsigned long long x);
+    number_t& div(int x);
+    number_t& div(unsigned int x);
+    number_t& div(long x);
+    number_t& div(unsigned long x);
+    number_t& div(long long x);
+    number_t& div(unsigned long long x);
+    number_t& mod(int x);
+    number_t& mod(unsigned int x);
+    number_t& mod(long x);
+    number_t& mod(unsigned long x);
+    number_t& mod(long long x);
+    number_t& mod(unsigned long long x);
+    number_t& bit_and(int x);
+    number_t& bit_and(unsigned int x);
+    number_t& bit_and(long x);
+    number_t& bit_and(unsigned long x);
+    number_t& bit_and(long long x);
+    number_t& bit_and(unsigned long long x);
+    number_t& bit_or(int x);
+    number_t& bit_or(unsigned int x);
+    number_t& bit_or(long x);
+    number_t& bit_or(unsigned long x);
+    number_t& bit_or(long long x);
+    number_t& bit_or(unsigned long long x);
+    number_t& bit_xor(int x);
+    number_t& bit_xor(unsigned int x);
+    number_t& bit_xor(long x);
+    number_t& bit_xor(unsigned long x);
+    number_t& bit_xor(long long x);
+    number_t& bit_xor(unsigned long long x);
 
     number_t& add_unit(unit_t);
     number_t& sub_unit(unit_t);
     number_t& mul_unit(unit_t);
     number_t& div_unit(unit_t);
     number_t& mod_unit(unit_t);
-    number_t& and_unit(unit_t);
-    number_t&  or_unit(unit_t);
-    number_t& xor_unit(unit_t);
-
-    number_t& add_word(word_t);
-    number_t& sub_word(word_t);
-    number_t& mul_word(word_t);
-    number_t& div_word(word_t);
-    number_t& mod_word(word_t);
-    number_t& and_word(word_t);
-    number_t&  or_word(word_t);
-    number_t& xor_word(word_t);
-
-    number_t& add_int(int);
-    number_t& sub_int(int);
-    number_t& mul_int(int);
-    number_t& div_int(int);
-    number_t& mod_int(int);
-    number_t& and_int(int);
-    number_t&  or_int(int);
-    number_t& xor_int(int);
-    number_t& add_uint(unsigned int);
-    number_t& sub_uint(unsigned int);
-    number_t& mul_uint(unsigned int);
-    number_t& div_uint(unsigned int);
-    number_t& mod_uint(unsigned int);
-    number_t& and_uint(unsigned int);
-    number_t&  or_uint(unsigned int);
-    number_t& xor_uint(unsigned int);
-
-    number_t& add_long(long);
-    number_t& sub_long(long);
-    number_t& mul_long(long);
-    number_t& div_long(long);
-    number_t& mod_long(long);
-    number_t& and_long(long);
-    number_t&  or_long(long);
-    number_t& xor_long(long);
-    number_t& add_ulong(unsigned long);
-    number_t& sub_ulong(unsigned long);
-    number_t& mul_ulong(unsigned long);
-    number_t& div_ulong(unsigned long);
-    number_t& mod_ulong(unsigned long);
-    number_t& and_ulong(unsigned long);
-    number_t&  or_ulong(unsigned long);
-    number_t& xor_ulong(unsigned long);
-
-    number_t& add_longlong(long long);
-    number_t& sub_longlong(long long);
-    number_t& mul_longlong(long long);
-    number_t& div_longlong(long long);
-    number_t& mod_longlong(long long);
-    number_t& and_longlong(long long);
-    number_t&  or_longlong(long long);
-    number_t& xor_longlong(long long);
-    number_t& add_ulonglong(unsigned long long);
-    number_t& sub_ulonglong(unsigned long long);
-    number_t& mul_ulonglong(unsigned long long);
-    number_t& div_ulonglong(unsigned long long);
-    number_t& mod_ulonglong(unsigned long long);
-    number_t& and_ulonglong(unsigned long long);
-    number_t&  or_ulonglong(unsigned long long);
-    number_t& xor_ulonglong(unsigned long long);
+    number_t& bit_and_unit(unit_t);
+    number_t& bit_or_unit(unit_t);
+    number_t& bit_xor_unit(unit_t);
 
     bool bit_at(size_t) const;
     void bit_set(size_t, bool v = 1);
@@ -220,88 +287,91 @@ struct number_t: public _base_number_t
     unsigned long to_ulong() const;
     unsigned long long to_ulonglong() const;
 
-    number_t  operator + () const;
-    number_t  operator - () const;
-    number_t& operator = (const number_t&);
-    number_t& operator = (short);
-    number_t& operator = (long);
-    number_t& operator = (long long);
-    number_t& operator = (char);
-    number_t& operator = (int);
-    number_t& operator = (bool);
-    number_t& operator = (unsigned short);
-    number_t& operator = (unsigned long);
-    number_t& operator = (unsigned long long);
-    number_t& operator = (unsigned char);
-    number_t& operator = (unsigned int);
-    number_t& operator ~ ();
-    number_t& operator ++ ();
-    number_t& operator -- ();
-    number_t& operator ++ (int);
-    number_t& operator -- (int);
-    number_t& operator += (const number_t&);
-    number_t& operator -= (const number_t&);
-    number_t& operator *= (const number_t&);
-    number_t& operator /= (const number_t&);
-    number_t& operator %= (const number_t&);
-    number_t& operator |= (const number_t&);
-    number_t& operator &= (const number_t&);
-    number_t& operator ^= (const number_t&);
-    number_t& operator += (int);
-    number_t& operator -= (int);
-    number_t& operator *= (int);
-    number_t& operator /= (int);
-    number_t& operator %= (int);
-    number_t& operator &= (int);
-    number_t& operator |= (int);
-    number_t& operator ^= (int);
-    number_t& operator += (unsigned int);
-    number_t& operator -= (unsigned int);
-    number_t& operator *= (unsigned int);
-    number_t& operator /= (unsigned int);
-    number_t& operator %= (unsigned int);
-    number_t& operator &= (unsigned int);
-    number_t& operator |= (unsigned int);
-    number_t& operator ^= (unsigned int);
-    number_t& operator += (long);
-    number_t& operator -= (long);
-    number_t& operator *= (long);
-    number_t& operator /= (long);
-    number_t& operator %= (long);
-    number_t& operator &= (long);
-    number_t& operator |= (long);
-    number_t& operator ^= (long);
-    number_t& operator += (unsigned long);
-    number_t& operator -= (unsigned long);
-    number_t& operator *= (unsigned long);
-    number_t& operator /= (unsigned long);
-    number_t& operator %= (unsigned long);
-    number_t& operator &= (unsigned long);
-    number_t& operator |= (unsigned long);
-    number_t& operator ^= (unsigned long);
-    number_t& operator += (long long);
-    number_t& operator -= (long long);
-    number_t& operator *= (long long);
-    number_t& operator /= (long long);
-    number_t& operator %= (long long);
-    number_t& operator &= (long long);
-    number_t& operator |= (long long);
-    number_t& operator ^= (long long);
-    number_t& operator += (unsigned long long);
-    number_t& operator -= (unsigned long long);
-    number_t& operator *= (unsigned long long);
-    number_t& operator /= (unsigned long long);
-    number_t& operator %= (unsigned long long);
-    number_t& operator &= (unsigned long long);
-    number_t& operator |= (unsigned long long);
-    number_t& operator ^= (unsigned long long);
-    number_t& operator <<= (int);
-    number_t& operator >>= (int);
+    number_t& operator = (const number_t& x)     { return assign(x); }
+    number_t& operator = (bool x)                { return assign(x); }
+    number_t& operator = (char x)                { return assign((int)x); }
+    number_t& operator = (short x)               { return assign((int)x); }
+    number_t& operator = (int x)                 { return assign(x); }
+    number_t& operator = (long x)                { return assign(x); }
+    number_t& operator = (long long x)           { return assign(x); }   
+    number_t& operator = (unsigned char x)       { return assign((unsigned int)x); }
+    number_t& operator = (unsigned short x)      { return assign((unsigned int)x); }
+    number_t& operator = (unsigned int x)        { return assign(x); }
+    number_t& operator = (unsigned long x)       { return assign(x); }
+    number_t& operator = (unsigned long long x)  { return assign(x); }
+
+    number_t  operator + () const                { return *this; }
+    number_t  operator - () const                { return neg(); }
+    number_t  operator ~ () const                { number_t x(*this); return x.bit_not(); }
+    number_t& operator ++ ()                     { return operator ++ (0); }
+    number_t& operator -- ()                     { return operator -- (0); }
+    number_t& operator ++ (int)                  { return add_unit(1); }
+    number_t& operator -- (int)                  { return sub_unit(1); }
+    number_t& operator += (const number_t& x)    { return add(x); }
+    number_t& operator -= (const number_t& x)    { return sub(x); }
+    number_t& operator *= (const number_t& x)    { return mul(x); }
+    number_t& operator /= (const number_t& x)    { return div(x); }
+    number_t& operator %= (const number_t& x)    { return mod(x); }
+    number_t& operator &= (const number_t& x)    { return bit_and(x); }
+    number_t& operator |= (const number_t& x)    { return bit_or(x); }
+    number_t& operator ^= (const number_t& x)    { return bit_xor(x); }
+    number_t& operator += (int x)                { return add(x); }
+    number_t& operator -= (int x)                { return sub(x); }
+    number_t& operator *= (int x)                { return mul(x); }
+    number_t& operator /= (int x)                { return div(x); }
+    number_t& operator %= (int x)                { return mod(x); }
+    number_t& operator &= (int x)                { return bit_and(x); }
+    number_t& operator |= (int x)                { return bit_or(x); }
+    number_t& operator ^= (int x)                { return bit_xor(x); }
+    number_t& operator += (unsigned int x)       { return add(x); }
+    number_t& operator -= (unsigned int x)       { return sub(x); }
+    number_t& operator *= (unsigned int x)       { return mul(x); }
+    number_t& operator /= (unsigned int x)       { return div(x); }
+    number_t& operator %= (unsigned int x)       { return mod(x); }
+    number_t& operator &= (unsigned int x)       { return bit_and(x); }
+    number_t& operator |= (unsigned int x)       { return bit_or(x); }
+    number_t& operator ^= (unsigned int x)       { return bit_xor(x); }
+    number_t& operator += (long x)               { return add(x); }
+    number_t& operator -= (long x)               { return sub(x); }
+    number_t& operator *= (long x)               { return mul(x); }
+    number_t& operator /= (long x)               { return div(x); }
+    number_t& operator %= (long x)               { return mod(x); }
+    number_t& operator &= (long x)               { return bit_and(x); }
+    number_t& operator |= (long x)               { return bit_or(x); }
+    number_t& operator ^= (long x)               { return bit_xor(x); }
+    number_t& operator += (unsigned long x)      { return add(x); }
+    number_t& operator -= (unsigned long x)      { return sub(x); }
+    number_t& operator *= (unsigned long x)      { return mul(x); }
+    number_t& operator /= (unsigned long x)      { return div(x); }
+    number_t& operator %= (unsigned long x)      { return mod(x); }
+    number_t& operator &= (unsigned long x)      { return bit_and(x); }
+    number_t& operator |= (unsigned long x)      { return bit_or(x); }
+    number_t& operator ^= (unsigned long x)      { return bit_xor(x); }
+    number_t& operator += (long long x)          { return add(x); }
+    number_t& operator -= (long long x)          { return sub(x); }
+    number_t& operator *= (long long x)          { return mul(x); }
+    number_t& operator /= (long long x)          { return div(x); }
+    number_t& operator %= (long long x)          { return mod(x); }
+    number_t& operator &= (long long x)          { return bit_and(x); }
+    number_t& operator |= (long long x)          { return bit_or(x); }
+    number_t& operator ^= (long long x)          { return bit_xor(x); }
+    number_t& operator += (unsigned long long x) { return add(x); }
+    number_t& operator -= (unsigned long long x) { return sub(x); }
+    number_t& operator *= (unsigned long long x) { return mul(x); }
+    number_t& operator /= (unsigned long long x) { return div(x); }
+    number_t& operator %= (unsigned long long x) { return mod(x); }
+    number_t& operator &= (unsigned long long x) { return bit_and(x); }
+    number_t& operator |= (unsigned long long x) { return bit_or(x); }
+    number_t& operator ^= (unsigned long long x) { return bit_xor(x); }
+    number_t& operator <<= (size_t x)            { return shl(x); }
+    number_t& operator >>= (size_t x)            { return shr(x); }
+
+    operator bool () const        { return !is_zero(); }
+    bool operator ! () const      { return  is_zero(); }
+
     string_t operator () (int) const;
     bool operator [] (size_t) const;
     bitref_t operator [] (size_t);
-    operator bool () const;
-    bool operator ! () const;
 
     void __reserve(slen_t units);
     void __add(unit_t);
@@ -325,12 +395,96 @@ struct number_t: public _base_number_t
 
 int cmp(const number_t& a, const number_t& b);
 int cmp_abs(const number_t& a, const number_t& b);
+inline int cmp(const number_t& a, int b)                 { _stype_ref_t<int> r(b); return cmp(a, (const number_t&)r); }
+inline int cmp(const number_t& a, unsigned int b)        { _utype_ref_t<unsigned int> r(b); return cmp(a, (const number_t&)r); }
+inline int cmp(const number_t& a, long b)                { _stype_ref_t<long> r(b); return cmp(a, (const number_t&)r); }
+inline int cmp(const number_t& a, unsigned long b)       { _utype_ref_t<unsigned long> r(b); return cmp(a, (const number_t&)r); }
+inline int cmp(const number_t& a, long long b)           { _stype_ref_t<long long> r(b); return cmp(a, (const number_t&)r); }
+inline int cmp(const number_t& a, unsigned long long b)  { _utype_ref_t<unsigned long long> r(b); return cmp(a, (const number_t&)r); }
+inline int cmp(int a, const number_t& b)                 { _stype_ref_t<int> r(a); return cmp((const number_t&)r, b); }
+inline int cmp(unsigned int a, const number_t& b)        { _utype_ref_t<unsigned int> r(a); return cmp((const number_t&)r, b); }
+inline int cmp(long a, const number_t& b)                { _stype_ref_t<long> r(a); return cmp((const number_t&)r, b); }
+inline int cmp(unsigned long a, const number_t& b)       { _utype_ref_t<unsigned long> r(a); return cmp((const number_t&)r, b); }
+inline int cmp(long long a, const number_t& b)           { _stype_ref_t<long long> r(a); return cmp((const number_t&)r, b); }
+inline int cmp(unsigned long long a, const number_t& b)  { _utype_ref_t<unsigned long long> r(a); return cmp((const number_t&)r, b); }
 bool neq(const number_t& a, const number_t& b);
-inline bool eq(const number_t& a, const number_t& b)  { return !neq(a, b); }
-inline bool lt(const number_t& a, const number_t& b)  { return cmp(a, b) == -1; }
-inline bool gt(const number_t& a, const number_t& b)  { return cmp(a, b) == 1; }
-inline bool elt(const number_t& a, const number_t& b) { return cmp(a, b) <= 0; }
-inline bool egt(const number_t& a, const number_t& b) { return cmp(a, b) >= 0; }
+inline bool neq(const number_t& a, int b)                { _stype_ref_t<int> r(b); return neq(a, (const number_t&)r); }
+inline bool neq(const number_t& a, unsigned int b)       { _utype_ref_t<unsigned int> r(b); return neq(a, (const number_t&)r); }
+inline bool neq(const number_t& a, long b)               { _stype_ref_t<long> r(b); return neq(a, (const number_t&)r); }
+inline bool neq(const number_t& a, unsigned long b)      { _utype_ref_t<unsigned long> r(b); return neq(a, (const number_t&)r); }
+inline bool neq(const number_t& a, long long b)          { _stype_ref_t<long long> r(b); return neq(a, (const number_t&)r); }
+inline bool neq(const number_t& a, unsigned long long b) { _utype_ref_t<unsigned long long> r(b); return neq(a, (const number_t&)r); }
+inline bool neq(int a, const number_t& b)                { _stype_ref_t<int> r(a); return neq((const number_t&)r, b); }
+inline bool neq(unsigned int a, const number_t& b)       { _utype_ref_t<unsigned int> r(a); return neq((const number_t&)r, b); }
+inline bool neq(long a, const number_t& b)               { _stype_ref_t<long> r(a); return neq((const number_t&)r, b); }
+inline bool neq(unsigned long a, const number_t& b)      { _utype_ref_t<unsigned long> r(a); return neq((const number_t&)r, b); }
+inline bool neq(long long a, const number_t& b)          { _stype_ref_t<long long> r(a); return neq((const number_t&)r, b); }
+inline bool neq(unsigned long long a, const number_t& b) { _utype_ref_t<unsigned long long> r(a); return neq((const number_t&)r, b); }
+inline bool eq(const number_t& a, const number_t& b)     { return !neq(a, b); }
+inline bool eq(const number_t& a, int b)                 { return !neq(a, b); }
+inline bool eq(const number_t& a, unsigned int b)        { return !neq(a, b); }
+inline bool eq(const number_t& a, long b)                { return !neq(a, b); }
+inline bool eq(const number_t& a, unsigned long b)       { return !neq(a, b); }
+inline bool eq(const number_t& a, long long b)           { return !neq(a, b); }
+inline bool eq(const number_t& a, unsigned long long b)  { return !neq(a, b); }
+inline bool eq(int a, const number_t& b)                 { return !neq(a, b); }
+inline bool eq(unsigned int a, const number_t& b)        { return !neq(a, b); }
+inline bool eq(long a, const number_t& b)                { return !neq(a, b); }
+inline bool eq(unsigned long a, const number_t& b)       { return !neq(a, b); }
+inline bool eq(long long a, const number_t& b)           { return !neq(a, b); }
+inline bool eq(unsigned long long a, const number_t& b)  { return !neq(a, b); }
+inline bool lt(const number_t& a, const number_t& b)     { return cmp(a, b) == -1; }
+inline bool lt(const number_t& a, int b)                 { return cmp(a, b) == -1; }
+inline bool lt(const number_t& a, unsigned int b)        { return cmp(a, b) == -1; }
+inline bool lt(const number_t& a, long b)                { return cmp(a, b) == -1; }
+inline bool lt(const number_t& a, unsigned long b)       { return cmp(a, b) == -1; }
+inline bool lt(const number_t& a, long long b)           { return cmp(a, b) == -1; }
+inline bool lt(const number_t& a, unsigned long long b)  { return cmp(a, b) == -1; }
+inline bool lt(int a, const number_t& b)                 { return cmp(a, b) == -1; }
+inline bool lt(unsigned int a, const number_t& b)        { return cmp(a, b) == -1; }
+inline bool lt(long a, const number_t& b)                { return cmp(a, b) == -1; }
+inline bool lt(unsigned long a, const number_t& b)       { return cmp(a, b) == -1; }
+inline bool lt(long long a, const number_t& b)           { return cmp(a, b) == -1; }
+inline bool lt(unsigned long long a, const number_t& b)  { return cmp(a, b) == -1; }
+inline bool gt(const number_t& a, const number_t& b)     { return cmp(a, b) == 1; }
+inline bool gt(const number_t& a, int b)                 { return cmp(a, b) == 1; }
+inline bool gt(const number_t& a, unsigned int b)        { return cmp(a, b) == 1; }
+inline bool gt(const number_t& a, long b)                { return cmp(a, b) == 1; }
+inline bool gt(const number_t& a, unsigned long b)       { return cmp(a, b) == 1; }
+inline bool gt(const number_t& a, long long b)           { return cmp(a, b) == 1; }
+inline bool gt(const number_t& a, unsigned long long b)  { return cmp(a, b) == 1; }
+inline bool gt(int a, const number_t& b)                 { return cmp(a, b) == 1; }
+inline bool gt(unsigned int a, const number_t& b)        { return cmp(a, b) == 1; }
+inline bool gt(long a, const number_t& b)                { return cmp(a, b) == 1; }
+inline bool gt(unsigned long a, const number_t& b)       { return cmp(a, b) == 1; }
+inline bool gt(long long a, const number_t& b)           { return cmp(a, b) == 1; }
+inline bool gt(unsigned long long a, const number_t& b)  { return cmp(a, b) == 1; }
+inline bool elt(const number_t& a, const number_t& b)    { return cmp(a, b) <= 0; }
+inline bool elt(const number_t& a, int b)                { return cmp(a, b) <= 0; }
+inline bool elt(const number_t& a, unsigned int b)       { return cmp(a, b) <= 0; }
+inline bool elt(const number_t& a, long b)               { return cmp(a, b) <= 0; }
+inline bool elt(const number_t& a, unsigned long b)      { return cmp(a, b) <= 0; }
+inline bool elt(const number_t& a, long long b)          { return cmp(a, b) <= 0; }
+inline bool elt(const number_t& a, unsigned long long b) { return cmp(a, b) <= 0; }
+inline bool elt(int a, const number_t& b)                { return cmp(a, b) <= 0; }
+inline bool elt(unsigned int a, const number_t& b)       { return cmp(a, b) <= 0; }
+inline bool elt(long a, const number_t& b)               { return cmp(a, b) <= 0; }
+inline bool elt(unsigned long a, const number_t& b)      { return cmp(a, b) <= 0; }
+inline bool elt(long long a, const number_t& b)          { return cmp(a, b) <= 0; }
+inline bool elt(unsigned long long a, const number_t& b) { return cmp(a, b) <= 0; }
+inline bool egt(const number_t& a, const number_t& b)    { return cmp(a, b) >= 0; }
+inline bool egt(const number_t& a, int b)                { return cmp(a, b) >= 0; }
+inline bool egt(const number_t& a, unsigned int b)       { return cmp(a, b) >= 0; }
+inline bool egt(const number_t& a, long b)               { return cmp(a, b) >= 0; }
+inline bool egt(const number_t& a, unsigned long b)      { return cmp(a, b) >= 0; }
+inline bool egt(const number_t& a, long long b)          { return cmp(a, b) >= 0; }
+inline bool egt(const number_t& a, unsigned long long b) { return cmp(a, b) >= 0; }
+inline bool egt(int a, const number_t& b)                { return cmp(a, b) >= 0; }
+inline bool egt(unsigned int a, const number_t& b)       { return cmp(a, b) >= 0; }
+inline bool egt(long a, const number_t& b)               { return cmp(a, b) >= 0; }
+inline bool egt(unsigned long a, const number_t& b)      { return cmp(a, b) >= 0; }
+inline bool egt(long long a, const number_t& b)          { return cmp(a, b) >= 0; }
+inline bool egt(unsigned long long a, const number_t& b) { return cmp(a, b) >= 0; }
 
 void abs(const number_t& a, number_t& res);
 void neg(const number_t& a, number_t& res);
@@ -342,104 +496,146 @@ void ksqr(const number_t& a, number_t& res);
 void kmul(const number_t& a, const number_t& b, number_t& res);
 void shr(const number_t& a, size_t b, number_t& res);
 void shl(const number_t& a, size_t b, number_t& res);
-void pow(const number_t& a, size_t b, number_t& res);  // TODO
+void pow(const number_t& a, size_t b, number_t& res);
 void pow(const number_t& a, const number_t& b, number_t& res);
 int  div(const number_t& a, const number_t& b, number_t& q, number_t& r);
 int  div(const number_t& a, const number_t& b, number_t& q);
 int  mod(const number_t& a, const number_t& b, number_t& r);
 int  pom(const number_t& a, const number_t& b, const number_t& c, number_t& res);
-
 void bit_and(const number_t& a, const number_t& b, number_t& res);
 void bit_or(const number_t& a, const number_t& b, number_t& res);
 void bit_xor(const number_t& a, const number_t& b, number_t& res);
 void bit_not(const number_t& a, number_t& res);
 
-void add(const number_t& a, int b, number_t& res);  // TODO
-void add(const number_t& a, long b, number_t& res);
-void add(const number_t& a, long long b, number_t& res);
-void add(const number_t& a, unsigned int b, number_t& res);
-void add(const number_t& a, unsigned long b, number_t& res);
-void add(const number_t& a, unsigned long long b, number_t& res);
-void sub(const number_t& a, int b, number_t& res);
-void sub(const number_t& a, long b, number_t& res);
-void sub(const number_t& a, long long b, number_t& res);
-void sub(const number_t& a, unsigned int b, number_t& res);
-void sub(const number_t& a, unsigned long b, number_t& res);
-void sub(const number_t& a, unsigned long long b, number_t& res);
-void mul(const number_t& a, int b, number_t& res);
-void mul(const number_t& a, long b, number_t& res);
-void mul(const number_t& a, long long b, number_t& res);
-void mul(const number_t& a, unsigned int b, number_t& res);
-void mul(const number_t& a, unsigned long b, number_t& res);
-void mul(const number_t& a, unsigned long long b, number_t& res);
-void div(const number_t& a, int b, number_t& q, number_t& r);
-void div(const number_t& a, long b, number_t& q, number_t& r);
-void div(const number_t& a, long long b, number_t& q, number_t& r);
-void div(const number_t& a, unsigned int b, number_t& q, number_t& r);
-void div(const number_t& a, unsigned long b, number_t& q, number_t& r);
-void div(const number_t& a, unsigned long long b, number_t& q, number_t& r);
-void div(const number_t& a, int b, number_t& res);
-void div(const number_t& a, long b, number_t& res);
-void div(const number_t& a, long long b, number_t& res);
-void div(const number_t& a, unsigned int b, number_t& res);
-void div(const number_t& a, unsigned long b, number_t& res);
-void div(const number_t& a, unsigned long long b, number_t& res);
-void mod(const number_t& a, int b, number_t& res);
-void mod(const number_t& a, long b, number_t& res);
-void mod(const number_t& a, long long b, number_t& res);
-void mod(const number_t& a, unsigned int b, number_t& res);
-void mod(const number_t& a, unsigned long b, number_t& res);
-void mod(const number_t& a, unsigned long long b, number_t& res);
-void bit_and(const number_t& a, int b, number_t& res);
-void bit_and(const number_t& a, long b, number_t& res);
-void bit_and(const number_t& a, long long b, number_t& res);
-void bit_and(const number_t& a, unsigned int b, number_t& res);
-void bit_and(const number_t& a, unsigned long b, number_t& res);
-void bit_and(const number_t& a, unsigned long long b, number_t& res);
-void bit_or(const number_t& a, int b, number_t& res);
-void bit_or(const number_t& a, long b, number_t& res);
-void bit_or(const number_t& a, long long b, number_t& res);
-void bit_or(const number_t& a, unsigned int b, number_t& res);
-void bit_or(const number_t& a, unsigned long b, number_t& res);
-void bit_or(const number_t& a, unsigned long long b, number_t& res);
-void bit_xor(const number_t& a, int b, number_t& res);
-void bit_xor(const number_t& a, long b, number_t& res);
-void bit_xor(const number_t& a, long long b, number_t& res);
-void bit_xor(const number_t& a, unsigned int b, number_t& res);
-void bit_xor(const number_t& a, unsigned long b, number_t& res);
-void bit_xor(const number_t& a, unsigned long long b, number_t& res);
+inline void add(const number_t& a, int x, number_t& res)                 { _stype_ref_t<int> ref(x); add(a, (const number_t&)ref, res);}
+inline void add(const number_t& a, unsigned int x, number_t& res)        { _utype_ref_t<unsigned int> ref(x); add(a, (const number_t&)ref, res);}
+inline void add(const number_t& a, long x, number_t& res)                { _stype_ref_t<long> ref(x); add(a, (const number_t&)ref, res);}
+inline void add(const number_t& a, unsigned long x, number_t& res)       { _utype_ref_t<unsigned long> ref(x); add(a, (const number_t&)ref, res);}
+inline void add(const number_t& a, long long x, number_t& res)           { _stype_ref_t<long long> ref(x); add(a, (const number_t&)ref, res);}
+inline void add(const number_t& a, unsigned long long x, number_t& res)  { _utype_ref_t<unsigned long long> ref(x); add(a, (const number_t&)ref, res);}
+inline void add(int x, const number_t& b, number_t& res)                 { _stype_ref_t<int> ref(x); add((const number_t&)ref, b, res);}
+inline void add(unsigned int x, const number_t& b, number_t& res)        { _utype_ref_t<unsigned int> ref(x); add((const number_t&)ref, b, res);}
+inline void add(long x, const number_t& b, number_t& res)                { _stype_ref_t<long> ref(x); add((const number_t&)ref, b, res);}
+inline void add(unsigned long x, const number_t& b, number_t& res)       { _utype_ref_t<unsigned long> ref(x); add((const number_t&)ref, b, res);}
+inline void add(long long x, const number_t& b, number_t& res)           { _stype_ref_t<long long> ref(x); add((const number_t&)ref, b, res);}
+inline void add(unsigned long long x, const number_t& b, number_t& res)  { _utype_ref_t<unsigned long long> ref(x); add((const number_t&)ref, b, res);}
+
+inline void sub(const number_t& a, int x, number_t& res)                 { _stype_ref_t<int> ref(x); sub(a, (const number_t&)ref, res);}
+inline void sub(const number_t& a, unsigned int x, number_t& res)        { _utype_ref_t<unsigned int> ref(x); sub(a, (const number_t&)ref, res);}
+inline void sub(const number_t& a, long x, number_t& res)                { _stype_ref_t<long> ref(x); sub(a, (const number_t&)ref, res);}
+inline void sub(const number_t& a, unsigned long x, number_t& res)       { _utype_ref_t<unsigned long> ref(x); sub(a, (const number_t&)ref, res);}
+inline void sub(const number_t& a, long long x, number_t& res)           { _stype_ref_t<long long> ref(x); sub(a, (const number_t&)ref, res);}
+inline void sub(const number_t& a, unsigned long long x, number_t& res)  { _utype_ref_t<unsigned long long> ref(x); sub(a, (const number_t&)ref, res);}
+inline void sub(int x, const number_t& b, number_t& res)                 { _stype_ref_t<int> ref(x); sub((const number_t&)ref, b, res);}
+inline void sub(unsigned int x, const number_t& b, number_t& res)        { _utype_ref_t<unsigned int> ref(x); sub((const number_t&)ref, b, res);}
+inline void sub(long x, const number_t& b, number_t& res)                { _stype_ref_t<long> ref(x); sub((const number_t&)ref, b, res);}
+inline void sub(unsigned long x, const number_t& b, number_t& res)       { _utype_ref_t<unsigned long> ref(x); sub((const number_t&)ref, b, res);}
+inline void sub(long long x, const number_t& b, number_t& res)           { _stype_ref_t<long long> ref(x); sub((const number_t&)ref, b, res);}
+inline void sub(unsigned long long x, const number_t& b, number_t& res)  { _utype_ref_t<unsigned long long> ref(x); sub((const number_t&)ref, b, res);}
+
+inline void mul(const number_t& a, int x, number_t& res)                 { _stype_ref_t<int> ref(x); mul(a, (const number_t&)ref, res);}
+inline void mul(const number_t& a, unsigned int x, number_t& res)        { _utype_ref_t<unsigned int> ref(x); mul(a, (const number_t&)ref, res);}
+inline void mul(const number_t& a, long x, number_t& res)                { _stype_ref_t<long> ref(x); mul(a, (const number_t&)ref, res);}
+inline void mul(const number_t& a, unsigned long x, number_t& res)       { _utype_ref_t<unsigned long> ref(x); mul(a, (const number_t&)ref, res);}
+inline void mul(const number_t& a, long long x, number_t& res)           { _stype_ref_t<long long> ref(x); mul(a, (const number_t&)ref, res);}
+inline void mul(const number_t& a, unsigned long long x, number_t& res)  { _utype_ref_t<unsigned long long> ref(x); mul(a, (const number_t&)ref, res);}
+inline void mul(int x, const number_t& b, number_t& res)                 { _stype_ref_t<int> ref(x); mul((const number_t&)ref, b, res);}
+inline void mul(unsigned int x, const number_t& b, number_t& res)        { _utype_ref_t<unsigned int> ref(x); mul((const number_t&)ref, b, res);}
+inline void mul(long x, const number_t& b, number_t& res)                { _stype_ref_t<long> ref(x); mul((const number_t&)ref, b, res);}
+inline void mul(unsigned long x, const number_t& b, number_t& res)       { _utype_ref_t<unsigned long> ref(x); mul((const number_t&)ref, b, res);}
+inline void mul(long long x, const number_t& b, number_t& res)           { _stype_ref_t<long long> ref(x); mul((const number_t&)ref, b, res);}
+inline void mul(unsigned long long x, const number_t& b, number_t& res)  { _utype_ref_t<unsigned long long> ref(x); mul((const number_t&)ref, b, res);}
+
+inline void div(const number_t& a, int x, number_t& res)                 { _stype_ref_t<int> ref(x); div(a, (const number_t&)ref, res);}
+inline void div(const number_t& a, unsigned int x, number_t& res)        { _utype_ref_t<unsigned int> ref(x); div(a, (const number_t&)ref, res);}
+inline void div(const number_t& a, long x, number_t& res)                { _stype_ref_t<long> ref(x); div(a, (const number_t&)ref, res);}
+inline void div(const number_t& a, unsigned long x, number_t& res)       { _utype_ref_t<unsigned long> ref(x); div(a, (const number_t&)ref, res);}
+inline void div(const number_t& a, long long x, number_t& res)           { _stype_ref_t<long long> ref(x); div(a, (const number_t&)ref, res);}
+inline void div(const number_t& a, unsigned long long x, number_t& res)  { _utype_ref_t<unsigned long long> ref(x); div(a, (const number_t&)ref, res);}
+inline void div(int x, const number_t& b, number_t& res)                 { _stype_ref_t<int> ref(x); div((const number_t&)ref, b, res);}
+inline void div(unsigned int x, const number_t& b, number_t& res)        { _utype_ref_t<unsigned int> ref(x); div((const number_t&)ref, b, res);}
+inline void div(long x, const number_t& b, number_t& res)                { _stype_ref_t<long> ref(x); div((const number_t&)ref, b, res);}
+inline void div(unsigned long x, const number_t& b, number_t& res)       { _utype_ref_t<unsigned long> ref(x); div((const number_t&)ref, b, res);}
+inline void div(long long x, const number_t& b, number_t& res)           { _stype_ref_t<long long> ref(x); div((const number_t&)ref, b, res);}
+inline void div(unsigned long long x, const number_t& b, number_t& res)  { _utype_ref_t<unsigned long long> ref(x); div((const number_t&)ref, b, res);}
+
+inline void mod(const number_t& a, int x, number_t& res)                 { _stype_ref_t<int> ref(x); mod(a, (const number_t&)ref, res);}
+inline void mod(const number_t& a, unsigned int x, number_t& res)        { _utype_ref_t<unsigned int> ref(x); mod(a, (const number_t&)ref, res);}
+inline void mod(const number_t& a, long x, number_t& res)                { _stype_ref_t<long> ref(x); mod(a, (const number_t&)ref, res);}
+inline void mod(const number_t& a, unsigned long x, number_t& res)       { _utype_ref_t<unsigned long> ref(x); mod(a, (const number_t&)ref, res);}
+inline void mod(const number_t& a, long long x, number_t& res)           { _stype_ref_t<long long> ref(x); mod(a, (const number_t&)ref, res);}
+inline void mod(const number_t& a, unsigned long long x, number_t& res)  { _utype_ref_t<unsigned long long> ref(x); mod(a, (const number_t&)ref, res);}
+inline void mod(int x, const number_t& b, number_t& res)                 { _stype_ref_t<int> ref(x); mod((const number_t&)ref, b, res);}
+inline void mod(unsigned int x, const number_t& b, number_t& res)        { _utype_ref_t<unsigned int> ref(x); mod((const number_t&)ref, b, res);}
+inline void mod(long x, const number_t& b, number_t& res)                { _stype_ref_t<long> ref(x); mod((const number_t&)ref, b, res);}
+inline void mod(unsigned long x, const number_t& b, number_t& res)       { _utype_ref_t<unsigned long> ref(x); mod((const number_t&)ref, b, res);}
+inline void mod(long long x, const number_t& b, number_t& res)           { _stype_ref_t<long long> ref(x); mod((const number_t&)ref, b, res);}
+inline void mod(unsigned long long x, const number_t& b, number_t& res)  { _utype_ref_t<unsigned long long> ref(x); mod((const number_t&)ref, b, res);}
+
+inline void bit_and(const number_t& a, int x, number_t& res)                 { _stype_ref_t<int> ref(x); bit_and(a, (const number_t&)ref, res);}
+inline void bit_and(const number_t& a, unsigned int x, number_t& res)        { _utype_ref_t<unsigned int> ref(x); bit_and(a, (const number_t&)ref, res);}
+inline void bit_and(const number_t& a, long x, number_t& res)                { _stype_ref_t<long> ref(x); bit_and(a, (const number_t&)ref, res);}
+inline void bit_and(const number_t& a, unsigned long x, number_t& res)       { _utype_ref_t<unsigned long> ref(x); bit_and(a, (const number_t&)ref, res);}
+inline void bit_and(const number_t& a, long long x, number_t& res)           { _stype_ref_t<long long> ref(x); bit_and(a, (const number_t&)ref, res);}
+inline void bit_and(const number_t& a, unsigned long long x, number_t& res)  { _utype_ref_t<unsigned long long> ref(x); bit_and(a, (const number_t&)ref, res);}
+inline void bit_and(int x, const number_t& b, number_t& res)                 { _stype_ref_t<int> ref(x); bit_and((const number_t&)ref, b, res);}
+inline void bit_and(unsigned int x, const number_t& b, number_t& res)        { _utype_ref_t<unsigned int> ref(x); bit_and((const number_t&)ref, b, res);}
+inline void bit_and(long x, const number_t& b, number_t& res)                { _stype_ref_t<long> ref(x); bit_and((const number_t&)ref, b, res);}
+inline void bit_and(unsigned long x, const number_t& b, number_t& res)       { _utype_ref_t<unsigned long> ref(x); bit_and((const number_t&)ref, b, res);}
+inline void bit_and(long long x, const number_t& b, number_t& res)           { _stype_ref_t<long long> ref(x); bit_and((const number_t&)ref, b, res);}
+inline void bit_and(unsigned long long x, const number_t& b, number_t& res)  { _utype_ref_t<unsigned long long> ref(x); bit_and((const number_t&)ref, b, res);}
+
+inline void bit_or(const number_t& a, int x, number_t& res)                 { _stype_ref_t<int> ref(x); bit_or(a, (const number_t&)ref, res);}
+inline void bit_or(const number_t& a, unsigned int x, number_t& res)        { _utype_ref_t<unsigned int> ref(x); bit_or(a, (const number_t&)ref, res);}
+inline void bit_or(const number_t& a, long x, number_t& res)                { _stype_ref_t<long> ref(x); bit_or(a, (const number_t&)ref, res);}
+inline void bit_or(const number_t& a, unsigned long x, number_t& res)       { _utype_ref_t<unsigned long> ref(x); bit_or(a, (const number_t&)ref, res);}
+inline void bit_or(const number_t& a, long long x, number_t& res)           { _stype_ref_t<long long> ref(x); bit_or(a, (const number_t&)ref, res);}
+inline void bit_or(const number_t& a, unsigned long long x, number_t& res)  { _utype_ref_t<unsigned long long> ref(x); bit_or(a, (const number_t&)ref, res);}
+inline void bit_or(int x, const number_t& b, number_t& res)                 { _stype_ref_t<int> ref(x); bit_or((const number_t&)ref, b, res);}
+inline void bit_or(unsigned int x, const number_t& b, number_t& res)        { _utype_ref_t<unsigned int> ref(x); bit_or((const number_t&)ref, b, res);}
+inline void bit_or(long x, const number_t& b, number_t& res)                { _stype_ref_t<long> ref(x); bit_or((const number_t&)ref, b, res);}
+inline void bit_or(unsigned long x, const number_t& b, number_t& res)       { _utype_ref_t<unsigned long> ref(x); bit_or((const number_t&)ref, b, res);}
+inline void bit_or(long long x, const number_t& b, number_t& res)           { _stype_ref_t<long long> ref(x); bit_or((const number_t&)ref, b, res);}
+inline void bit_or(unsigned long long x, const number_t& b, number_t& res)  { _utype_ref_t<unsigned long long> ref(x); bit_or((const number_t&)ref, b, res);}
+
+inline void bit_xor(const number_t& a, int x, number_t& res)                 { _stype_ref_t<int> ref(x); bit_xor(a, (const number_t&)ref, res);}
+inline void bit_xor(const number_t& a, unsigned int x, number_t& res)        { _utype_ref_t<unsigned int> ref(x); bit_xor(a, (const number_t&)ref, res);}
+inline void bit_xor(const number_t& a, long x, number_t& res)                { _stype_ref_t<long> ref(x); bit_xor(a, (const number_t&)ref, res);}
+inline void bit_xor(const number_t& a, unsigned long x, number_t& res)       { _utype_ref_t<unsigned long> ref(x); bit_xor(a, (const number_t&)ref, res);}
+inline void bit_xor(const number_t& a, long long x, number_t& res)           { _stype_ref_t<long long> ref(x); bit_xor(a, (const number_t&)ref, res);}
+inline void bit_xor(const number_t& a, unsigned long long x, number_t& res)  { _utype_ref_t<unsigned long long> ref(x); bit_xor(a, (const number_t&)ref, res);}
+inline void bit_xor(int x, const number_t& b, number_t& res)                 { _stype_ref_t<int> ref(x); bit_xor((const number_t&)ref, b, res);}
+inline void bit_xor(unsigned int x, const number_t& b, number_t& res)        { _utype_ref_t<unsigned int> ref(x); bit_xor((const number_t&)ref, b, res);}
+inline void bit_xor(long x, const number_t& b, number_t& res)                { _stype_ref_t<long> ref(x); bit_xor((const number_t&)ref, b, res);}
+inline void bit_xor(unsigned long x, const number_t& b, number_t& res)       { _utype_ref_t<unsigned long> ref(x); bit_xor((const number_t&)ref, b, res);}
+inline void bit_xor(long long x, const number_t& b, number_t& res)           { _stype_ref_t<long long> ref(x); bit_xor((const number_t&)ref, b, res);}
+inline void bit_xor(unsigned long long x, const number_t& b, number_t& res)  { _utype_ref_t<unsigned long long> ref(x); bit_xor((const number_t&)ref, b, res);}
+
+inline number_t& set_abs(number_t& a)                          { a.len = a.len >= 0? a.len: -a.len; return a; }
+inline number_t& set_neg(number_t& a)                          { a.len = -a.len; return a; }
+inline number_t& set_sign(number_t& a, int sign)               { set_abs(a); if (sign < 0) a.len = -a.len; return a; }
+inline number_t abs(const number_t& a)                         { number_t res; abs(a, res); return res; }
+inline number_t neg(const number_t& a)                         { number_t res; neg(a, res); return res; }
+inline number_t add(const number_t& a, const number_t& b)      { number_t res; add(a, b, res); return res; }
+inline number_t sub(const number_t& a, const number_t& b)      { number_t res; sub(a, b, res); return res; }
+inline number_t mul(const number_t& a, const number_t& b)      { number_t res; mul(a, b, res); return res; }
+inline number_t sqr(const number_t& a)                         { number_t res; sqr(a, res); return res; }
+inline number_t ksqr(const number_t& a)                        { number_t res; ksqr(a, res); return res; }
+inline number_t kmul(const number_t& a, const number_t& b)     { number_t res; kmul(a, b, res); return res; }
+inline number_t div(const number_t& a, const number_t& b)      { number_t res, dummy; div(a, b, res, dummy); return res; }
+inline number_t mod(const number_t& a, const number_t& b)      { number_t res, dummy; div(a, b, dummy, res); return res; }
+inline number_t shr(const number_t& a, size_t b)               { number_t res; shr(a, b, res); return res; }
+inline number_t shl(const number_t& a, size_t b)               { number_t res; shl(a, b, res); return res; }
+inline number_t pow(const number_t& a, const number_t& b)      { number_t res; pow(a, b, res); return res; }
+inline number_t bit_and(const number_t& a, const number_t& b)  { number_t res; bit_and(a, b, res); return res; }
+inline number_t bit_or(const number_t& a, const number_t& b)   { number_t res; bit_or(a, b, res); return res; }
+inline number_t bit_xor(const number_t& a, const number_t& b)  { number_t res; bit_xor(a, b, res); return res; }
+inline number_t bit_not(const number_t& a)                     { number_t res; bit_not(a, res); return res; }
+inline int sign(const number_t& a)                             { return (a.len >> (sizeof(slen_t) * 8 - 1)) | 1; }
+inline int sign(const number_t& a, const number_t& b)          { return ((a.len ^ b.len) >> (sizeof(slen_t) * 8 - 1)) | 1; }
+inline bool same_sign(const number_t& a, const number_t& b)    { return (a.len ^ b.len) >> (sizeof(slen_t) * 8 - 1) == 0; }
 
 void swap(number_t& a, number_t& b);
-
-bool is_po2(const number_t& a);
-bool is_odd(const number_t& a);
-bool is_even(const number_t& a);
-
-number_t& set_abs(number_t&);
-number_t& set_neg(number_t&);
-number_t& set_sign(number_t&, int sign);
-
-number_t abs(const number_t& a);
-number_t neg(const number_t& a);
-number_t add(const number_t& a, const number_t& b);
-number_t sub(const number_t& a, const number_t& b);
-number_t mul(const number_t& a, const number_t& b);
-number_t sqr(const number_t& a);
-number_t ksqr(const number_t& a);
-number_t kmul(const number_t& a, const number_t& b);
-number_t div(const number_t& a, const number_t& b);
-number_t mod(const number_t& a, const number_t& b);
-number_t shr(const number_t& a, size_t b);
-number_t shl(const number_t& a, size_t b);
-number_t pow(const number_t& a, const number_t& b);
-number_t bit_and(const number_t& a, const number_t& b);
-number_t bit_or(const number_t& a, const number_t& b);
-number_t bit_xor(const number_t& a, const number_t& b);
-number_t bit_not(const number_t& a);
-
-inline int sign(const number_t& a)  { return (a.len >> (sizeof(slen_t) * 8 - 1)) | 1; }
-inline int sign(const number_t& a, const number_t& b)  { return ((a.len ^ b.len) >> (sizeof(slen_t) * 8 - 1)) | 1; }
-inline bool same_sign(const number_t& a, const number_t& b) { return (a.len ^ b.len) >> (sizeof(slen_t) * 8 - 1) == 0; }
 
 int max_base();
 
@@ -478,8 +674,6 @@ struct string_t
 int cmp(const string_t& a, const string_t& b);
 int check(const char* p, int base);
 int check(const char* p, const char* e, int base);
-
-const char* find_valid(const char* p, const char* e, int base, size_t* size);
 
 struct bitref_t
 {

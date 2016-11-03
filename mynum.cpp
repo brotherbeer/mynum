@@ -24,6 +24,16 @@
 #define __always_inline(x)  inline x
 #endif
 
+#if INT_MAX != 2147483647 || UINT_MAX != 0xffffffff
+#error int is not 32-bit, temporarily not supported
+#endif
+#if LLONG_MAX != 9223372036854775807LL || ULLONG_MAX != 0xffffffffffffffffULL
+#error long long is not 64-bit, temporarily not supported
+#endif
+#if LONG_MAX != INT_MAX && LONG_MAX != LLONG_MAX
+#error long is neither 32-bit nor 64-bit, temporarily not supported
+#endif
+
 namespace mynum {
 
 const float LN_8 = 2.0794f;   // log(8)
@@ -176,20 +186,6 @@ static __always_inline(dunit_t) __make_dunit(dunit_t high, unit_t low)
 }
 
 /** class number_t implementation */
-
-#define __trim_leading_zeros(dat, len) \
-{\
-    assert(len >= 0); \
-    const unit_t *e = dat - 1, *p = e + len; \
-    while (p != e && !*p) {p--;} \
-    len = slen_t(p - e); \
-}
-
-#define __pad_word(dat, len) \
-{ \
-    slen_t l = __abs(len); \
-    if ((l) & 1) *((dat) + l) = 0; \
-}
 
 number_t::number_t(const char* s)
 {
@@ -547,12 +543,12 @@ string_t& number_t::to_string(string_t& res, int base) const
     return res;
 }
 
-number_t number_t::abs()
+number_t number_t::abs() const
 {
     return mynum::abs(*this);
 }
 
-number_t number_t::neg()
+number_t number_t::neg() const
 {
     return mynum::neg(*this);
 }
@@ -668,8 +664,7 @@ number_t& number_t::ksqr()
 
 number_t& number_t::pow(size_t x)
 {
-    number_t y(x);
-    mynum::pow(*this, y, *this);
+    mynum::pow(*this, x, *this);
     return *this;
 }
 
@@ -718,41 +713,6 @@ number_t& number_t::add_unit(unit_t x)
     return *this;
 }
 
-number_t& number_t::add_word(word_t x)
-{
-    __pad_word(dat, len);
-
-    if (len > 0)
-    {
-        len = __abs_add_word(x);
-    }
-    else if (len == 0)
-    {
-        if (x)
-        {
-            if (!cap)
-            {
-                __reserve(2);
-            }
-            *(word_t*)dat = x;
-            len = 1 + (x > MASK);
-        }
-    }
-    else
-    {
-        if (*(word_t*)dat >= x || len < -2)
-        {
-            len = 0 - __abs_sub_word(x);
-        }
-        else
-        {
-            *(word_t*)dat = x - *(word_t*)dat;
-            len = 1 + (dat[1] != 0);
-        }
-    }
-    return *this;
-}
-
 number_t& number_t::sub_unit(unit_t x)
 {
     if (len > 0)
@@ -782,41 +742,6 @@ number_t& number_t::sub_unit(unit_t x)
     else
     {
         len = 0 - __abs_add_unit(x);
-    }
-    return *this;
-}
-
-number_t& number_t::sub_word(word_t x)
-{
-    __pad_word(dat, len);
-
-    if (len > 0)
-    {
-        if (*(word_t*)dat >= x || len > 2)
-        {
-            len = __abs_sub_word(x);
-        }
-        else
-        {
-            *(word_t*)dat = x - *(word_t*)dat;
-            len = -2 + (dat[1] != 0);
-        }
-    }
-    else if (len == 0)
-    {
-        if (x)
-        {
-            if (!cap)
-            {
-                __reserve(2);
-            }
-            *(word_t*)dat = x;
-            len = -2 + (dat[1] != 0);
-        }
-    }
-    else
-    {
-        len = 0 - __abs_add_word(x);
     }
     return *this;
 }
@@ -858,7 +783,158 @@ number_t& number_t::mul_unit(unit_t x)
     return *this;
 }
 
-number_t& number_t::mul_word(word_t x)
+number_t& number_t::div_unit(unit_t x)
+{
+    assert(x != 0);
+
+    if (len)
+    {
+        dunit_t rem = 0;
+        slen_t l = __abs(len);
+        unit_t* q = dat + l;
+        while (--q >= dat)
+        {
+            rem = __make_dunit(rem, *q);
+            *q = unit_t(rem / x);
+            rem %= x;
+        }
+        __trim_leading_zeros(dat, l);
+        len = l * __sign(len);
+    }
+    return *this;
+}
+
+number_t& number_t::mod_unit(unit_t x)
+{
+    assert(x != 0);
+
+    if (len)
+    {
+        dunit_t rem = 0;
+        unit_t* q = dat + __abs(len);
+        while (--q >= dat)
+        {
+            rem = __make_dunit(rem, *q) % x;
+        }
+        if (rem)
+        {
+            *dat = (unit_t)rem;
+            len = __sign(len);
+        }
+        else
+        {
+            set_zero();
+        }
+    }
+    return *this;
+}
+
+number_t& number_t::bit_and_unit(unit_t x)
+{
+    if (len)
+    {
+        dat[0] &= x;
+    }
+    return *this;
+}
+
+number_t& number_t::bit_or_unit(unit_t x)
+{
+    if (len)
+    {
+        dat[0] |= x;
+    }
+    else
+    {
+        this->assign(x);
+    }
+    return *this;
+}
+
+number_t& number_t::bit_xor_unit(unit_t x)
+{
+    if (len)
+    {
+        dat[0] ^= x;
+    }
+    else
+    {
+        this->assign(x);
+    }
+    return *this;
+}
+
+number_t& number_t::add_ui(word_t x)
+{
+    __pad_word(dat, len);
+
+    if (len > 0)
+    {
+        len = __abs_add_word(x);
+    }
+    else if (len == 0)
+    {
+        if (x)
+        {
+            if (!cap)
+            {
+                __reserve(2);
+            }
+            *(word_t*)dat = x;
+            len = 1 + (x > MASK);
+        }
+    }
+    else
+    {
+        if (*(word_t*)dat >= x || len < -2)
+        {
+            len = 0 - __abs_sub_word(x);
+        }
+        else
+        {
+            *(word_t*)dat = x - *(word_t*)dat;
+            len = 1 + (dat[1] != 0);
+        }
+    }
+    return *this;
+}
+
+number_t& number_t::sub_ui(word_t x)
+{
+    __pad_word(dat, len);
+
+    if (len > 0)
+    {
+        if (*(word_t*)dat >= x || len > 2)
+        {
+            len = __abs_sub_word(x);
+        }
+        else
+        {
+            *(word_t*)dat = x - *(word_t*)dat;
+            len = -2 + (dat[1] != 0);
+        }
+    }
+    else if (len == 0)
+    {
+        if (x)
+        {
+            if (!cap)
+            {
+                __reserve(2);
+            }
+            *(word_t*)dat = x;
+            len = -2 + (dat[1] != 0);
+        }
+    }
+    else
+    {
+        len = 0 - __abs_add_word(x);
+    }
+    return *this;
+}
+
+number_t& number_t::mul_ui(word_t x)
 {
     if (len)
     {
@@ -904,28 +980,7 @@ number_t& number_t::mul_word(word_t x)
     return *this;
 }
 
-number_t& number_t::div_unit(unit_t x)
-{
-    assert(x != 0);
-
-    if (len)
-    {
-        dunit_t rem = 0;
-        slen_t l = __abs(len);
-        unit_t* q = dat + l;
-        while (--q >= dat)
-        {
-            rem = __make_dunit(rem, *q);
-            *q = unit_t(rem / x);
-            rem %= x;
-        }
-        __trim_leading_zeros(dat, l);
-        len = l * __sign(len);
-    }
-    return *this;
-}
-
-number_t& number_t::div_word(word_t x)
+number_t& number_t::div_ui(word_t x)
 {
     assert(x != 0);
 
@@ -948,32 +1003,7 @@ number_t& number_t::div_word(word_t x)
     return *this;
 }
 
-number_t& number_t::mod_unit(unit_t x)
-{
-    assert(x != 0);
-
-    if (len)
-    {
-        dunit_t rem = 0;
-        unit_t* q = dat + __abs(len);
-        while (--q >= dat)
-        {
-            rem = __make_dunit(rem, *q) % x;
-        }
-        if (rem)
-        {
-            *dat = (unit_t)rem;
-            len = __sign(len);
-        }
-        else
-        {
-            set_zero();
-        }
-    }
-    return *this;
-}
-
-number_t& number_t::mod_word(word_t x)
+number_t& number_t::mod_ui(word_t x)
 {
     assert(x != 0);
 
@@ -1005,42 +1035,7 @@ number_t& number_t::mod_word(word_t x)
     return *this;
 }
 
-number_t& number_t::and_unit(unit_t x)
-{
-    if (len)
-    {
-        dat[0] &= x;
-    }
-    return *this;
-}
-
-number_t& number_t::or_unit(unit_t x)
-{
-    if (len)
-    {
-        dat[0] |= x;
-    }
-    else
-    {
-        this->assign(x);
-    }
-    return *this;
-}
-
-number_t& number_t::xor_unit(unit_t x)
-{
-    if (len)
-    {
-        dat[0] ^= x;
-    }
-    else
-    {
-        this->assign(x);
-    }
-    return *this;
-}
-
-number_t& number_t::and_word(word_t x)
+number_t& number_t::bit_and_ui(word_t x)
 {
     if (len)
     {
@@ -1053,7 +1048,7 @@ number_t& number_t::and_word(word_t x)
     return *this;
 }
 
-number_t& number_t::or_word(word_t x)
+number_t& number_t::bit_or_ui(word_t x)
 {
     if (len)
     {
@@ -1070,7 +1065,7 @@ number_t& number_t::or_word(word_t x)
     return *this;
 }
 
-number_t& number_t::xor_word(word_t x)
+number_t& number_t::bit_xor_ui(word_t x)
 {
     if (len)
     {
@@ -1087,34 +1082,34 @@ number_t& number_t::xor_word(word_t x)
     return *this;
 }
 
-number_t& number_t::add_int(int x)
+number_t& number_t::add_si(sword_t x)
 {
 #if UNITBITS == 16
-    return x > 0? add_word(x): sub_word(-x);
+    return x > 0? add_ui(x): sub_ui(-x);
 #elif UNITBITS == 32
     return x > 0? add_unit(x): sub_unit(-x);
 #endif
 }
 
-number_t& number_t::sub_int(int x)
+number_t& number_t::sub_si(sword_t x)
 {
 #if UNITBITS == 16
-    return x > 0? sub_word(x): add_word(-x);
+    return x > 0? sub_ui(x): add_ui(-x);
 #elif UNITBITS == 32
     return x > 0? sub_unit(x): add_unit(-x);
 #endif
 }
 
-number_t& number_t::mul_int(int x)
+number_t& number_t::mul_si(sword_t x)
 {
 #if UNITBITS == 16
     if (x >= 0)
     {
-        return mul_word(x);
+        return mul_ui(x);
     }
     else
     {
-        mul_word(-x);
+        mul_ui(-x);
         return set_neg();
     }
 #elif UNITBITS == 32
@@ -1130,16 +1125,16 @@ number_t& number_t::mul_int(int x)
 #endif
 }
 
-number_t& number_t::div_int(int x)  // TO TEST
+number_t& number_t::div_si(sword_t x)  // TO TEST
 {
 #if UNITBITS == 16
     if (x > 0)
     {
-        return div_word(x);
+        return div_ui(x);
     }
     else
     {
-        div_word(-x);
+        div_ui(-x);
         return set_neg();
     }
 #elif UNITBITS == 32
@@ -1155,489 +1150,159 @@ number_t& number_t::div_int(int x)  // TO TEST
 #endif
 }
 
-number_t& number_t::mod_int(int x)  // TO TEST
+number_t& number_t::mod_si(sword_t x)  // TO TEST
 {
 #if UNITBITS == 16
-    return x > 0? mod_word(x): mod_word(-x);
+    return x > 0? mod_ui(x): mod_ui(-x);
 #elif UNITBITS == 32
     return x > 0? mod_unit(x): mod_unit(-x);
 #endif
 }
 
-number_t& number_t::and_int(int x)
+number_t& number_t::bit_and_si(int x)
 {
 #if UNITBITS == 16
     if (x >= 0)
     {
-        return and_word(x);
+        return bit_and_ui(x);
     }
     else
     {
-        and_word(-x);
-        return set_neg();
-    }
-#elif UNITBITS == 32
-    if (x >= 0)
-    {
-        return and_unit(x);
-    }
-    else
-    {
-        and_unit(-x);
-        return set_neg();
-    }
-#endif
-}
-
-number_t& number_t::or_int(int x)
-{
-#if UNITBITS == 16
-    if (x >= 0)
-    {
-        return or_word(x);
-    }
-    else
-    {
-        or_word(-x);
+        bit_and_ui(-x);
         return set_neg();
     }
 #elif UNITBITS == 32
     if (x >= 0)
     {
-        return or_unit(x);
+        return bit_and_unit(x);
     }
     else
     {
-        or_unit(-x);
+        bit_and_unit(-x);
         return set_neg();
     }
 #endif
 }
 
-number_t& number_t::xor_int(int x)
+number_t& number_t::bit_or_si(sword_t x)
 {
 #if UNITBITS == 16
     if (x >= 0)
     {
-        return xor_word(x);
+        return bit_or_ui(x);
     }
     else
     {
-        xor_word(-x);
+        bit_or_ui(-x);
         return set_neg();
     }
 #elif UNITBITS == 32
     if (x >= 0)
     {
-        return xor_unit(x);
+        return bit_or_unit(x);
     }
     else
     {
-        xor_unit(-x);
+        bit_or_unit(-x);
         return set_neg();
     }
 #endif
 }
 
-number_t& number_t::add_uint(unsigned int x)
+number_t& number_t::bit_xor_si(sword_t x)
 {
 #if UNITBITS == 16
-    return add_word(x);
-#elif UNITBITS == 32
-    return add_unit(x);
-#endif
-}
-
-number_t& number_t::sub_uint(unsigned int x)
-{
-#if UNITBITS == 16
-    return sub_word(x);
-#elif UNITBITS == 32
-    return sub_unit(x);
-#endif
-}
-
-number_t& number_t::mul_uint(unsigned int x)
-{
-#if UNITBITS == 16
-    return mul_word(x);
-#elif UNITBITS == 32
-    return mul_unit(x);
-#endif
-}
-
-number_t& number_t::div_uint(unsigned int x)
-{
-#if UNITBITS == 16
-    return div_word(x);
-#elif UNITBITS == 32
-    return div_unit(x);
-#endif
-}
-
-number_t& number_t::mod_uint(unsigned int x)
-{
-#if UNITBITS == 16
-    return mod_word(x);
-#elif UNITBITS == 32
-    return mod_unit(x);
-#endif
-}
-
-number_t& number_t::and_uint(unsigned int x)
-{
-#if UNITBITS == 16
-    return and_word(x);
-#elif UNITBITS == 32
-    return and_unit(x);
-#endif
-}
-
-number_t& number_t::or_uint(unsigned int x)
-{
-#if UNITBITS == 16
-    return or_word(x);
-#elif UNITBITS == 32
-    return or_unit(x);
-#endif
-}
-
-number_t& number_t::xor_uint(unsigned int x)
-{
-#if UNITBITS == 16
-    return xor_word(x);
-#elif UNITBITS == 32
-    return xor_unit(x);
-#endif
-}
-
-number_t& number_t::add_long(long x)
-{
-#if LONG_MAX == INT_MAX
-    return add_int(x);
-#elif LONG_MAX == LLONG_MAX
-    return add_longlong(x);
-#endif
-}
-
-number_t& number_t::sub_long(long x)
-{
-#if LONG_MAX == INT_MAX
-    return sub_int(x);
-#elif LONG_MAX == LLONG_MAX
-    return sub_longlong(x);
-#endif
-}
-
-number_t& number_t::mul_long(long x)
-{
-#if LONG_MAX == INT_MAX
-    return mul_int(x);
-#elif LONG_MAX == LLONG_MAX
-    return mul_longlong(x);
-#endif
-}
-
-number_t& number_t::div_long(long x)
-{
-#if LONG_MAX == INT_MAX
-    return div_int(x);
-#elif LONG_MAX == LLONG_MAX
-    return div_longlong(x);
-#endif
-}
-
-number_t& number_t::mod_long(long x)
-{
-#if LONG_MAX == INT_MAX
-    return div_int(x);
-#elif LONG_MAX == LLONG_MAX
-    return div_longlong(x);
-#endif
-}
-
-number_t& number_t::and_long(long x)
-{
-#if LONG_MAX == INT_MAX
-    return and_int(x);
-#elif LONG_MAX == LLONG_MAX
-    return and_longlong(x);
-#endif
-}
-
-number_t& number_t::or_long(long x)
-{
-#if LONG_MAX == INT_MAX
-    return or_int(x);
-#elif LONG_MAX == LLONG_MAX
-    return or_longlong(x);
-#endif
-}
-
-number_t& number_t::xor_long(long x)
-{
-#if LONG_MAX == INT_MAX
-    return xor_int(x);
-#elif LONG_MAX == LLONG_MAX
-    return xor_longlong(x);
-#endif
-}
-
-number_t& number_t::add_ulong(unsigned long x)
-{
-#if ULONG_MAX == UINT_MAX
-    return add_uint(x);
-#elif ULONG_MAX == ULLONG_MAX
-    return add_ulonglong(x);
-#endif
-}
-
-number_t& number_t::sub_ulong(unsigned long x)
-{
-#if ULONG_MAX == UINT_MAX
-    return sub_uint(x);
-#elif ULONG_MAX == ULLONG_MAX
-    return sub_ulonglong(x);
-#endif
-}
-
-number_t& number_t::mul_ulong(unsigned long x)
-{
-#if ULONG_MAX == UINT_MAX
-    return mul_uint(x);
-#elif ULONG_MAX == ULLONG_MAX
-    return mul_ulonglong(x);
-#endif
-}
-
-number_t& number_t::div_ulong(unsigned long x)
-{
-#if ULONG_MAX == UINT_MAX
-    return div_uint(x);
-#elif ULONG_MAX == ULLONG_MAX
-    return div_ulonglong(x);
-#endif
-}
-
-number_t& number_t::mod_ulong(unsigned long x)
-{
-#if ULONG_MAX == UINT_MAX
-    return mod_uint(x);
-#elif ULONG_MAX == ULLONG_MAX
-    return mod_ulonglong(x);
-#endif
-}
-
-number_t& number_t::and_ulong(unsigned long x)
-{
-#if LONG_MAX == INT_MAX
-    return and_uint(x);
-#elif LONG_MAX == LLONG_MAX
-    return and_ulonglong(x);
-#endif
-}
-
-number_t& number_t::or_ulong(unsigned long x)
-{
-#if LONG_MAX == INT_MAX
-    return or_uint(x);
-#elif LONG_MAX == LLONG_MAX
-    return or_ulonglong(x);
-#endif
-}
-
-number_t& number_t::xor_ulong(unsigned long x)
-{
-#if LONG_MAX == INT_MAX
-    return xor_uint(x);
-#elif LONG_MAX == LLONG_MAX
-    return xor_ulonglong(x);
-#endif
-}
-
-number_t& number_t::add_longlong(long long x)
-{
-#if UNITBITS == 32
-    return x > 0? add_word(x): sub_word(-x);
-#else
-    return add(x);
-#endif
-}
-
-number_t& number_t::sub_longlong(long long x)
-{
-#if UNITBITS == 32
-    return x > 0? sub_word(x): add_word(-x);
-#else
-    return sub(x);
-#endif
-}
-
-number_t& number_t::mul_longlong(long long x)
-{
-#if UNITBITS == 32
-    if (x > 0)
-    {
-        return mul_word(x);
-    }
-    else
-    {
-        mul_word(-x);
-        return set_neg();
-    }
-#else
-    return mul(x);
-#endif
-}
-
-number_t& number_t::div_longlong(long long x)
-{
-#if UNITBITS == 32
-    if (x > 0)
-    {
-        return div_word(x);
-    }
-    else
-    {
-        div_word(-x);
-        return set_neg();
-    }
-#else
-    return div(x);
-#endif
-}
-
-number_t& number_t::mod_longlong(long long x)
-{
-#if UNITBITS == 32
-    return x > 0? mod_word(x): mod_word(-x);
-#else
-    return mod(x);
-#endif
-}
-
-number_t& number_t::and_longlong(long long x)
-{
-#if UNITBITS == 32
     if (x >= 0)
     {
-        return and_word(x)
+        return bit_xor_ui(x);
     }
     else
     {
-        and_word(-x);
+        bit_xor_ui(-x);
         return set_neg();
     }
-#else
-    return bit_and(x);
-#endif
-}
-
-number_t& number_t::or_longlong(long long x)
-{
-#if UNITBITS == 32
+#elif UNITBITS == 32
     if (x >= 0)
     {
-        return or_word(x)
+        return bit_xor_unit(x);
     }
     else
     {
-        or_word(-x);
+        bit_xor_unit(-x);
         return set_neg();
     }
-#else
-    return bit_or(x);
 #endif
 }
 
-number_t& number_t::xor_longlong(long long x)
-{
-#if UNITBITS == 32
-    if (x >= 0)
-    {
-        return xor_word(x)
-    }
-    else
-    {
-        xor_word(-x);
-        return set_neg();
-    }
-#else
-    return bit_xor(x);
-#endif
-}
+number_t& number_t::add(int x)                     { return add_si(x); }
+number_t& number_t::add(unsigned int x)            { return add_ui(x); }
+number_t& number_t::add(long x)                    { return add_si(x); }
+number_t& number_t::add(unsigned long x)           { return add_ui(x); }
+number_t& number_t::sub(int x)                     { return sub_si(x); }
+number_t& number_t::sub(unsigned int x)            { return sub_ui(x); }
+number_t& number_t::sub(long x)                    { return sub_si(x); }
+number_t& number_t::sub(unsigned long x)           { return sub_ui(x); }
+number_t& number_t::mul(int x)                     { return mul_si(x); }
+number_t& number_t::mul(unsigned int x)            { return mul_ui(x); }
+number_t& number_t::mul(long x)                    { return mul_si(x); }
+number_t& number_t::mul(unsigned long x)           { return mul_ui(x); }
+number_t& number_t::div(int x)                     { return div_si(x); }
+number_t& number_t::div(unsigned int x)            { return div_ui(x); }
+number_t& number_t::div(long x)                    { return div_si(x); }
+number_t& number_t::div(unsigned long x)           { return div_ui(x); }
+number_t& number_t::mod(int x)                     { return mod_si(x); }
+number_t& number_t::mod(unsigned int x)            { return mod_ui(x); }
+number_t& number_t::mod(long x)                    { return mod_si(x); }
+number_t& number_t::mod(unsigned long x)           { return mod_ui(x); }
+number_t& number_t::bit_and(int x)                 { return bit_and_si(x); }
+number_t& number_t::bit_and(unsigned int x)        { return bit_and_ui(x); }
+number_t& number_t::bit_and(long x)                { return bit_and_si(x); }
+number_t& number_t::bit_and(unsigned long x)       { return bit_and_ui(x); }
+number_t& number_t::bit_or(int x)                  { return bit_or_si(x); }
+number_t& number_t::bit_or(unsigned int x)         { return bit_or_ui(x); }
+number_t& number_t::bit_or(long x)                 { return bit_or_si(x); }
+number_t& number_t::bit_or(unsigned long x)        { return bit_or_ui(x); }
+number_t& number_t::bit_xor(int x)                 { return bit_xor_si(x); }
+number_t& number_t::bit_xor(unsigned int x)        { return bit_xor_ui(x); }
+number_t& number_t::bit_xor(long x)                { return bit_xor_si(x); }
+number_t& number_t::bit_xor(unsigned long x)       { return bit_xor_ui(x); }
 
-number_t& number_t::add_ulonglong(unsigned long long x)
-{
 #if UNITBITS == 32
-    return add_word(x);
-#else
-    return add(x);
-#endif
-}
+number_t& number_t::add(long long x)               { return add_si(x); }
+number_t& number_t::add(unsigned long long x)      { return add_ui(x); }
+number_t& number_t::sub(long long x)               { return sub_si(x); }
+number_t& number_t::sub(unsigned long long x)      { return sub_si(x); }
+number_t& number_t::mul(long long x)               { return mul_si(x); }
+number_t& number_t::mul(unsigned long long x)      { return mul_ui(x); }
+number_t& number_t::div(long long x)               { return div_si(x); }
+number_t& number_t::div(unsigned long long x)      { return div_ui(x); }
+number_t& number_t::mod(long long x)               { return mod_si(x); }
+number_t& number_t::mod(unsigned long long x)      { return mod_ui(x); }
+number_t& number_t::bit_and(long long x)           { return bit_and_si(x); }
+number_t& number_t::bit_and(unsigned long long x)  { return bit_and_ui(x); }
+number_t& number_t::bit_or(long long x)            { return bit_or_si(x); }
+number_t& number_t::bit_or(unsigned long long x)   { return bit_or_ui(x); }
+number_t& number_t::bit_xor(long long x)           { return bit_xor_si(x); }
+number_t& number_t::bit_xor(unsigned long long x)  { return bit_xor_ui(x); }
 
-number_t& number_t::sub_ulonglong(unsigned long long x)
-{
-#if UNITBITS == 32
-    return sub_word(x);
 #else
-    return sub(x);
+number_t& number_t::add(long long x)               { _stype_ref_t<long long> r(x);           return add((const number_t&)r); }
+number_t& number_t::add(unsigned long long x)      { _utype_ref_t<unsigned long long> r(x);  return add((const number_t&)r); }
+number_t& number_t::sub(long long x)               { _stype_ref_t<long long> r(x);           return sub((const number_t&)r); }
+number_t& number_t::sub(unsigned long long x)      { _utype_ref_t<unsigned long long> r(x);  return sub((const number_t&)r); }
+number_t& number_t::mul(long long x)               { _stype_ref_t<long long> r(x);           return mul((const number_t&)r); }
+number_t& number_t::mul(unsigned long long x)      { _utype_ref_t<unsigned long long> r(x);  return mul((const number_t&)r); }
+number_t& number_t::div(long long x)               { _stype_ref_t<long long> r(x);           return div((const number_t&)r); }
+number_t& number_t::div(unsigned long long x)      { _utype_ref_t<unsigned long long> r(x);  return div((const number_t&)r); }
+number_t& number_t::mod(long long x)               { _stype_ref_t<long long> r(x);           return mod((const number_t&)r); }
+number_t& number_t::mod(unsigned long long x)      { _utype_ref_t<unsigned long long> r(x);  return mod((const number_t&)r); }
+number_t& number_t::bit_and(long long x)           { _stype_ref_t<long long> r(x);           return bit_and((const number_t&)r); }
+number_t& number_t::bit_and(unsigned long long x)  { _utype_ref_t<unsigned long long> r(x);  return bit_and((const number_t&)r); }
+number_t& number_t::bit_or(long long x)            { _stype_ref_t<long long> r(x);           return bit_or((const number_t&)r); }
+number_t& number_t::bit_or(unsigned long long x)   { _utype_ref_t<unsigned long long> r(x);  return bit_or((const number_t&)r); }
+number_t& number_t::bit_xor(long long x)           { _stype_ref_t<long long> r(x);           return bit_xor((const number_t&)r); }
+number_t& number_t::bit_xor(unsigned long long x)  { _utype_ref_t<unsigned long long> r(x);  return bit_xor((const number_t&)r); }
 #endif
-}
-
-number_t& number_t::mul_ulonglong(unsigned long long x)
-{
-#if UNITBITS == 32
-    return mul_word(x);
-#else
-    return mul(x);
-#endif
-}
-
-number_t& number_t::div_ulonglong(unsigned long long x)
-{
-#if UNITBITS == 32
-    return div_word(x);
-#else
-    return div(x);
-#endif
-}
-
-number_t& number_t::mod_ulonglong(unsigned long long x)
-{
-#if UNITBITS == 32
-    return mod_unit(x);
-#else
-    return mod(x);
-#endif
-}
-
-number_t& number_t::and_ulonglong(unsigned long long x)
-{
-#if UNITBITS == 32
-    return and_word(x)
-#else
-    return bit_and(x);
-#endif
-}
-
-number_t& number_t::or_ulonglong(unsigned long long x)
-{
-#if UNITBITS == 32
-    return or_word(x)
-#else
-    return bit_or(x);
-#endif
-}
-
-number_t& number_t::xor_ulonglong(unsigned long long x)
-{
-#if UNITBITS == 32
-    return xor_word(x)
-#else
-    return bit_xor(x);
-#endif
-}
 
 bool number_t::bit_at(size_t x) const
 {
@@ -1700,17 +1365,35 @@ size_t number_t::bits_count() const
 
 bool number_t::is_po2() const
 {
-    return mynum::is_po2(*this);
+    if (!this->is_zero())
+    {
+        const unit_t* p = dat;
+        const unit_t* e = dat + len - 1;   // len < 0?
+
+        while (p != e)
+        {
+            if (*p++ != 0)
+            {
+                return false;
+            }
+        }
+        return (*p & (*p - 1)) == 0;
+    }
+    return false;
 }
 
 bool number_t::is_odd() const
 {
-    return mynum::is_odd(*this);
+    if (!this->is_zero())
+    {
+        return dat[0] & 1;
+    }
+    return false;
 }
 
 bool number_t::is_even() const
 {
-    return mynum::is_even(*this);
+    return !is_odd();
 }
 
 void number_t::clear()
@@ -1758,346 +1441,6 @@ void number_t::set_one()
     len = 1;
 }
 
-number_t& number_t::operator = (const number_t& x)    { return assign(x); }
-number_t& number_t::operator = (short x)              { return assign(x); }
-number_t& number_t::operator = (long x)               { return assign(x); }
-number_t& number_t::operator = (long long x)          { return assign(x); }
-number_t& number_t::operator = (char x)               { return assign(x); }
-number_t& number_t::operator = (int x)                { return assign(x); }
-number_t& number_t::operator = (bool x)               { return assign(x); }
-number_t& number_t::operator = (unsigned short x)     { return assign(x); }
-number_t& number_t::operator = (unsigned long x)      { return assign(x); }
-number_t& number_t::operator = (unsigned long long x) { return assign(x); }
-number_t& number_t::operator = (unsigned char x)      { return assign(x); }
-number_t& number_t::operator = (unsigned int x)       { return assign(x); }
-
-number_t number_t::operator + () const
-{
-    return *this;
-}
-
-number_t number_t::operator - () const
-{
-    number_t res(*this);
-    res.len = 0 - res.len;
-    return res;
-}
-
-number_t& number_t::operator ~ ()
-{
-    return this->bit_not();
-}
-
-number_t& number_t::operator ++ ()
-{
-    return this->operator ++ (0);
-}
-
-number_t& number_t::operator -- ()
-{
-    return this->operator -- (0);
-}
-
-number_t& number_t::operator ++ (int)
-{
-    return this->add(unit_t(1));
-}
-
-number_t& number_t::operator -- (int)
-{
-    return this->sub(unit_t(1));
-}
-
-number_t& number_t::operator += (const number_t& x)
-{
-    return this->add(x);
-}
-
-number_t& number_t::operator -= (const number_t& x)
-{
-    return this->sub(x);
-}
-
-number_t& number_t::operator *= (const number_t& x)
-{
-    return this->mul(x);
-}
-
-number_t& number_t::operator /= (const number_t& x)
-{
-    return this->div(x);
-}
-
-number_t& number_t::operator %= (const number_t& x)
-{
-    return this->mod(x);
-}
-
-number_t& number_t::operator |= (const number_t& x)
-{
-    return this->bit_or(x);
-}
-
-number_t& number_t::operator &= (const number_t& x)
-{
-    return this->bit_and(x);
-}
-
-number_t& number_t::operator ^= (const number_t& x)
-{
-    return this->bit_xor(x);
-}
-
-number_t& number_t::operator += (int x)
-{
-    return this->add_int(x);
-}
-
-number_t& number_t::operator -= (int x)
-{
-    return this->sub_int(x);
-}
-
-number_t& number_t::operator *= (int x)
-{
-    return this->mul_int(x);
-}
-
-number_t& number_t::operator /= (int x)
-{
-    return this->div_int(x);
-}
-
-number_t& number_t::operator %= (int x)
-{
-    return this->mod_int(x);
-}
-
-number_t& number_t::operator &= (int x)
-{
-    return this->and_int(x);
-}
-
-number_t& number_t::operator |= (int x)
-{
-    return this->or_int(x);
-}
-
-number_t& number_t::operator ^= (int x)
-{
-    return this->xor_int(x);
-}
-
-number_t& number_t::operator += (unsigned int x)
-{
-    return this->add_uint(x);
-}
-
-number_t& number_t::operator -= (unsigned int x)
-{
-    return this->sub_uint(x);
-}
-
-number_t& number_t::operator *= (unsigned int x)
-{
-    return this->mul_uint(x);
-}
-
-number_t& number_t::operator /= (unsigned int x)
-{
-    return this->div_uint(x);
-}
-
-number_t& number_t::operator %= (unsigned int x)
-{
-    return this->mod_uint(x);
-}
-
-number_t& number_t::operator &= (unsigned int x)
-{
-    return this->and_uint(x);
-}
-
-number_t& number_t::operator |= (unsigned int x)
-{
-    return this->or_uint(x);
-}
-
-number_t& number_t::operator ^= (unsigned int x)
-{
-    return this->xor_uint(x);
-}
-
-number_t& number_t::operator += (long x)
-{
-    return this->add_ulong(x);
-}
-
-number_t& number_t::operator -= (long x)
-{
-    return this->sub_long(x);
-}
-
-number_t& number_t::operator *= (long x)
-{
-    return this->mul_long(x);
-}
-
-number_t& number_t::operator /= (long x)
-{
-    return this->div_long(x);
-}
-
-number_t& number_t::operator %= (long x)
-{
-    return this->mod_long(x);
-}
-
-number_t& number_t::operator &= (long x)
-{
-    return this->and_long(x);
-}
-
-number_t& number_t::operator |= (long x)
-{
-    return this->or_long(x);
-}
-
-number_t& number_t::operator ^= (long x)
-{
-    return this->xor_long(x);
-}
-
-number_t& number_t::operator += (unsigned long x)
-{
-    return this->add_ulong(x);
-}
-
-number_t& number_t::operator -= (unsigned long x)
-{
-    return this->sub_ulong(x);
-}
-
-number_t& number_t::operator *= (unsigned long x)
-{
-    return this->mul_ulong(x);
-}
-
-number_t& number_t::operator /= (unsigned long x)
-{
-    return this->div_ulong(x);
-}
-
-number_t& number_t::operator %= (unsigned long x)
-{
-    return this->mod_ulong(x);
-}
-
-number_t& number_t::operator &= (unsigned long x)
-{
-    return this->and_ulong(x);
-}
-
-number_t& number_t::operator |= (unsigned long x)
-{
-    return this->or_ulong(x);
-}
-
-number_t& number_t::operator ^= (unsigned long x)
-{
-    return this->xor_ulong(x);
-}
-
-number_t& number_t::operator += (long long x)
-{
-    return this->add_longlong(x);
-}
-
-number_t& number_t::operator -= (long long x)
-{
-    return this->sub_longlong(x);
-}
-
-number_t& number_t::operator *= (long long x)
-{
-    return this->mul_longlong(x);
-}
-
-number_t& number_t::operator /= (long long x)
-{
-    return this->div_longlong(x);
-}
-
-number_t& number_t::operator %= (long long x)
-{
-    return this->mod_longlong(x);
-}
-
-number_t& number_t::operator &= (long long x)
-{
-    return this->and_longlong(x);
-}
-
-number_t& number_t::operator |= (long long x)
-{
-    return this->or_longlong(x);
-}
-
-number_t& number_t::operator ^= (long long x)
-{
-    return this->xor_longlong(x);
-}
-
-number_t& number_t::operator += (unsigned long long x)
-{
-    return this->add_ulonglong(x);
-}
-
-number_t& number_t::operator -= (unsigned long long x)
-{
-    return this->sub_ulonglong(x);
-}
-
-number_t& number_t::operator *= (unsigned long long x)
-{
-    return this->mul_ulonglong(x);
-}
-
-number_t& number_t::operator /= (unsigned long long x)
-{
-    return this->div_ulonglong(x);
-}
-
-number_t& number_t::operator %= (unsigned long long x)
-{
-    return this->mod_ulonglong(x);
-}
-
-number_t& number_t::operator &= (unsigned long long x)
-{
-    return this->and_ulonglong(x);
-}
-
-number_t& number_t::operator |= (unsigned long long x)
-{
-    return this->or_ulonglong(x);
-}
-
-number_t& number_t::operator ^= (unsigned long long x)
-{
-    return this->xor_ulonglong(x);
-}
-
-number_t& number_t::operator <<= (int x)
-{
-    return this->shl(x);
-}
-
-number_t& number_t::operator >>= (int x)
-{
-    return this->shr(x);
-}
-
 string_t number_t::operator () (int base) const
 {
     return this->to_string(base);
@@ -2111,16 +1454,6 @@ bool number_t::operator [] (size_t x) const
 bitref_t number_t::operator [] (size_t x)
 {
     return bitref_t(*this, x);
-}
-
-number_t::operator bool () const
-{
-    return !is_zero();
-}
-
-bool number_t::operator ! () const
-{
-    return is_zero();
 }
 
 bool number_t::in_range_char() const
@@ -2226,16 +1559,6 @@ bool number_t::in_range_ulonglong() const
 {
     __judge_unsigned_range(unsigned long long);
 }
-
-#if INT_MAX != 2147483647 || UINT_MAX != 0xffffffff
-#error int is not 32-bit, temporarily not supported
-#endif
-#if LLONG_MAX != 9223372036854775807LL || ULLONG_MAX != 0xffffffffffffffffULL
-#error long long is not 64-bit, temporarily not supported
-#endif
-#if LONG_MAX != INT_MAX && LONG_MAX != LLONG_MAX
-#error long is neither 32-bit nor 64-bit, temporarily not supported
-#endif
 
 char number_t::to_char() const
 {
@@ -2861,7 +2184,7 @@ int __max_base()
 string_t& number_t::__to_hex_string(string_t& res) const
 {
     slen_t l = __abs(len);
-    res.release();
+    res.release();      // should be improved
     if (l)
     {
         char* str, *ps;
@@ -2979,27 +2302,6 @@ string_t& number_t::__to_xbase_string(string_t& res, unit_t base, unit_t inner_b
     res.__copy("0", 1);
     return res;
 }
-
-number_t& set_abs(number_t& a)                          { a.len = __abs(a.len); return a; }
-number_t& set_neg(number_t& a)                          { a.len = 0 - __abs(a.len); return a; }
-number_t& set_sign(number_t& a, int sign)               { a.len = __abs(a.len) * __sign(sign); return a; }
-number_t abs(const number_t& a)                         { number_t res; abs(a, res); return res; }
-number_t neg(const number_t& a)                         { number_t res; neg(a, res); return res; }
-number_t add(const number_t& a, const number_t& b)      { number_t res; add(a, b, res); return res; }
-number_t sub(const number_t& a, const number_t& b)      { number_t res; sub(a, b, res); return res; }
-number_t mul(const number_t& a, const number_t& b)      { number_t res; mul(a, b, res); return res; }
-number_t sqr(const number_t& a)                         { number_t res; sqr(a, res); return res; }
-number_t ksqr(const number_t& a)                        { number_t res; ksqr(a, res); return res; }
-number_t kmul(const number_t& a, const number_t& b)     { number_t res; kmul(a, b, res); return res; }
-number_t div(const number_t& a, const number_t& b)      { number_t res, dummy; div(a, b, res, dummy); return res; }
-number_t mod(const number_t& a, const number_t& b)      { number_t res, dummy; div(a, b, dummy, res); return res; }
-number_t shr(const number_t& a, size_t b)               { number_t res; shr(a, b, res); return res; }
-number_t shl(const number_t& a, size_t b)               { number_t res; shl(a, b, res); return res; }
-number_t pow(const number_t& a, const number_t& b)      { number_t res; pow(a, b, res); return res; }
-number_t bit_and(const number_t& a, const number_t& b)  { number_t res; bit_and(a, b, res); return res; }
-number_t bit_or(const number_t& a, const number_t& b)   { number_t res; bit_or(a, b, res); return res; }
-number_t bit_xor(const number_t& a, const number_t& b)  { number_t res; bit_xor(a, b, res); return res; }
-number_t bit_not(const number_t& a)                     { number_t res; bit_not(a, res); return res; }
 
 /** class string_t implementation */
 
@@ -3233,6 +2535,30 @@ bool neq(const number_t& a, const number_t& b)
     }
     return __neq_core(a.dat, b.dat, __abs(a.len));
 }
+
+//int cmp(const number_t& a, word_t b)
+//{
+//    basic_unsigned_type_ref_t<word_t> ref(b);
+//    return cmp(a, (const number_t&)ref);
+//}
+//
+//int cmp(const number_t& a, sword_t b)
+//{
+//    basic_signed_type_ref_t<sword_t> ref(b);
+//    return cmp(a, (const number_t&)ref);
+//}
+//
+//int cmp(word_t a, const number_t& b)
+//{
+//    basic_unsigned_type_ref_t<word_t> ref(a);
+//    return cmp((const number_t&)ref, b);
+//}
+//
+//int cmp(sword_t a, const number_t& b)
+//{
+//    basic_signed_type_ref_t<sword_t> ref(a);
+//    return cmp((const number_t&)ref, b);
+//}
 
 void abs(const number_t& a, number_t& res)
 {
@@ -3606,6 +2932,21 @@ void shl(const number_t& a, size_t b, number_t& res)
     res.len *= __sign(a.len);
 }
 
+void pow(const number_t& a, size_t b, number_t& res)
+{
+    number_t A(a);
+    res.set_one();
+    while (b != 0)
+    {
+        if (b & 1)
+        {
+            res.kmul(A);
+        }
+        A.ksqr();
+        b >>= 1;
+    }
+}
+
 void pow(const number_t& a, const number_t& b, number_t& res)
 {
     if (a.len && b.len)
@@ -3790,39 +3131,6 @@ void swap(number_t& a, number_t& b)
     a.len ^= b.len; a.cap ^= b.cap;
     b.len ^= a.len; b.cap ^= a.cap;
     a.len ^= b.len; a.cap ^= b.cap;
-}
-
-bool is_po2(const number_t& a)
-{
-    if (!a.is_zero())
-    {
-        const unit_t* p = a.dat;
-        const unit_t* e = a.dat + a.len - 1;
-
-        while (p != e)
-        {
-            if (*p++ != 0)
-            {
-                return false;
-            }
-        }
-        return (*p & (*p - 1)) == 0;
-    }
-    return false;
-}
-
-bool is_odd(const number_t& a)
-{
-    if (!a.is_zero())
-    {
-        return a.dat[0] & 1;
-    }
-    return false;
-}
-
-bool is_even(const number_t& a)
-{
-    return !is_odd(a);
 }
 
 void __mul(const unit_t* x, slen_t lx, const unit_t* y, slen_t ly, number_t& res)

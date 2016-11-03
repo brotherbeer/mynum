@@ -912,7 +912,7 @@ number_t& number_t::sub_ui(word_t x)
         else
         {
             *(word_t*)dat = x - *(word_t*)dat;
-            len = -2 + (dat[1] != 0);
+            len = -2 + (dat[1] == 0);
         }
     }
     else if (len == 0)
@@ -924,7 +924,7 @@ number_t& number_t::sub_ui(word_t x)
                 __reserve(2);
             }
             *(word_t*)dat = x;
-            len = -2 + (dat[1] != 0);
+            len = -2 + (dat[1] == 0);
         }
     }
     else
@@ -1023,14 +1023,14 @@ number_t& number_t::mod_ui(word_t x)
         if (rem)
         {
             *(word_t*)dat = rem;
-            len = 2;
+            l = 2;
+            __trim_leading_zeros(dat, l);
+            len = l * __sign(len);
         }
         else
         {
             set_zero();
         }
-        __trim_leading_zeros(dat, l);
-        len = l * __sign(len);
     }
     return *this;
 }

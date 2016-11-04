@@ -1039,11 +1039,18 @@ number_t& number_t::bit_and_ui(word_t x)
 {
     if (len)
     {
-        if (__abs(len) == 1)
+        slen_t l = __abs(len);
+        if (l == 1)
         {
-            __pad_word(dat, len);
+            *dat &= x & MASK;
         }
-        *(word_t*)dat &= x;
+        else
+        {
+            *(word_t*)dat &= x;
+            l = 2;
+        }
+        __trim_leading_zeros(dat, l);
+        len = l * __sign(len);
     }
     return *this;
 }
@@ -1060,7 +1067,7 @@ number_t& number_t::bit_or_ui(word_t x)
     }
     else
     {
-        this->assign(x);
+        assign(x);
     }
     return *this;
 }
@@ -1077,7 +1084,7 @@ number_t& number_t::bit_xor_ui(word_t x)
     }
     else
     {
-        this->assign(x);
+        assign(x);
     }
     return *this;
 }

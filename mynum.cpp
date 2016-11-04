@@ -1222,7 +1222,7 @@ number_t& number_t::bit_xor(unsigned long x)       { return bit_xor_ui(x); }
 number_t& number_t::add(long long x)               { return add_si(x); }
 number_t& number_t::add(unsigned long long x)      { return add_ui(x); }
 number_t& number_t::sub(long long x)               { return sub_si(x); }
-number_t& number_t::sub(unsigned long long x)      { return sub_si(x); }
+number_t& number_t::sub(unsigned long long x)      { return sub_ui(x); }
 number_t& number_t::mul(long long x)               { return mul_si(x); }
 number_t& number_t::mul(unsigned long long x)      { return mul_ui(x); }
 number_t& number_t::div(long long x)               { return div_si(x); }

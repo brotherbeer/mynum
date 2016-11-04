@@ -1059,11 +1059,19 @@ number_t& number_t::bit_or_ui(word_t x)
 {
     if (len)
     {
-        if (__abs(len) == 1)
+        slen_t l = __abs(len);
+        if (l != 1)
         {
-            __pad_word(dat, len);
+            *(word_t*)dat |= x;
         }
-        *(word_t*)dat |= x;
+        else
+        {
+            *(dat + 1) = 0;
+            *(word_t*)dat |= x;
+            l = 2;
+            __trim_leading_zeros(dat, l);
+            len = l * __sign(len);
+        }
     }
     else
     {
@@ -1076,11 +1084,19 @@ number_t& number_t::bit_xor_ui(word_t x)
 {
     if (len)
     {
-        if (__abs(len) == 1)
+        slen_t l = __abs(len);
+        if (l != 1)
         {
-            __pad_word(dat, len);
+            *(word_t*)dat ^= x;
         }
-        *(word_t*)dat ^= x;
+        else
+        {
+            *(dat + 1) = 0;
+            *(word_t*)dat ^= x;
+            l = 2;
+            __trim_leading_zeros(dat, l);
+            len = l * __sign(len);
+        }
     }
     else
     {
@@ -2594,8 +2610,19 @@ void sub(const number_t& a, const number_t& b, number_t& res)
 
 void mul(const number_t& a, const number_t& b, number_t& res)
 {
-    __mul(a.dat, __abs(a.len), b.dat, __abs(b.len), res);
-    res.len *= __sign(a.len, b.len);
+    slen_t la = a.len, lb = b.len, sa = 1, sb = 1;
+    if (la < 0)
+    {
+        la = -la;
+        sa = -1;
+    }
+    if (lb < 0)
+    {
+        lb = -lb;
+        sb = -1;
+    }
+    __mul(a.dat, la, b.dat, lb, res);
+    res.len *= __sign(sa, sb);
 }
 
 void kmul(const number_t& u, const number_t& v, number_t& res)
@@ -2746,13 +2773,23 @@ int div(const number_t& a, const number_t& b, number_t& q, number_t& r)
 {
     if (!b.is_zero())
     {
-        slen_t la = __abs(a.len);
-        slen_t lb = __abs(b.len);
+        slen_t sa = 1, sb = 1;
+        slen_t la = a.len, lb = b.len;
+        if (la < 0)
+        {
+            la = -la;
+            sa = -1;
+        }
+        if (lb < 0)
+        {
+            lb = -lb;
+            sb = -1;
+        }
         if (la >= lb)
         {
             __div(a.dat, la, b.dat, lb, q, r);
-            r.len *= __sign(a.len);
-            q.len *= __sign(a.len, b.len);
+            r.len *= __sign(sa);
+            q.len *= __sign(sa, sb);
         }
         else
         {
@@ -2768,12 +2805,22 @@ int div(const number_t& a, const number_t& b, number_t& q)
 {
     if (!b.is_zero())
     {
-        slen_t la = __abs(a.len);
-        slen_t lb = __abs(b.len);
+        slen_t sa = 1, sb = 1;
+        slen_t la = a.len, lb = b.len;
+        if (la < 0)
+        {
+            la = -la;
+            sa = -1;
+        }
+        if (lb < 0)
+        {
+            lb = -lb;
+            sb = -1;
+        }
         if (la >= lb)
         {
             __div(a.dat, la, b.dat, lb, q);
-            q.len *= __sign(a.len, b.len);
+            q.len *= __sign(sa, sb);
         }
         else
         {

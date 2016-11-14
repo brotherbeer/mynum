@@ -3,7 +3,9 @@
 #include <string>
 #include <iostream>
 #include <fstream>
-#include <sstream> 
+#include <sstream>
+#include <cstdlib>
+#include <ctime>
 
 using namespace std;
 using namespace mynum;
@@ -24,13 +26,13 @@ static void __check(const string& s, const number_t& r, const number_t& r1)
         cout << b(10).c_str() << " "#in_range_fun" error" << endl; \
         abort(); \
     } \
-    number_t a1(a), r; \
-    __check(line, a1.fun(b.to_basic_fun()), c); \
+    number_t aa(a), r; \
+    __check(line, aa.fun(b.to_basic_fun()), c); \
     fun(a, b.to_basic_fun(), r); \
     __check(line, r, c); \
 } while(0)
 
-void random_test()
+void __random_test()
 {
     ifstream in("randomtest.dat");
     if (!in)
@@ -46,6 +48,7 @@ void random_test()
     int b1, b2;
 
     number_t a, b, c;
+    number_t aa, bb, r1, r2;
 
     while (getline(in, line))
     {
@@ -56,11 +59,100 @@ void random_test()
         b.assign(i2.c_str(), b2);
         c.assign(i3.c_str());
 
-        if (oper == "+")       __check(line, a + b, c);
-        else if (oper == "-")  __check(line, a - b, c);
-        else if (oper == "*")  __check(line, a * b, c);
-        else if (oper == "/")  __check(line, a / b, c);
-        else if (oper == "%")  __check(line, a % b, c);
+        if (oper == "+")
+        {
+            aa.assign(a);
+            bb.assign(b);
+
+            add(a, b, r1);
+            __check(line, r1, c);
+
+            aa.assign(a);
+            aa.add(b);
+            __check(line, aa, c);
+
+            add(a, bb, bb);
+            __check(line, bb, c);
+
+            __check(line, a + b, c);
+        }
+        else if (oper == "-")
+        {
+            aa.assign(a);
+            bb.assign(b);
+
+            sub(a, b, r1);
+            __check(line, r1, c);
+
+            aa.sub(b);
+            __check(line, aa, c);
+
+            sub(a, bb, bb);
+            __check(line, bb, c);
+
+            __check(line, a - b, c);
+        }
+        else if (oper == "*")
+        {
+            aa.assign(a);
+            bb.assign(b);
+
+            mul(a, b, r1);
+            __check(line, r1, c);
+
+            aa.mul(b);
+            __check(line, aa, c);
+
+            mul(a, bb, bb);
+            __check(line, bb, c);
+
+            __check(line, a * b, c);
+        }
+        else if (oper == "/")
+        {
+            aa.assign(a);
+            bb.assign(b);
+
+            div(a, b, r1);
+            __check(line, r1, c);
+
+            aa.div(b);
+            __check(line, aa, c);
+
+            div(a, bb, bb);
+            __check(line, bb, c);
+
+            __check(line, a / b, c);
+        }
+        else if (oper == "%")
+        {
+            aa.assign(a);
+            bb.assign(b);
+
+            mod(a, b, r1);
+            __check(line, r1, c);
+
+            aa.mod(b);
+            __check(line, aa, c);
+
+            mod(a, bb, bb);
+            __check(line, bb, c);
+
+            __check(line, a % b, c);
+
+            div(a, b, aa, r1);
+            __check(line, r1, c);
+            
+            bb.assign(b);
+            div(a, bb, aa, bb);
+            __check(line, bb, c);
+
+            aa.assign(a);
+            div(aa, b, bb, aa);
+            __check(line, aa, c);
+
+            __check(line, a % b, c);
+        }
         else if (oper == "&")  __check(line, a & b, c);
         else if (oper == "|")  __check(line, a | b, c);
         else if (oper == "^")  __check(line, a ^ b, c);
@@ -233,4 +325,11 @@ void random_test()
 
         linestream.clear();
     }
+}
+
+void random_test()
+{
+    clock_t t0 = clock();
+    __random_test();
+    cout << "time: " << double(clock() - t0) / CLOCKS_PER_SEC << endl;
 }

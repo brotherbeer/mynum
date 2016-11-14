@@ -1661,16 +1661,16 @@ void test_property()
         assert(d.is_even()); assert(d.is_po2());
         NN e(1); assert(!e.is_zero()); assert(e.is_one());
         e <<= 300; assert(e.is_po2());
-    }
-    {
+        assert(!NN(-65536).is_po2());
+        assert(!NN(-23452346).is_po2());
+    }{
         NN a(1), b(1), c(3), d(0xFFFF);
         assert(a.is_po2());
         b.shl(1027); assert(b.is_po2());
         assert(!c.is_po2()); assert(!d.is_po2());
         NN e("107839786668602559178668060348078522694548577690162289924414440996864"); assert(e.is_po2());
         NN z; assert(!z.is_po2());
-    }
-    {
+    }{
         NN a(1), b(-1), c(0);
         assert(a.is_pos()); assert(!a.is_neg()); assert(!b.is_pos());
         assert(b.is_neg()); assert(!c.is_pos()); assert(!c.is_neg());

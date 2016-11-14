@@ -1316,10 +1316,10 @@ size_t number_t::bits_count() const
 
 bool number_t::is_po2() const
 {
-    if (!this->is_zero())
+    if (!this->is_zero() && len > 0)
     {
         const unit_t* p = dat;
-        const unit_t* e = dat + len - 1;   // len < 0?
+        const unit_t* e = dat + len - 1;
 
         while (p != e)
         {

@@ -14,7 +14,6 @@ operations:
  * [Modulo operation](#modulo-operation)
  * [Exponentiation](#exponentiation)
  * [Modular exponentiation](#modular-exponentiation)
- * [Root](#root)
  * [Comparison](#comparison)
  * [Bits operations](#bits-operations)
  * [String convertion](#string-convertion)
@@ -196,13 +195,6 @@ number_t a = 123, b = 456, c = 678, d;
 pom(a, b, c, d);  // set d to a raised to b modulo c
 ```
 
-##Root
-```C++
-number_t a = 123456, b;
-
-sqrt(a, b);       // b is the square root
-```
-
 ##Comparison
 ```C++
 number_t a = 123, b = 456;
@@ -310,7 +302,7 @@ a.is_odd();    // return true if a is an odd number
 
 a.is_one();    // return true if a is 1
 
-a.is_power2(); // return true if a is the n-th power of 2 (n >= 0)
+a.is_po2();    // return true if a is the n-th power of 2 (n >= 0)
 
 a.is_zero();   // return true if a is 0
 ```

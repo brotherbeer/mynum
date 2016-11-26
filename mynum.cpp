@@ -13,6 +13,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <cmath>
+#include <iostream>
 #include "mynum.h"
 
 
@@ -3680,19 +3681,27 @@ void __div_unit_core(const unit_t* x, slen_t lx, unit_t y, unit_t* q, slen_t* lq
 
 unit_t __guess_quotient(unit_t x1, unit_t x2, unit_t x3, unit_t y1, unit_t y2)
 {
-    dunit_t t, r;
+    dunit_t t, r, m, n, o;
     dunit_t x1x2 = __make_dunit(x1, x2);
+    dunit_t y1y2 = __make_dunit(y1, y2);
 
-    t = x1x2 / y1;
+	t = x1x2 / y1;
+    r = x1x2 % y1;
     if (t >= BASE)
     {
-        t = MASK;
+		t = MASK;
+        r = x1x2 - MASK * y1;
     }
-    r = x1x2 - t * y1;
-    while (r < BASE && t * y2 > __make_dunit(r & MASK, x3))
+    if (r < BASE && t * y2 > __make_dunit(r, x3))
     {
-        t--;
-        r += y1;
+        m = --t * y2;
+        n = __make_dunit(r += y1, x3);
+        if (r < BASE && m > n)
+        {
+            m -= n;
+            o = m / y1y2 + (m % y1y2 != 0);
+            t -= o;
+        }
     }
     return t & MASK;
 }
@@ -3881,11 +3890,15 @@ bool __char_digit_valid(char c, int base)
     return __CHAR_DIGIT[(unsigned char)c] < base;
 }
 
+/**
+ * Compute h * BASE * BASE + l by d
+ * Return the quotient, and r points to the remainder
+ */
 __always_inline(dunit_t) __original_div_4by2(dunit_t h, dunit_t l, dunit_t d, dunit_t* r)
 {
     assert(h < d && d != 0);
 
-    dunit_t q1, q2, rx, u, v;
+    dunit_t q1, q2, rx, u, v, w;
     unit_t d1 = d >> SHIFT, d2 = d & MASK;
     unit_t l1 = l >> SHIFT, l2 = l & MASK;
 
@@ -3911,13 +3924,20 @@ __always_inline(dunit_t) __original_div_4by2(dunit_t h, dunit_t l, dunit_t d, du
         // second step, adjust q1 to the true value, see issue #12
         u = q1 * d2;
         v = __make_dunit(rx, l1);
-        while (rx < BASE && v < u)
+        if (rx < BASE && v < u)
         {
             u = --q1 * d2;
             v = __make_dunit(rx += d1, l1);
+            if (rx < BASE && v < u)
+            {
+                u -= v;
+                w = u / d + (u % d != 0);
+                q1 -= w;
+            }
         }
         *r = v - u;
 
+        //use the same algorithm to derive q2
         q2 = *r / d1;
         rx = *r % d1;
         if (q2 >= BASE)
@@ -3927,10 +3947,16 @@ __always_inline(dunit_t) __original_div_4by2(dunit_t h, dunit_t l, dunit_t d, du
         }
         u = q2 * d2;
         v = __make_dunit(rx, l2);
-        while (rx < BASE && v < u)
+        if (rx < BASE && v < u)
         {
             u = --q2 * d2;
             v = __make_dunit(rx += d1, l2);
+            if (rx < BASE && v < u)
+            {
+                u -= v;
+                w = u / d + (u % d != 0);
+                q2 -= w;
+            }
         }
         *r = v - u;
     }

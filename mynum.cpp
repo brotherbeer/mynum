@@ -3690,7 +3690,7 @@ unit_t __guess_quotient(unit_t x1, unit_t x2, unit_t x3, unit_t y1, unit_t y2)
     if (t >= BASE)
     {
 		t = MASK;
-        r = x1x2 - MASK * y1;
+        r = x1x2 - t * y1;
     }
     if (r < BASE && t * y2 > __make_dunit(r, x3))
     {
@@ -3918,7 +3918,7 @@ __always_inline(dunit_t) __original_div_4by2(dunit_t h, dunit_t l, dunit_t d, du
         if (q1 >= BASE)
         {
             q1 = MASK;
-            rx = h - MASK * d1;
+            rx = h - q1 * d1;
         }
         // evaluated q1 may be greater than the true value, the proof is issue #10 */
         // second step, adjust q1 to the true value, see issue #12
@@ -3930,9 +3930,10 @@ __always_inline(dunit_t) __original_div_4by2(dunit_t h, dunit_t l, dunit_t d, du
             v = __make_dunit(rx += d1, l1);
             if (rx < BASE && v < u)
             {
-                u -= v;
-                w = u / d + (u % d != 0);
+                w = (u - v) / d + ((u - v) % d != 0);
                 q1 -= w;
+				u = q1 * d2;
+				v = __make_dunit(rx + w * d1, l1);
             }
         }
         *r = v - u;
@@ -3943,7 +3944,7 @@ __always_inline(dunit_t) __original_div_4by2(dunit_t h, dunit_t l, dunit_t d, du
         if (q2 >= BASE)
         {
             q2 = MASK;
-            rx = *r - MASK * d1;
+            rx = *r - q2 * d1;
         }
         u = q2 * d2;
         v = __make_dunit(rx, l2);
@@ -3953,9 +3954,10 @@ __always_inline(dunit_t) __original_div_4by2(dunit_t h, dunit_t l, dunit_t d, du
             v = __make_dunit(rx += d1, l2);
             if (rx < BASE && v < u)
             {
-                u -= v;
-                w = u / d + (u % d != 0);
+                w = (u - v) / d + ((u - v) % d != 0);
                 q2 -= w;
+				u = q2 * d2;
+				v = __make_dunit(rx + w * d1, l2);
             }
         }
         *r = v - u;

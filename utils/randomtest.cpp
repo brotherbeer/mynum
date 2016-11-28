@@ -28,7 +28,7 @@ static void __check(const string& s, const number_t& r, const number_t& r1)
     } \
     number_t aa(a), r; \
     __check(line, aa.fun(b.to_basic_fun()), c); \
-    fun(a, b.to_basic_fun(), r); \
+    mynum::fun(a, b.to_basic_fun(), r); \
     __check(line, r, c); \
 } while(0)
 

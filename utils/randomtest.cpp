@@ -150,18 +150,85 @@ void __random_test()
             aa.assign(a);
             div(aa, b, bb, aa);
             __check(line, aa, c);
-
-            __check(line, a % b, c);
         }
-        else if (oper == "&")  __check(line, a & b, c);
-        else if (oper == "|")  __check(line, a | b, c);
-        else if (oper == "^")  __check(line, a ^ b, c);
-        else if (oper == "<")  __check(line, a < b, c);
-        else if (oper == ">")  __check(line, a > b, c);
-        else if (oper == "<=") __check(line, a <= b, c);
-        else if (oper == ">=") __check(line, a >= b, c);
-        else if (oper == "==") __check(line, a == b, c);
-        else if (oper == "!=") __check(line, a != b, c);
+        else if (oper == "&")
+        {
+            aa.assign(a);
+            bb.assign(b);
+
+            mynum::bit_and(a, b, r1);
+            __check(line, r1, c);
+
+            aa.bit_and(b);
+            __check(line, aa, c);
+
+            mynum::bit_and(a, bb, bb);
+            __check(line, bb, c);
+
+            __check(line, a & b, c);
+        }
+        else if (oper == "|")
+        {
+            aa.assign(a);
+            bb.assign(b);
+
+            mynum::bit_or(a, b, r1);
+            __check(line, r1, c);
+
+            aa.bit_or(b);
+            __check(line, aa, c);
+
+            mynum::bit_or(a, bb, bb);
+            __check(line, bb, c);
+
+            __check(line, a | b, c);
+        }
+        else if (oper == "^")
+        {
+            aa.assign(a);
+            bb.assign(b);
+
+            mynum::bit_xor(a, b, r1);
+            __check(line, r1, c);
+
+            aa.bit_xor(b);
+            __check(line, aa, c);
+
+            mynum::bit_xor(a, bb, bb);
+            __check(line, bb, c);
+
+            __check(line, a ^ b, c);
+        }
+        else if (oper == "<")
+        {
+            __check(line, lt(a, b), c);
+            __check(line, a < b, c);
+        }
+        else if (oper == ">")
+        {
+            __check(line, gt(a, b), c);
+            __check(line, a > b, c);
+        }
+        else if (oper == "<=")
+        {
+            __check(line, elt(a, b), c);
+            __check(line, a <= b, c);
+        }
+        else if (oper == ">=")
+        {
+            __check(line, egt(a, b), c);
+            __check(line, a >= b, c);
+        }
+        else if (oper == "==")
+        {
+            __check(line, eq(a, b), c);
+            __check(line, a == b, c);
+        }
+        else if (oper == "!=")
+        {
+            __check(line, neq(a, b), c);
+            __check(line, a != b, c);
+        }
         else if (oper == "+s32")
         {
             check_basic(add, in_range_int, to_int);

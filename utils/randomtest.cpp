@@ -209,8 +209,6 @@ void __random_test()
             __check(line, gt(a, b), c);
             __check(line, a > b, c);
         }
-        else if (oper == "<=")
-        {
             __check(line, elt(a, b), c);
             __check(line, a <= b, c);
         }
@@ -228,6 +226,27 @@ void __random_test()
         {
             __check(line, neq(a, b), c);
             __check(line, a != b, c);
+        }
+        else if (oper == "**")
+        {
+            sqr(a, r1);
+            __check(line, r1, c);
+            a.sqr();
+            __check(line, a, c);
+        }
+        else if (oper == ">>")
+        {
+            shr(a, b, r1);
+            __check(line, r1, c);
+            a.shr(b);
+            __check(line, a, c);
+        }
+        else if (oper == "<<")
+        {
+            shl(a, b, r1);
+            __check(line, r1, c);
+            a.shl(b);
+            __check(line, a, c);
         }
         else if (oper == "+s32")
         {

@@ -22,6 +22,7 @@ opers = [
     '+', '-', '*', '/',
     '+', '-', '*', '/',
     '+', '-', '*', '/',
+    '**', '**', 
     '&', '|', '^',
     '&', '|', '^',
     '&', '|', '^',
@@ -34,6 +35,7 @@ opers = [
     '&s32', '&u32', '&s64', '&u64',
     '|s32', '|u32', '|s64', '|u64',
     '^s32', '^u32', '^s64', '^u64',
+    '<<', '>>'
 ]
 
 signs = ['-', '', ]
@@ -313,6 +315,26 @@ def genTestData(args):
             vb = randint(0, ULLONG_MAX)
             b, b1 = str(vb), 10
             res = myxor(va, vb)
+
+        elif oper == '**':
+            b = '0'
+            res = va * va
+
+        elif oper == '<<':
+            vb = randint(0, 1000)
+            b = str(vb)
+            b1 = 10
+            res = abs(va) << vb
+            if a < 0:
+                res = -res
+
+        elif oper == '>>':
+            vb = randint(0, 1000)
+            b = str(vb)
+            b1 = 10
+            res = abs(va) >> vb
+            if a < 0:
+                res = -res
 
         print '%s %s %s %s %s %s' % (oper, a, b0, b, b1, res)
 

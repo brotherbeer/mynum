@@ -209,6 +209,8 @@ void __random_test()
             __check(line, gt(a, b), c);
             __check(line, a > b, c);
         }
+        else if (oper == "<=")
+        {
             __check(line, elt(a, b), c);
             __check(line, a <= b, c);
         }
@@ -236,16 +238,16 @@ void __random_test()
         }
         else if (oper == ">>")
         {
-            shr(a, b, r1);
+            shr(a, b.to_ulong(), r1);
             __check(line, r1, c);
-            a.shr(b);
+            a.shr(b.to_ulong());
             __check(line, a, c);
         }
         else if (oper == "<<")
         {
-            shl(a, b, r1);
+            shl(a, b.to_ulong(), r1);
             __check(line, r1, c);
-            a.shl(b);
+            a.shl(b.to_ulong());
             __check(line, a, c);
         }
         else if (oper == "+s32")

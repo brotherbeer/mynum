@@ -325,7 +325,7 @@ def genTestData(args):
             b = str(vb)
             b1 = 10
             res = abs(va) << vb
-            if a < 0:
+            if va < 0:
                 res = -res
 
         elif oper == '>>':
@@ -333,7 +333,7 @@ def genTestData(args):
             b = str(vb)
             b1 = 10
             res = abs(va) >> vb
-            if a < 0:
+            if va < 0:
                 res = -res
 
         print '%s %s %s %s %s %s' % (oper, a, b0, b, b1, res)

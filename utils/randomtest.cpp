@@ -10,11 +10,19 @@
 using namespace std;
 using namespace mynum;
 
-static void __check(const string& s, const number_t& r, const number_t& r1)
+string oper, i1, i2, i3;
+int b1, b2;
+
+static void __check(const number_t& res, const number_t& exp)
 {
-    if (r != r1)
+    if (res != exp)
     {
-        cout << s << " " << r(10).c_str() << endl;
+        cout << "UNEXPECTED!!" << endl;
+        cout << oper << endl;
+        cout << i1 << ", " << b1 << endl;
+        cout << i2 << ", " << b2 << endl;
+        cout << exp(10).c_str() << endl;
+        cout << res(10).c_str() << endl;
         abort();
     }
 }
@@ -27,33 +35,27 @@ static void __check(const string& s, const number_t& r, const number_t& r1)
         abort(); \
     } \
     number_t aa(a), r; \
-    __check(line, aa.fun(b.to_basic_fun()), c); \
+    __check(aa.fun(b.to_basic_fun()), c); \
     mynum::fun(a, b.to_basic_fun(), r); \
-    __check(line, r, c); \
+    __check(r, c); \
 } while(0)
 
-void __random_test()
+size_t __random_test()
 {
     ifstream in("randomtest.dat");
     if (!in)
     {
         cout << "no randomtest.dat" << endl;
-        return;
+        return 0;
     }
 
-    string line;
-    istringstream linestream;  
-
-    string oper, i1, i2, i3;
-    int b1, b2;
-
+    size_t n = 0;
     number_t a, b, c;
-    number_t aa, bb, r1, r2;
-
-    while (getline(in, line))
+    number_t aa, bb, res;
+    while (in.good() && !in.eof())
     {
-        linestream.str(line);
-        linestream >> oper >>  i1 >>  b1 >>  i2 >>  b2 >>  i3;
+        n++;
+        in >> oper >>  i1 >>  b1 >>  i2 >>  b2 >>  i3;
 
         a.assign(i1.c_str(), b1);
         b.assign(i2.c_str(), b2);
@@ -64,191 +66,194 @@ void __random_test()
             aa.assign(a);
             bb.assign(b);
 
-            add(a, b, r1);
-            __check(line, r1, c);
-
-            aa.assign(a);
+            add(a, b, res);
+            __check(res, c);
+            
             aa.add(b);
-            __check(line, aa, c);
-
+            __check(aa, c);
+            
             add(a, bb, bb);
-            __check(line, bb, c);
+            __check(bb, c);
 
-            __check(line, a + b, c);
+            __check(a + b, c);
         }
         else if (oper == "-")
         {
             aa.assign(a);
             bb.assign(b);
 
-            sub(a, b, r1);
-            __check(line, r1, c);
+            sub(a, b, res);
+            __check(res, c);
 
             aa.sub(b);
-            __check(line, aa, c);
-
+            __check(aa, c);
+           
             sub(a, bb, bb);
-            __check(line, bb, c);
+            __check(bb, c);
 
-            __check(line, a - b, c);
+            __check(a - b, c);
         }
         else if (oper == "*")
         {
             aa.assign(a);
             bb.assign(b);
 
-            mul(a, b, r1);
-            __check(line, r1, c);
+            mul(a, b, res);
+            __check(res, c);
 
             aa.mul(b);
-            __check(line, aa, c);
+            __check(aa, c);
 
             mul(a, bb, bb);
-            __check(line, bb, c);
+            __check(bb, c);
 
-            __check(line, a * b, c);
+            __check(a * b, c);
         }
         else if (oper == "/")
         {
             aa.assign(a);
             bb.assign(b);
 
-            div(a, b, r1);
-            __check(line, r1, c);
+            div(a, b, res);
+            __check(res, c);
 
             aa.div(b);
-            __check(line, aa, c);
+            __check(aa, c);
 
             div(a, bb, bb);
-            __check(line, bb, c);
+            __check(bb, c);
 
-            __check(line, a / b, c);
+            __check(a / b, c);
         }
         else if (oper == "%")
         {
             aa.assign(a);
             bb.assign(b);
 
-            mod(a, b, r1);
-            __check(line, r1, c);
+            mod(a, b, res);
+            __check(res, c);
 
             aa.mod(b);
-            __check(line, aa, c);
+            __check(aa, c);
 
             mod(a, bb, bb);
-            __check(line, bb, c);
+            __check(bb, c);
 
-            __check(line, a % b, c);
+            __check(a / b, c);
 
-            div(a, b, aa, r1);
-            __check(line, r1, c);
+            div(a, b, aa, res);
+            __check(res, c);
             
             bb.assign(b);
             div(a, bb, aa, bb);
-            __check(line, bb, c);
+            __check(bb, c);
 
             aa.assign(a);
             div(aa, b, bb, aa);
-            __check(line, aa, c);
+            __check(aa, c);
         }
         else if (oper == "&")
         {
             aa.assign(a);
             bb.assign(b);
 
-            mynum::bit_and(a, b, r1);
-            __check(line, r1, c);
+            mynum::bit_and(a, b, res);
+            __check(res, c);
 
             aa.bit_and(b);
-            __check(line, aa, c);
+            __check(aa, c);
 
             mynum::bit_and(a, bb, bb);
-            __check(line, bb, c);
+            __check(bb, c);
 
-            __check(line, a & b, c);
+            __check(a & b, c);
         }
         else if (oper == "|")
         {
             aa.assign(a);
             bb.assign(b);
 
-            mynum::bit_or(a, b, r1);
-            __check(line, r1, c);
+            mynum::bit_or(a, b, res);
+            __check(res, c);
 
             aa.bit_or(b);
-            __check(line, aa, c);
+            __check(aa, c);
 
             mynum::bit_or(a, bb, bb);
-            __check(line, bb, c);
+            __check(bb, c);
 
-            __check(line, a | b, c);
+            __check(a | b, c);
         }
         else if (oper == "^")
         {
             aa.assign(a);
             bb.assign(b);
 
-            mynum::bit_xor(a, b, r1);
-            __check(line, r1, c);
+            mynum::bit_xor(a, b, res);
+            __check(res, c);
 
             aa.bit_xor(b);
-            __check(line, aa, c);
+            __check(aa, c);
 
             mynum::bit_xor(a, bb, bb);
-            __check(line, bb, c);
+            __check(bb, c);
 
-            __check(line, a ^ b, c);
+            __check(a ^ b, c);
         }
         else if (oper == "<")
         {
-            __check(line, lt(a, b), c);
-            __check(line, a < b, c);
+            __check(lt(a, b), c);
+            __check(a < b, c);
         }
         else if (oper == ">")
         {
-            __check(line, gt(a, b), c);
-            __check(line, a > b, c);
+            __check(gt(a, b), c);
+            __check(a > b, c);
         }
         else if (oper == "<=")
         {
-            __check(line, elt(a, b), c);
-            __check(line, a <= b, c);
+            __check(elt(a, b), c);
+            __check(a <= b, c);
         }
         else if (oper == ">=")
         {
-            __check(line, egt(a, b), c);
-            __check(line, a >= b, c);
+            __check(egt(a, b), c);
+            __check(a >= b, c);
         }
         else if (oper == "==")
         {
-            __check(line, eq(a, b), c);
-            __check(line, a == b, c);
+            __check(eq(a, b), c);
+            __check(a == b, c);
         }
         else if (oper == "!=")
         {
-            __check(line, neq(a, b), c);
-            __check(line, a != b, c);
+            __check(neq(a, b), c);
+            __check(a != b, c);
         }
         else if (oper == "**")
         {
-            sqr(a, r1);
-            __check(line, r1, c);
+            sqr(a, res);
+            __check(res, c);
             a.sqr();
-            __check(line, a, c);
+            __check(a, c);
         }
         else if (oper == ">>")
         {
-            shr(a, b.to_ulong(), r1);
-            __check(line, r1, c);
+            aa.assign(a);
+            __check(aa >> b.to_ulong(), c);
+            shr(a, b.to_ulong(), res);
+            __check(res, c);
             a.shr(b.to_ulong());
-            __check(line, a, c);
+            __check(a, c);
         }
         else if (oper == "<<")
         {
-            shl(a, b.to_ulong(), r1);
-            __check(line, r1, c);
+            aa.assign(a);
+            __check(aa << b.to_ulong(), c);
+            shl(a, b.to_ulong(), res);
+            __check(res, c);
             a.shl(b.to_ulong());
-            __check(line, a, c);
+            __check(a, c);
         }
         else if (oper == "+s32")
         {
@@ -410,14 +415,14 @@ void __random_test()
             check_basic(bit_xor, in_range_ulonglong, to_ulonglong);
             if (sizeof(long) == sizeof(long long)) check_basic(bit_xor, in_range_ulong, to_ulong);
         }
-
-        linestream.clear();
     }
+    in.close();
+    return n;
 }
 
 void random_test()
 {
     clock_t t0 = clock();
-    __random_test();
+    cout << __random_test() << " test items" << endl;
     cout << "time: " << double(clock() - t0) / CLOCKS_PER_SEC << endl;
 }

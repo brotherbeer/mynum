@@ -342,58 +342,22 @@ inline number_t operator ^ (unsigned long a, const number_t& b) { number_t c; bi
 inline number_t operator ^ (const number_t& a, unsigned long long b) { number_t c; bit_xor(a, b, c); return c; }
 inline number_t operator ^ (unsigned long long a, const number_t& b) { number_t c; bit_xor(a, b, c); return c; }
 
-inline number_t operator << (const number_t& a, int b) { number_t c; shl(a, b, c); return c; }
-inline number_t operator >> (const number_t& a, int b) { number_t c; shr(a, b, c); return c; }
-inline number_t operator << (const number_t& a, size_t b) { number_t c; shl(a, b, c); return c; }
-inline number_t operator >> (const number_t& a, size_t b) { number_t c; shr(a, b, c); return c; }
-
-inline bool operator && (const number_t& a, const number_t& b) { return !a.is_zero() && !b.is_zero(); }
-inline bool operator && (const number_t& a, bool b) { return !a.is_zero() && b; }
-inline bool operator && (bool a, const number_t& b) { return a && !b.is_zero(); }
-inline bool operator && (const number_t& a, char b) { return !a.is_zero() && b; }
-inline bool operator && (char a, const number_t& b) { return a && !b.is_zero(); }
-inline bool operator && (const number_t& a, short b) { return !a.is_zero() && b; }
-inline bool operator && (short a, const number_t& b) { return a && !b.is_zero(); }
-inline bool operator && (const number_t& a, int b) { return !a.is_zero() && b; }
-inline bool operator && (int a, const number_t& b) { return a && !b.is_zero(); }
-inline bool operator && (const number_t& a, long b) { return !a.is_zero() && b; }
-inline bool operator && (long a, const number_t& b) { return a && !b.is_zero(); }
-inline bool operator && (const number_t& a, long long b) { return !a.is_zero() && b; }
-inline bool operator && (long long a, const number_t& b) { return a && !b.is_zero(); }
-inline bool operator && (const number_t& a, unsigned char b) { return !a.is_zero() && b; }
-inline bool operator && (unsigned char a, const number_t& b) { return a && !b.is_zero(); }
-inline bool operator && (const number_t& a, unsigned short b) { return !a.is_zero() && b; }
-inline bool operator && (unsigned short a, const number_t& b) { return a && !b.is_zero(); }
-inline bool operator && (const number_t& a, unsigned int b) { return !a.is_zero() && b; }
-inline bool operator && (unsigned int a, const number_t& b) { return a && !b.is_zero(); }
-inline bool operator && (const number_t& a, unsigned long b) { return !a.is_zero() && b; }
-inline bool operator && (unsigned long a, const number_t& b) { return a && !b.is_zero(); }
-inline bool operator && (const number_t& a, unsigned long long b) { return !a.is_zero() && b; }
-inline bool operator && (unsigned long long a, const number_t& b) { return a && !b.is_zero(); }
-
-inline bool operator || (const number_t& a, const number_t& b) { return !a.is_zero() || !b.is_zero(); }
-inline bool operator || (const number_t& a, bool b) { return !a.is_zero() || b; }
-inline bool operator || (bool a, const number_t& b) { return a || !b.is_zero(); }
-inline bool operator || (const number_t& a, char b) { return !a.is_zero() || b; }
-inline bool operator || (char a, const number_t& b) { return a || !b.is_zero(); }
-inline bool operator || (const number_t& a, short b) { return !a.is_zero() || b; }
-inline bool operator || (short a, const number_t& b) { return a || !b.is_zero(); }
-inline bool operator || (const number_t& a, int b) { return !a.is_zero() || b; }
-inline bool operator || (int a, const number_t& b) { return a || !b.is_zero(); }
-inline bool operator || (const number_t& a, long b) { return !a.is_zero() || b; }
-inline bool operator || (long a, const number_t& b) { return a || !b.is_zero(); }
-inline bool operator || (const number_t& a, long long b) { return !a.is_zero() || b; }
-inline bool operator || (long long a, const number_t& b) { return a || !b.is_zero(); }
-inline bool operator || (const number_t& a, unsigned char b) { return !a.is_zero() || b; }
-inline bool operator || (unsigned char a, const number_t& b) { return a || !b.is_zero(); }
-inline bool operator || (const number_t& a, unsigned short b) { return !a.is_zero() || b; }
-inline bool operator || (unsigned short a, const number_t& b) { return a || !b.is_zero(); }
-inline bool operator || (const number_t& a, unsigned int b) { return !a.is_zero() || b; }
-inline bool operator || (unsigned int a, const number_t& b) { return a || !b.is_zero(); }
-inline bool operator || (const number_t& a, unsigned long b) { return !a.is_zero() || b; }
-inline bool operator || (unsigned long a, const number_t& b) { return a || !b.is_zero(); }
-inline bool operator || (const number_t& a, unsigned long long b) { return !a.is_zero() || b; }
-inline bool operator || (unsigned long long a, const number_t& b) { return a || !b.is_zero(); }
+inline number_t operator << (const number_t& a, int b) { number_t c; if (b >= 0) shl(a, b, c); else shr(a, -b, c); return c; }
+inline number_t operator >> (const number_t& a, int b) { number_t c; if (b >= 0) shr(a, b, c); else shl(a, -b, c); return c; }
+inline number_t operator << (const number_t& a, long b) { number_t c; if (b >= 0) shl(a, b, c); else shr(a, -b, c); return c; }
+inline number_t operator >> (const number_t& a, long b) { number_t c; if (b >= 0) shr(a, b, c); else shl(a, -b, c); return c; }
+inline number_t operator << (const number_t& a, unsigned int b) { number_t c; shl(a, b, c); return c; }
+inline number_t operator >> (const number_t& a, unsigned int b) { number_t c; shr(a, b, c); return c; }
+inline number_t operator << (const number_t& a, unsigned long b) { number_t c; shl(a, b, c); return c; }
+inline number_t operator >> (const number_t& a, unsigned long b) { number_t c; shr(a, b, c); return c; }
+inline number_t operator << (const number_t& a, const number_t& b) { number_t c; if (b >= 0) shl(a, (intptr_t)b, c); else shr(a, -(intptr_t)b, c); return c; }
+inline number_t operator >> (const number_t& a, const number_t& b) { number_t c; if (b >= 0) shr(a, (intptr_t)b, c); else shl(a, -(intptr_t)b, c); return c; }
+#if UNITBITS == 32
+inline number_t operator << (const number_t& a, long long b) { number_t c; if (b >= 0) shl(a, b, c); else shr(a, -b, c); return c; }
+inline number_t operator >> (const number_t& a, long long b) { number_t c; if (b >= 0) shr(a, b, c); else shl(a, -b, c); return c; }
+inline number_t operator << (const number_t& a, unsigned long long b) { number_t c; shl(a, b, c); return c; }
+inline number_t operator >> (const number_t& a, unsigned long long b) { number_t c; shr(a, b, c); return c; }
+#endif
 
 inline bool operator == (const string_t& a, const string_t& b) { return cmp(a, b) == 0; }
 inline bool operator != (const string_t& a, const string_t& b) { return cmp(a, b) != 0; }
@@ -431,5 +395,8 @@ inline bool operator >  (int x, const bitref_t& b) { return x >  (int)b.value();
 inline bool operator <  (int x, const bitref_t& b) { return x <  (int)b.value(); }
 inline bool operator >= (int x, const bitref_t& b) { return x >= (int)b.value(); }
 inline bool operator <= (int x, const bitref_t& b) { return x <= (int)b.value(); }
+
+template <class T> inline T* operator + (T* p, const number_t& x) { return p + (intptr_t)x; }
+template <class T> inline T* operator + (const number_t& x, T* p) { return p + (intptr_t)x; }
 
 } // namespace end

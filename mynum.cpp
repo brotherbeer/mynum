@@ -699,12 +699,6 @@ number_t& number_t::pow(size_t x)
     return *this;
 }
 
-number_t& number_t::pow(const number_t& x)
-{
-    mynum::pow(*this, x, *this);
-    return *this;
-}
-
 number_t& number_t::pom(const number_t& x, const number_t& y)
 {
     mynum::pom(*this, x, y, *this);
@@ -2974,39 +2968,6 @@ void pow(const number_t& a, size_t b, number_t& res)
         }
         A.ksqr();
         b >>= 1;
-    }
-}
-
-void pow(const number_t& a, const number_t& b, number_t& res)
-{
-    if (a.len && b.len)
-    {
-        number_t tmp(1);
-        unit_t* p = b.dat + b.len - 1;
-        unit_t* e = b.dat - 1;
-        while (p != e)
-        {
-            unit_t u = 1 << (SHIFT - 1);
-            while (u != 0)
-            {
-                ksqr(tmp, tmp);
-                if (*p & u)
-                {
-                    kmul(tmp, a, tmp);
-                }
-                u >>= 1;
-            }
-            p--;
-        }
-        res.steal(tmp);
-    }
-    else if (!b.len)
-    {
-        res.set_one();
-    }
-    else if (!a.len)
-    {
-        res.set_zero();
     }
 }
 

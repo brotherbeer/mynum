@@ -157,7 +157,6 @@ struct number_t: public _base_number_t
     number_t& sqr();
     number_t& ksqr();
     number_t& pow(size_t);
-    number_t& pow(const number_t&);
     number_t& pom(const number_t&, const number_t&);
 
     number_t& add_ui(word_t);
@@ -509,7 +508,6 @@ void kmul(const number_t& a, const number_t& b, number_t& res);
 void shr(const number_t& a, size_t b, number_t& res);
 void shl(const number_t& a, size_t b, number_t& res);
 void pow(const number_t& a, size_t b, number_t& res);
-void pow(const number_t& a, const number_t& b, number_t& res);
 int  div(const number_t& a, const number_t& b, number_t& q, number_t& r);
 int  div(const number_t& a, const number_t& b, number_t& q);
 int  mod(const number_t& a, const number_t& b, number_t& r);
@@ -638,7 +636,7 @@ inline number_t div(const number_t& a, const number_t& b)      { number_t res, d
 inline number_t mod(const number_t& a, const number_t& b)      { number_t res, dummy; div(a, b, dummy, res); return res; }
 inline number_t shr(const number_t& a, size_t b)               { number_t res; shr(a, b, res); return res; }
 inline number_t shl(const number_t& a, size_t b)               { number_t res; shl(a, b, res); return res; }
-inline number_t pow(const number_t& a, const number_t& b)      { number_t res; pow(a, b, res); return res; }
+inline number_t pow(const number_t& a, size_t b)               { number_t res; pow(a, b, res); return res; }
 inline number_t bit_and(const number_t& a, const number_t& b)  { number_t res; bit_and(a, b, res); return res; }
 inline number_t bit_or(const number_t& a, const number_t& b)   { number_t res; bit_or(a, b, res); return res; }
 inline number_t bit_xor(const number_t& a, const number_t& b)  { number_t res; bit_xor(a, b, res); return res; }

@@ -220,6 +220,21 @@ number_t::number_t(const char* s, size_t l, int base)
     }
 }
 
+number_t::number_t(const string_t& s)
+{
+    number_t(s.dat);
+}
+
+number_t::number_t(const string_t& s, int base)
+{
+    number_t(s.dat, base);
+}
+
+number_t::number_t(const string_t& s, size_t length, int base)
+{
+    number_t(s.dat, length, base);
+}
+
 number_t::number_t(const number_t& another)
 {
     __copy(another);
@@ -452,6 +467,21 @@ number_t& number_t::assign(const char* s, size_t l, int base)
         __construct_from_string(s, l, base);
     }
     return *this;
+}
+
+number_t& number_t::assign(const string_t& s)
+{
+    return assign(s.dat);
+}
+
+number_t& number_t::assign(const string_t& s, int base)
+{
+    return assign(s.dat, base);
+}
+
+number_t& number_t::assign(const string_t& s, size_t length, int base)
+{
+    return assign(s.dat, length, base);
 }
 
 number_t::~number_t()
@@ -1510,6 +1540,24 @@ bool number_t::in_range_ulong() const
 bool number_t::in_range_ulonglong() const
 {
     __judge_unsigned_range(unsigned long long);
+}
+
+bool number_t::in_range_word() const
+{
+#if UNITBITS == 32
+    return in_range_ulonglong();
+#else
+    return in_range_uint();
+#endif
+}
+
+bool number_t::in_range_sword() const
+{
+#if UNITBITS == 32
+    return in_range_longlong();
+#else
+    return in_range_int();
+#endif
 }
 
 char number_t::to_char() const

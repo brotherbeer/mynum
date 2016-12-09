@@ -108,7 +108,7 @@ struct number_t: public _base_number_t
     number_t(const char*);
     number_t(const char*, int base);
     number_t(const char*, size_t length, int base);
-    number_t(const string_t&);      // TODO
+    number_t(const string_t&);
     number_t(const string_t&, int base);
     number_t(const string_t&, size_t length, int base);
     number_t(const number_t&);
@@ -125,7 +125,7 @@ struct number_t: public _base_number_t
     number_t& assign(const char*);
     number_t& assign(const char*, int base);
     number_t& assign(const char*, size_t length, int base);
-    number_t& assign(const string_t&);   // TODO
+    number_t& assign(const string_t&);
     number_t& assign(const string_t&, int base);
     number_t& assign(const string_t&, size_t length, int base);
 
@@ -275,6 +275,8 @@ struct number_t: public _base_number_t
     bool in_range_uint() const;
     bool in_range_ulong() const;
     bool in_range_ulonglong() const;
+    bool in_range_word() const;
+    bool in_range_sword() const;
 
     char to_char() const;
     short to_short() const;
@@ -366,8 +368,18 @@ struct number_t: public _base_number_t
     number_t& operator <<= (size_t x)            { return shl(x); }
     number_t& operator >>= (size_t x)            { return shr(x); }
 
-    operator bool () const        { return !is_zero(); }
-    bool operator ! () const      { return  is_zero(); }
+    operator bool () const   { return !is_zero(); }
+    bool operator ! () const { return  is_zero(); }
+    operator char () const   { return to_char(); }
+    operator short () const  { return to_short(); }
+    operator int () const    { return to_int(); }
+    operator long () const   { return to_long(); }
+    operator long long () const      { return to_longlong(); }
+    operator unsigned char () const  { return to_uchar(); }
+    operator unsigned short () const { return to_ushort(); }
+    operator unsigned int () const   { return to_int(); }
+    operator unsigned long () const  { return to_long(); }
+    operator unsigned long long () const  { return to_longlong(); }
 
     string_t operator () (int) const;
     bool operator [] (size_t) const;

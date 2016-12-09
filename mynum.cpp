@@ -2753,9 +2753,9 @@ void kmul(const number_t& u, const number_t& v, number_t& res)
         res.dat = tmp;
         res.cap = newcap;
     }
-    res.len = (lx + ly + 1);
-    __trim_leading_zeros(res.dat, res.len);
-    res.len *= __sign(u.len, v.len);
+    lx += ly + 1;
+    __trim_leading_zeros(res.dat, lx);
+    res.len = lx * __sign(u.len, v.len);
 }
 
 void sqr(const number_t& a, number_t& res)

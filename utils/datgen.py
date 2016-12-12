@@ -35,7 +35,8 @@ opers = [
     '&s32', '&u32', '&s64', '&u64',
     '|s32', '|u32', '|s64', '|u64',
     '^s32', '^u32', '^s64', '^u64',
-    '<<', '>>'
+    '<<', '>>',
+    'po'
 ]
 
 signs = ['-', '', ]
@@ -335,6 +336,15 @@ def genTestData(args):
             res = abs(va) >> vb
             if va < 0:
                 res = -res
+
+        elif oper == 'po':
+            va = randint(-9999, 9999)
+            vb = randint(0, 9999)
+            a = str(va)
+            b0 = 10
+            b = str(vb)
+            b1 = 10
+            res = va**vb
 
         print '%s %s %s %s %s %s' % (oper, a, b0, b, b1, res)
 

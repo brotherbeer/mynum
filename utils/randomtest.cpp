@@ -415,14 +415,70 @@ size_t __random_test()
             check_basic(bit_xor, in_range_ulonglong, to_ulonglong);
             if (sizeof(long) == sizeof(long long)) check_basic(bit_xor, in_range_ulong, to_ulong);
         }
+        else if (oper == "po")
+        {
+            pow(a, b.to_int(), res);
+            __check(res, c);
+            a.pow(b.to_int());
+            __check(a, c);
+        }
     }
     in.close();
     return n;
 }
 
+void random(number_t& a);
+void create_big(number_t& x, int size);
+
+void __random_test_kmul()
+{
+    size_t n = 100;
+
+    number_t a, b, r1, r2;
+    while (n--)
+    {
+        create_big(a, rand() % (1024 * 1204));
+        create_big(b, rand() % (1024 * 1204));
+        kmul(a, b, r1);
+        mul(a, b, r2);
+        if (r1 != r2)
+        {
+            cout << "KMUL ERROR!!" << endl;
+            abort();
+        }
+    }
+}
+
+void __random_test_ksqr()
+{
+    size_t n = 100;
+
+    number_t a, r1, r2;
+    while (n--)
+    {
+        create_big(a, rand() % (1024 * 1204));
+        ksqr(a, r1);
+        sqr(a, r2);
+        if (r1 != r2)
+        {
+            cout << "KSQR ERROR!!" << endl;
+            abort();
+        }
+    }
+}
+
+#define test_with_time(title, fun) do\
+{\
+    cout << title << endl; \
+    clock_t t0 = clock(); \
+    fun(); \
+    cout << "OK!" << endl; \
+    cout << "time: " << double(clock() - t0) / CLOCKS_PER_SEC << endl; \
+} while (0)
+
 void random_test()
 {
-    clock_t t0 = clock();
-    cout << __random_test() << " test items" << endl;
-    cout << "time: " << double(clock() - t0) / CLOCKS_PER_SEC << endl;
+    test_with_time("testing random", __random_test);
+    test_with_time("testing kmul", __random_test_kmul);
+    test_with_time("testing ksqr", __random_test_ksqr);
 }

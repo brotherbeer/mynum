@@ -2973,7 +2973,7 @@ void pow(const number_t& a, size_t b, number_t& res)
 
 int pom(const number_t& a, const number_t& b, const number_t& c, number_t& res)
 {
-    if (!c.is_zero())
+    if (!c.is_zero() && !b.is_neg())
     {
         if (a.len && b.len)
         {

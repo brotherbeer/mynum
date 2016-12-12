@@ -644,9 +644,9 @@ inline number_t bit_not(const number_t& a)                     { number_t res; b
 inline int sign(const number_t& a)                             { return (a.len >> (sizeof(slen_t) * 8 - 1)) | 1; }
 inline int sign(const number_t& a, const number_t& b)          { return ((a.len ^ b.len) >> (sizeof(slen_t) * 8 - 1)) | 1; }
 inline bool same_sign(const number_t& a, const number_t& b)    { return (a.len ^ b.len) >> (sizeof(slen_t) * 8 - 1) == 0; }
-
+inline number_t pom(const number_t& a, const number_t& b, const number_t& c) { number_t res; pom(a, b, c, res); return res; }
 void swap(number_t& a, number_t& b);
-
+inline int min_base() { return 2; }
 int max_base();
 
 struct string_t

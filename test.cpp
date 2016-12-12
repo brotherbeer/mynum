@@ -82,6 +82,9 @@ void test_detail()
 
 int main(int argc, char* argv[])
 {
+    assert(min_base() == 2);
+    assert(max_base() == 36);
+
     if (argc > 1)
     {
         int times = atoi(argv[1]);
@@ -103,7 +106,7 @@ int main(int argc, char* argv[])
         test_detail();
     }
 
-    std::cout << "OK!" << std::endl;
+    std::cout << "common test OK!" << std::endl;
     return 1;
 }
 
@@ -985,25 +988,6 @@ void test_add()
         assert(eq(a, NN("2417851639229258349412350")));
     }
     {
-        NN a("1208925819614629174706175"), b("1234567890");
-        NN c = add(a, b);
-        assert(eq(c, NN("1208925819614630409274065")));
-        NN d = c;
-        assert(eq(d, NN("1208925819614630409274065")));
-        NN e;
-        e = c;
-        e = d;
-        assert(eq(e, NN("1208925819614630409274065")));
-    }
-    {
-        NN a("1208925819614629174706175"), b("1234567890");
-        NN c("234453453409583409583058305983059823479237");
-        c = add(a, b);
-        assert(eq(c, NN("1208925819614630409274065")));
-        c = add(c, c);
-        assert(eq(c, NN("2417851639229260818548130")));
-    }
-    {
         NN a("1208925819614629174706175"), b("1234567890"), c;
         c.bits_reserve(100);
         add(neg(a), b, c);
@@ -1146,8 +1130,8 @@ void test_sub()
         assert(eq(sub(g, h), 0));
     }
     {
-        NN a("123456"), b("-1");
-        NN c = sub(a, b);
+        NN a("123456"), b("-1"), c;
+        sub(a, b, c);
         NN d = c;
         add(d, c, d);
         assert(eq(c, 123457));
@@ -1562,13 +1546,10 @@ void test_not()
 void test_pow()
 {
     {
-        NN a("123456789"), b("12"), c;
-        pow(a, b, c);
+        NN a("123456789"), c;
+        pow(a, 12, c);
         assert(eq(c, NN("12536598752890180325268918101607183995023033525376668780118925489446327290480100125725042366959121")));
         a.set_one();
-        b.assign(123456789);
-        pow(a, b, c);
-        assert(eq(c, 1));
         pow(a, 123456789, c);
         assert(eq(c, 1));
         a.set_zero();
@@ -1581,39 +1562,43 @@ void test_pow()
         pow(a, a, a);
         assert(eq(a, NN("129110040087761027839616029934664535539337183380513")));
     }{
-        NN a("123456789"), b("12");
-        pow(a, b, a);
-        assert(eq(a, NN("12536598752890180325268918101607183995023033525376668780118925489446327290480100125725042366959121")));
-    }{
         NN a, b("12"), c;
         pow(a, b, c);
         assert(eq(c, 0));
     }{
-        NN a, b, c;
-        pow(a, b, c);
-        assert(eq(c, 1));
+        NN a, b;
+        pow(a, 0, b);
+        assert(eq(b, 1));
     }{
-        NN a(123), b, c;
-        pow(a, b, c);
-        assert(eq(c, 1));
+        NN a(123), b;
+        pow(a, 0, b);
+        assert(eq(b, 1));
     }{
-        NN a(123), b, c;
-        a.pow(b);
+        NN a(123);
+        a.pow(0);
         assert(eq(a, 1));
     }{
-        NN a, b(123), c;
-        a.pow(b);
+        NN a;
+        a.pow(123);
         assert(eq(a, 0));
     }{
         NN a(12);
         a.pow(12);
         assert(eq(a, NN("8916100448256")));
-        pow(a, size_t(3), a);
+        pow(a, 3, a);
         assert(eq(a, NN("708801874985091845381344307009569161216")));
     }{
-        NN a(12);
-        a.pow(a);
-        assert(eq(a, NN("8916100448256")));
+        NN a(-1);
+        a.pow(3);
+        assert(a == -1);
+        a.pow(4);
+        assert(a == 1);
+        a.assign(-12);
+        a.pow(12);
+        assert(a == 8916100448256);
+        a.assign(-12);
+        a.pow(13);
+        assert(a == -106993205379072LL);
     }
 }
 
@@ -1648,6 +1633,13 @@ void test_pom()
         NN a(0), b(1), c(1), res;
         pom(a, b, c, res);
         assert(eq(res, 0));
+    }
+    {
+        NN a("-12341234123424"), b("18113"), c("2307482378456903845"), res;
+        pom(a, b, c, res);
+        assert(eq(res, NN("-442381454734388839")));
+        pom(a, 119876, c, res);
+        assert(eq(res, NN("1111416039757584216")));
     }
 }
 

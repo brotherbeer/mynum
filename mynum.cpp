@@ -171,11 +171,6 @@ static __always_inline(int) __sign(slen_t x, slen_t y)
     return __sign_shift(x ^ y) | 1;
 }
 
-static __always_inline(bool) __same_sign(slen_t x, slen_t y)
-{
-    return (x ^ y) >= 0;
-}
-
 static __always_inline(dunit_t) __make_dunit(unit_t high, unit_t low)
 {
     return (dunit_t)high << SHIFT | low;
@@ -333,16 +328,16 @@ number_t& number_t::assign(int x)
         __deallocate_units(dat);
         __reserve(len);
     }
-	int s = 1;
-	if (x > 0)
-	{
-		*(int*)dat = x;
-	}
-	else
-	{
-		*(int*)dat = -x;
-		s = -1;
-	}
+    int s = 1;
+    if (x > 0)
+    {
+        *(int*)dat = x;
+    }
+    else
+    {
+        *(int*)dat = -x;
+        s = -1;
+    }
     __trim_leading_zeros(dat, len);
     len *= s;
     return *this;
@@ -356,16 +351,16 @@ number_t& number_t::assign(long x)
         __deallocate_units(dat);
         __reserve(len);
     }
-	long s = 1;
-	if (x > 0)
-	{
-		*(long*)dat = x;
-	}
-	else
-	{
-		*(long*)dat = -x;
-		s = -1;
-	}
+    long s = 1;
+    if (x > 0)
+    {
+        *(long*)dat = x;
+    }
+    else
+    {
+        *(long*)dat = -x;
+        s = -1;
+    }
     __trim_leading_zeros(dat, len);
     len *= s;
     return *this;
@@ -1568,12 +1563,12 @@ short number_t::to_short() const
 
 unsigned char number_t::to_uchar() const
 {
-    return unsigned char(len? *dat: 0);
+    return (unsigned char)(len? *dat: 0);
 }
 
 unsigned short number_t::to_ushort() const
 {
-    return unsigned short(len? *dat: 0);
+    return (unsigned short)(len? *dat: 0);
 }
 
 #if UNITBITS == 32
@@ -3693,11 +3688,11 @@ unit_t __guess_quotient(unit_t x1, unit_t x2, unit_t x3, unit_t y1, unit_t y2)
     dunit_t x1x2 = __make_dunit(x1, x2);
     dunit_t y1y2 = __make_dunit(y1, y2);
 
-	t = x1x2 / y1;
+    t = x1x2 / y1;
     r = x1x2 % y1;
     if (t >= BASE)
     {
-		t = MASK;
+        t = MASK;
         r = x1x2 - t * y1;
     }
     if (r < BASE && t * y2 > __make_dunit(r, x3))
@@ -3938,9 +3933,10 @@ __always_inline(dunit_t) __original_div_4by2(dunit_t h, dunit_t l, dunit_t d, du
             v = __make_dunit(rx += d1, l1);
             if (rx < BASE && v < u)
             {
-                u -= v;
-                w = u / d + (u % d != 0);
+                w = (u - v) / d + ((u - v) % d != 0);
                 q1 -= w;
+                u = q1 * d2;
+                v = __make_dunit(rx + w * d1, l1);
             }
         }
         *r = v - u;
@@ -3961,9 +3957,10 @@ __always_inline(dunit_t) __original_div_4by2(dunit_t h, dunit_t l, dunit_t d, du
             v = __make_dunit(rx += d1, l2);
             if (rx < BASE && v < u)
             {
-                u -= v;
-                w = u / d + (u % d != 0);
+                w = (u - v) / d + ((u - v) % d != 0);
                 q2 -= w;
+                u = q2 * d2;
+                v = __make_dunit(rx + w * d1, l2);
             }
         }
         *r = v - u;
@@ -4082,8 +4079,9 @@ dunit_t __qunit_div_by_dunit(dunit_t h, dunit_t l, dunit_t d, dunit_t* r)
 dunit_t __qunit_mod_by_dunit(dunit_t h, dunit_t l, dunit_t d)
 {
 	dunit_t r;
-	__original_div_4by2(h, l, d, &r);
-	return r;
+    __original_div_4by2(h, l, d, &r);
+    assert(r < d);
+    return r;
 }
 
 #endif

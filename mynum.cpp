@@ -2436,6 +2436,40 @@ int cmp(const string_t& a, const string_t& b)
     return 0;
 }
 
+int cmp(const string_t& a, const char* b)
+{
+    if (a.dat && b)
+    {
+        return strcmp(a.dat, b);
+    }
+    else if (a.dat && a.dat[0])
+    {
+        return 1;
+    }
+    else if (b && b[0])
+    {
+        return -1;
+    }
+    return 0;
+}
+
+int cmp(const char* a, const string_t& b)
+{
+    if (a && b.dat)
+    {
+        return strcmp(a, b.dat);
+    }
+    else if (a && a[0])
+    {
+        return 1;
+    }
+    else if (b.dat && b.dat[0])
+    {
+        return -1;
+    }
+    return 0;
+}
+
 int check(const char* p, int base)
 {
     const char* q = p;

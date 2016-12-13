@@ -662,6 +662,7 @@ struct string_t
     ~string_t();
 
     int cmp(const string_t&) const;
+    const char* c_str() const { return dat; }
     void take(char* p, size_t l) { dat = p; len = l; }
     bool valid() const { return dat != NULL; }
     void release();
@@ -676,12 +677,12 @@ struct string_t
     char operator [] (size_t x) const { return dat[x]; }
     char& operator [] (size_t x) { return dat[x]; }
 
-    const char* c_str() const { return dat; }
-
     void __copy(const char* p, size_t l);
 };
 
 int cmp(const string_t& a, const string_t& b);
+int cmp(const string_t& a, const char* b);
+int cmp(const char* a, const string_t& b);
 int check(const char* p, int base);
 int check(const char* p, const char* e, int base);
 

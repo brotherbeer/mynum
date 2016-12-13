@@ -365,36 +365,36 @@ inline bool operator >  (const string_t& a, const string_t& b) { return cmp(a, b
 inline bool operator <  (const string_t& a, const string_t& b) { return cmp(a, b) < 0;  }
 inline bool operator >= (const string_t& a, const string_t& b) { return cmp(a, b) >= 0; }
 inline bool operator <= (const string_t& a, const string_t& b) { return cmp(a, b) <= 0; }
-inline bool operator == (const string_t& a, const char* b) { return cmp(a, string_t(b)) == 0; }  // should be improved
-inline bool operator != (const string_t& a, const char* b) { return cmp(a, string_t(b)) != 0; }
-inline bool operator >  (const string_t& a, const char* b) { return cmp(a, string_t(b)) > 0;  }
-inline bool operator <  (const string_t& a, const char* b) { return cmp(a, string_t(b)) < 0;  }
-inline bool operator >= (const string_t& a, const char* b) { return cmp(a, string_t(b)) >= 0; }
-inline bool operator <= (const string_t& a, const char* b) { return cmp(a, string_t(b)) <= 0; }
-inline bool operator == (const char* a, const string_t& b) { return cmp(string_t(a), b) == 0; }
-inline bool operator != (const char* a, const string_t& b) { return cmp(string_t(a), b) != 0; }
-inline bool operator >  (const char* a, const string_t& b) { return cmp(string_t(a), b) > 0;  }
-inline bool operator <  (const char* a, const string_t& b) { return cmp(string_t(a), b) < 0;  }
-inline bool operator >= (const char* a, const string_t& b) { return cmp(string_t(a), b) >= 0; }
-inline bool operator <= (const char* a, const string_t& b) { return cmp(string_t(a), b) <= 0; }
+inline bool operator == (const string_t& a, const char* b) { return cmp(a, b) == 0; }
+inline bool operator != (const string_t& a, const char* b) { return cmp(a, b) != 0; }
+inline bool operator >  (const string_t& a, const char* b) { return cmp(a, b) > 0;  }
+inline bool operator <  (const string_t& a, const char* b) { return cmp(a, b) < 0;  }
+inline bool operator >= (const string_t& a, const char* b) { return cmp(a, b) >= 0; }
+inline bool operator <= (const string_t& a, const char* b) { return cmp(a, b) <= 0; }
+inline bool operator == (const char* a, const string_t& b) { return cmp(a, b) == 0; }
+inline bool operator != (const char* a, const string_t& b) { return cmp(a, b) != 0; }
+inline bool operator >  (const char* a, const string_t& b) { return cmp(a, b) > 0;  }
+inline bool operator <  (const char* a, const string_t& b) { return cmp(a, b) < 0;  }
+inline bool operator >= (const char* a, const string_t& b) { return cmp(a, b) >= 0; }
+inline bool operator <= (const char* a, const string_t& b) { return cmp(a, b) <= 0; }
 
 inline bool operator == (const bitref_t& b, bool x) { return b.value() == x; }
 inline bool operator != (const bitref_t& b, bool x) { return b.value() != x; }
-inline bool operator == (const bitref_t& b, int x) { return (int)b.value() == x; }
-inline bool operator != (const bitref_t& b, int x) { return (int)b.value() != x; }
-inline bool operator >  (const bitref_t& b, int x) { return (int)b.value() >  x; }
-inline bool operator <  (const bitref_t& b, int x) { return (int)b.value() <  x; }
-inline bool operator >= (const bitref_t& b, int x) { return (int)b.value() >= x; }
-inline bool operator <= (const bitref_t& b, int x) { return (int)b.value() <= x; }
+inline bool operator == (const bitref_t& b, int x)  { return (int)b.value() == x; }
+inline bool operator != (const bitref_t& b, int x)  { return (int)b.value() != x; }
+inline bool operator >  (const bitref_t& b, int x)  { return (int)b.value() >  x; }
+inline bool operator <  (const bitref_t& b, int x)  { return (int)b.value() <  x; }
+inline bool operator >= (const bitref_t& b, int x)  { return (int)b.value() >= x; }
+inline bool operator <= (const bitref_t& b, int x)  { return (int)b.value() <= x; }
 
 inline bool operator == (bool x, const bitref_t& b) { return x == b.value(); }
 inline bool operator != (bool x, const bitref_t& b) { return x != b.value(); }
-inline bool operator == (int x, const bitref_t& b) { return x == (int)b.value(); }
-inline bool operator != (int x, const bitref_t& b) { return x != (int)b.value(); }
-inline bool operator >  (int x, const bitref_t& b) { return x >  (int)b.value(); }
-inline bool operator <  (int x, const bitref_t& b) { return x <  (int)b.value(); }
-inline bool operator >= (int x, const bitref_t& b) { return x >= (int)b.value(); }
-inline bool operator <= (int x, const bitref_t& b) { return x <= (int)b.value(); }
+inline bool operator == (int x, const bitref_t& b)  { return x == (int)b.value(); }
+inline bool operator != (int x, const bitref_t& b)  { return x != (int)b.value(); }
+inline bool operator >  (int x, const bitref_t& b)  { return x >  (int)b.value(); }
+inline bool operator <  (int x, const bitref_t& b)  { return x <  (int)b.value(); }
+inline bool operator >= (int x, const bitref_t& b)  { return x >= (int)b.value(); }
+inline bool operator <= (int x, const bitref_t& b)  { return x <= (int)b.value(); }
 
 template <class T> inline T* operator + (T* p, const number_t& x) { return p + (intptr_t)x; }
 template <class T> inline T* operator + (const number_t& x, T* p) { return p + (intptr_t)x; }

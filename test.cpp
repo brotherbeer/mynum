@@ -1861,6 +1861,8 @@ void test_string()
     assert(a.to_upper() == b.to_upper());
     string_t c, d("");
     assert(d.valid()); assert(!c.valid());
+    assert(cmp(c, d) == 0);
+    assert(c == d);
 
     string_t e("1234567890", 3); assert(e == "123");
     string_t f("1234567890", 0); assert(f == "");
@@ -1874,6 +1876,23 @@ void test_string()
     assert(o[0] == 'a'); assert(o[1] == 'b');
     o[0] = '0';
     assert(o == "0bcd");
+
+    assert("abcd" < string_t("abce"));
+    assert(string_t("abce") > "abcd");
+    assert("abcd" <= string_t("abce"));
+    assert(string_t("abce") >= "abcd");
+    assert("abcd" != string_t("abce"));
+    assert(string_t("abce") != "abcd");
+    assert("abcd" < string_t("abcde"));
+    assert(string_t("abcde") > "abcd");
+    assert(string_t("abcd") < string_t("abcde"));
+    assert(string_t("abcde") > string_t("abcd"));
+    assert("abcd" <= string_t("abcde"));
+    assert(string_t("abcde") >= "abcd");
+    assert(string_t("abcd") <= string_t("abcde"));
+    assert(string_t("abcde") >= string_t("abcd"));
+    assert("abcd" != string_t("abcde"));
+    assert(string_t("abcde") != "abcd");
 
     // TODO: add cases about 'check' function
 }

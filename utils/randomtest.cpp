@@ -139,7 +139,7 @@ size_t __random_test()
             mod(a, bb, bb);
             __check(bb, c);
 
-            __check(a / b, c);
+            __check(a % b, c);
 
             div(a, b, aa, res);
             __check(res, c);
@@ -475,6 +475,27 @@ void __random_test_ksqr()
     cout << "OK!" << endl; \
     cout << "time: " << double(clock() - t0) / CLOCKS_PER_SEC << endl; \
 } while (0)
+
+void test_performance()
+{
+    clock_t t0, t1, t2;
+    number_t a(1), b(1), r1, r2;
+    a.shl(1257787);
+    b.shl(1398269);
+    a--;
+    b--;
+    t0 = clock();
+    kmul(a, b, r1);
+    t1 = clock();
+    mul(a, b, r2);
+    t2 = clock();
+    if (r1 != r2)
+    {
+        std::cout << "kmul result not equal to mul result" << std::endl;
+        abort();
+    }
+    cout << "kmul time: " << double(t1 - t0) / CLOCKS_PER_SEC << " mul time: " << double(t2 - t1) / CLOCKS_PER_SEC << endl;
+}
 
 void random_test()
 {

@@ -18,12 +18,10 @@ result of 123(10) + 111001000(2)\n
 
 digits = '0123456789abcdefghijklmnopqrstuvwxyz'
 opers = [
-    '+', '-', '*', '/',
-    '+', '-', '*', '/',
-    '+', '-', '*', '/',
-    '+', '-', '*', '/',
-    '**', '**', 
-    '&', '|', '^',
+    '+', '-', '*', '/', '%',
+    '+', '-', '*', '/', '%',
+    '+', '-', '*', '/', '%',
+    '+', '-', '*', '/', '%',
     '&', '|', '^',
     '&', '|', '^',
     '==', '!=', '>=', '<=', '>', '<',
@@ -35,8 +33,7 @@ opers = [
     '&s32', '&u32', '&s64', '&u64',
     '|s32', '|u32', '|s64', '|u64',
     '^s32', '^u32', '^s64', '^u64',
-    '<<', '>>',
-    'po'
+    '**', '<<', '>>', 'po',
 ]
 
 signs = ['-', '', ]
@@ -87,18 +84,11 @@ def myxor(va, vb):
     if notSameSign(va, vb): res *= -1
     return res
 
-def myshl(va, vb):
-    res = abs(va) << vb
-    if va < 0: res *= -1
-    return res
-
-def myshr(va, vb):
-    res = abs(va) >> vb
-    if va < 0: res *= -1
-    return res
-
 def genTestData(args):
    for i in range(args.items_count):
+        if (i + 1) % 500000 == 0:
+            print >> sys.stderr, i, 'items generated'
+
         oper = choice(opers)
         a, b0 = randNumStr(args.max_digits_count)
         b, b1 = randNumStr(args.max_digits_count)

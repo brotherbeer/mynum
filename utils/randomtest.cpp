@@ -433,12 +433,14 @@ void create_big(number_t& x, int size);
 void __random_test_kmul()
 {
     size_t n = 100;
+    srand((unsigned int)time(NULL));
 
     number_t a, b, r1, r2;
+    int i1, i2;
     while (n--)
     {
-        create_big(a, rand() % (1024 * 1204));
-        create_big(b, rand() % (1024 * 1204));
+        create_big(a, i1 = rand() % 16000);
+        create_big(b, i2 = rand() % 16000);
         kmul(a, b, r1);
         mul(a, b, r2);
         if (r1 != r2)
@@ -452,11 +454,12 @@ void __random_test_kmul()
 void __random_test_ksqr()
 {
     size_t n = 100;
+    srand((unsigned int)time(NULL));
 
     number_t a, r1, r2;
     while (n--)
     {
-        create_big(a, rand() % (1024 * 1204));
+        create_big(a, rand() % 16000);
         ksqr(a, r1);
         sqr(a, r2);
         if (r1 != r2)
@@ -465,6 +468,38 @@ void __random_test_ksqr()
             abort();
         }
     }
+}
+
+void __test_sqr_and_mul_performace()
+{
+    clock_t t0, t1, t2;
+    clock_t T0 = 0, T1 = 0;
+    size_t n = 200;
+    srand((unsigned int)time(NULL));
+
+    number_t a, r1, r2;
+    while (n--)
+    {
+        create_big(a, rand() % 6000);
+        t0 = clock();
+        sqr(a, r1);
+        t1 = clock();
+        mul(a, a, r2);
+        t2 = clock();
+        T0 += t1 - t0;
+        T1 += t2 - t1;
+        if (r1 != r2)
+        {
+            cout << "SQR ERROR!!" << endl;
+            abort();
+        }
+    }
+    if (T0 >= T1)
+    {
+        cout << "warning: sqr is not faster than mul" << endl;
+    }
+    cout << "sqr time: " << double(T0) / CLOCKS_PER_SEC
+         << " mul time: " << double(T1) / CLOCKS_PER_SEC << endl;
 }
 
 #define test_with_time(title, fun) do\
@@ -491,10 +526,22 @@ void test_performance()
     t2 = clock();
     if (r1 != r2)
     {
-        std::cout << "kmul result not equal to mul result" << std::endl;
+        std::cout << "M1257787 * M1398269 kmul result not equal to mul result" << std::endl;
         abort();
     }
-    cout << "kmul time: " << double(t1 - t0) / CLOCKS_PER_SEC << " mul time: " << double(t2 - t1) / CLOCKS_PER_SEC << endl;
+    cout << "M1257787 * M1398269 kmul time: " << double(t1 - t0) / CLOCKS_PER_SEC << "s mul time: " << double(t2 - t1) / CLOCKS_PER_SEC << "s" << endl;
+
+    number_t fac(1);
+    t0 = clock();
+    for (int i = 1; i < 100000; i++)
+    {
+        fac.mul_ui(i);
+    }
+    t1 = clock();
+    cout << "The factorial of 100000, time: " << double(t1 - t0) / CLOCKS_PER_SEC << " " << fac.bits_count() << "bits" <<endl;
+    /* 100000! has 1516688 bits, 1000000! has 18488865 bits */
+
+    __test_sqr_and_mul_performace();
 }
 
 void random_test()

@@ -1,7 +1,7 @@
-MYNUM LIBARAY
+MYNUM
 -------------
 
-This C++ library provides operations of big integers. Compared to the Java, python,
+MYNUM is a C++ library for big integer arithmetic. Compared to the Java, python,
 ruby and other well-known big integer library, mynum is more efficient!
 
 operations:

@@ -26,7 +26,6 @@ examples:
  * [Compute PI](#compute-pi)
  * [Compute the natural logarithms base](#compute-the-natural-logarithms-base)
 
-
 The efficiency of mynum is not inferior to GMP and other well-known library too much, but the interfaces are much simpler.
 Compared to the built-in big integer libaraies of java, python, ruby and other popular language, mynum is even more efficient.
 
@@ -273,7 +272,7 @@ you can use max_base() to obtain the max base supported
 `NOTICE!! never use a.to_string(0), a.to_string(1) and a base larger than max_base() returned`
 
 ##Other utils
-#Absolute value
+####Absolute value
 ```C++
 number_t a = -123;
 number_t b = abs(a);  // set b to the absolute value of a
@@ -283,7 +282,7 @@ b = a.abs();    // equals to abs(a)
 a.set_abs();    // set a to its absolute value
 ```
 
-#Negative value
+####Negative value
 ```C++
 number_t a = -123;
 number_t b = neg(a);
@@ -293,7 +292,7 @@ b = a.neg();
 a.set_neg();
 ```
 
-#Number property
+####Number property
 ```C++
 number_t a = 123, b = a;
 a.is_even();   // return true if a is an even number
@@ -309,7 +308,7 @@ a.is_po2();    // return true if a is the n-th power of 2 (n >= 0)
 a.is_zero();   // return true if a is 0
 ```
 
-#String
+####String
 ```C++
 number_t a = 0xABCD;
 string_t s;                // define a string object
@@ -330,7 +329,7 @@ a.to_string(s);      // convert the value to string, base 10 is default
 a.to_string(s, x);   // convert the value to string based x 
 ```
 
-#Swap and sign
+####Swap and sign
 ```C++
 number_t a = 123, b = 456;
 

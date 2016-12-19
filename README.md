@@ -1,10 +1,10 @@
-MYNUM
+MYNUM LIBARAY
 -------------
 
-MYNUM is a C++ library for big integer arithmetic. Compared to the Java, python,
-ruby and other well-known big integer library, mynum is more efficient!
+Mynum is a portable library for big integer arithmetic, it aims to provide convenience for the research of number theory，cryptology and other fields.
+Using mynum, the length of an integer can be arbitrary under available memory conditions.
 
-operations:
+In the latest release version, mynum supplies:
 
  * [Initialization](#initialization)
  * [Addition](#addition)
@@ -32,22 +32,27 @@ examples:
  * [Compute PI](#compute-pi)
  * [Compute the natural logarithms base](#compute-the-natural-logarithms-base)
 
-No restrictions on the dissemination and modification of this source code, but should accord with socially beneficial purpose. 
 
-This library is distributed in the hope that it will be useful, but without any warranty.
-
+The efficiency of mynum is not inferior to GMP and other well-known library too much, but the interfaces are much simpler.
+Compared to the built-in big integer libaraies of java, python, ruby and other popular language, mynum is even more efficient.
+Mynum is distributed in the hope that it will be useful, but without any warranty. No restrictions on the dissemination and modification of the source code, but should accord with socially beneficial purpose. 
 If you have any questions, please contact <brotherbeer@163.com>
 
-`NOTICE!! This library is currently only available on the LITTLE-ENDIAN machines.`
+`NOTICE!! mynum is currently only available on the LITTLE-ENDIAN machines.`
+
+[mynumheaderfile]: https://github.com/brotherbeer/mynum/blob/master/mynum.h
+[mynumcppfile]: https://github.com/brotherbeer/mynum/blob/master/mynum.cpp
+[myoperatorheaderfile]: https://github.com/brotherbeer/mynum/blob/master/operators.h
+[testcppfile]: https://github.com/brotherbeer/mynum/blob/master/test.cpp
 
 ##Installation
-[mynum.h](https://github.com/brotherbeer/mynum/blob/master/mynum.h) and [mynum.cpp](https://github.com/brotherbeer/mynum/blob/master/mynum.cpp) are the essential files the library required, and other files are the expansion of core functions.
+[mynum.h][mynumheaderfile] and [mynum.cpp][mynumcppfile] are the essential files the library required, and other files are the expansion of core functions.
 
-Include [mynum.h](https://github.com/brotherbeer/mynum/blob/master/mynum.h) and [mynum.cpp](https://github.com/brotherbeer/mynum/blob/master/mynum.cpp) into your project, and #include "mynum.h" in whichever file you need big integer operations.
+Include [mynum.h][mynumheaderfile] and [mynum.cpp][mynumcppfile] into your project, and #include "mynum.h" in whichever file you need big integer operations.
 
-[myoperators.h](https://github.com/brotherbeer/mynum/blob/master/operators.h) overloaded the associated C++ operators, if you want to use the operators to do the calculations, please #include "myoperators.h"
+[myoperators.h][myoperatorheaderfile] overloaded the associated C++ operators, if you want to use the operators to do the calculations, please #include "myoperators.h"
 
-[test.cpp](https://github.com/brotherbeer/mynum/blob/master/test.cpp) contained the examples and test cases
+[test.cpp][testcppfile] contained the examples and test cases
 
 mynum can also be compiled into a dynamic library, for example:
 
@@ -498,4 +503,4 @@ use precompiled instructions to determine the range of unit_t variable values
 #endif
 ```
 
-more examples in [test.cpp](https://github.com/brotherbeer/mynum/blob/master/test.cpp)
+more examples in [test.cpp][testcppfile]

@@ -18,13 +18,6 @@ In the latest release version, mynum supplies:
  * [Comparison](#comparison)
  * [Bits operations](#bits-operations)
  * [String convertion](#string-convertion)
-
-and other utilities:
-
- * [Absolute value](#absolute-value)
- * [Negative value](#negative-value)
- * [Number property](#number-property)
- * [String](#string)
  * [Other utils](#other-utils)
 
 examples:
@@ -49,7 +42,7 @@ If you have any questions, please contact <brotherbeer@163.com>
 [testcppfile]: https://github.com/brotherbeer/mynum/blob/master/test.cpp
 
 ##Installation
-[mynum.h][mynumheaderfile] and [mynum.cpp][mynumcppfile] are the essential files the library required, and other files are the expansion of core functions.
+[mynum.h][mynumheaderfile] and [mynum.cpp][mynumcppfile] are the essential files the library required, and other files are the expansion of the core functions.
 
 Include [mynum.h][mynumheaderfile] and [mynum.cpp][mynumcppfile] into your project, and #include "mynum.h" in whichever file you need big integer operations.
 
@@ -79,7 +72,7 @@ When using hexadecimal string, the efficiency is highest. The max base is 36.
 
 In order to achieve a higher efficiency, mynum does not consider any prefix, such as 0x, 0b, and the constructor does not detect any wrong char in the string parameter. 
 
-If the string parameter is wrong, then the value of object is wrong too, but will not crash.
+If the string parameter is wrong, then the value of the object is wrong too, but will not crash.
 
 If you want to test the correctness of the string, you can use the 'check' function, for example:
 ```C++
@@ -87,7 +80,7 @@ const char* s = "1234567890";
 assert(check(s, 10) > 0); // if s represents a decimal number, then s is correct
 assert(check(s, 8) == 0); // if s represents an octal number, then s is wrong
 ```
-Function 'check' returns the string length if the string is right, or 0 if the string is wrong.
+The function 'check' returns the string length if the string is right, or 0 if the string is wrong.
 
 When the base is greater than 10, 'a' means 10, 'b' means 11, and so on, 'z' means 35, the chars are case insensitive.
 
@@ -97,10 +90,10 @@ number_t a;
 assert(a == 0);   // == defined in myoperators.h
 ```
 
-The number_t object required memory is allocated on the heap, call the destructor manually to deallocate the memory space
+The number_t object required memory is allocated on the heap, call the clear function to deallocate the memory
 ```C++
 number_t a(123456LL);
-a.~number_t();
+a.clear();
 assert(a == 0);
 ```
 
@@ -279,7 +272,8 @@ you can use max_base() to obtain the max base supported
 
 `NOTICE!! never use a.to_string(0), a.to_string(1) and a base larger than max_base() returned`
 
-##Absolute value
+##Other utils
+#Absolute value
 ```C++
 number_t a = -123;
 number_t b = abs(a);  // set b to the absolute value of a
@@ -289,7 +283,7 @@ b = a.abs();    // equals to abs(a)
 a.set_abs();    // set a to its absolute value
 ```
 
-##Negative value
+#Negative value
 ```C++
 number_t a = -123;
 number_t b = neg(a);
@@ -299,7 +293,7 @@ b = a.neg();
 a.set_neg();
 ```
 
-##Number property
+#Number property
 ```C++
 number_t a = 123, b = a;
 a.is_even();   // return true if a is an even number
@@ -315,7 +309,7 @@ a.is_po2();    // return true if a is the n-th power of 2 (n >= 0)
 a.is_zero();   // return true if a is 0
 ```
 
-##String
+#String
 ```C++
 number_t a = 0xABCD;
 string_t s;                // define a string object
@@ -336,7 +330,7 @@ a.to_string(s);      // convert the value to string, base 10 is default
 a.to_string(s, x);   // convert the value to string based x 
 ```
 
-##Other utils
+#Swap and sign
 ```C++
 number_t a = 123, b = 456;
 

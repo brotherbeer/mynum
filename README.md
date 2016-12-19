@@ -1,7 +1,8 @@
-MYNUM LIBARAY
+MYNUM
 -------------
 
 Mynum is a portable library for big integer arithmetic, it aims to provide convenience for the research of number theory，cryptology and other fields.
+
 Using mynum, the length of an integer can be arbitrary under available memory conditions.
 
 In the latest release version, mynum supplies:
@@ -35,7 +36,9 @@ examples:
 
 The efficiency of mynum is not inferior to GMP and other well-known library too much, but the interfaces are much simpler.
 Compared to the built-in big integer libaraies of java, python, ruby and other popular language, mynum is even more efficient.
+
 Mynum is distributed in the hope that it will be useful, but without any warranty. No restrictions on the dissemination and modification of the source code, but should accord with socially beneficial purpose. 
+
 If you have any questions, please contact <brotherbeer@163.com>
 
 `NOTICE!! mynum is currently only available on the LITTLE-ENDIAN machines.`
@@ -58,7 +61,7 @@ mynum can also be compiled into a dynamic library, for example:
 
 `g++ -fPIC -shared -O2 -DNDEBUG mynum.cpp -o mynum.so`
 
-The source code is currently applicable to g++, MSVC(2008 and above version).
+The source code is currently applicable to g++, MSVC(2008 and above versions).
 
 ##Initialization
 The namespace is `'mynum'`, and the class name of big integer is `'number_t'`.

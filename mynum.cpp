@@ -805,9 +805,7 @@ number_t& number_t::mul_unit(unit_t x)
 
 number_t& number_t::div_unit(unit_t x)
 {
-    assert(x != 0);
-
-    if (len)
+    if (len && x)
     {
         dunit_t rem = 0;
         slen_t l = __abs(len);
@@ -826,9 +824,7 @@ number_t& number_t::div_unit(unit_t x)
 
 number_t& number_t::mod_unit(unit_t x)
 {
-    assert(x != 0);
-
-    if (len)
+    if (len && x)
     {
         dunit_t rem = 0;
         unit_t* q = dat + __abs(len);
@@ -1002,9 +998,7 @@ number_t& number_t::mul_ui(word_t x)
 
 number_t& number_t::div_ui(word_t x)
 {
-    assert(x != 0);
-
-    if (len)
+    if (len && x)
     {
         __pad_word(dat, len);
 
@@ -1025,9 +1019,7 @@ number_t& number_t::div_ui(word_t x)
 
 number_t& number_t::mod_ui(word_t x)
 {
-    assert(x != 0);
-
-    if (len)
+    if (len && x)
     {
         __pad_word(dat, len);
 

@@ -17,7 +17,7 @@ In the latest release version, mynum provides:
  * [Modular exponentiation](#modular-exponentiation)
  * [Comparison](#comparison)
  * [Bitwise operation](#bitwise-operation)
- * [String convertion](#string-convertion)
+ * [String conversion](#string-conversion)
  * [Other utils](#other-utils)
 
 The efficiency of mynum is not inferior to GMP and other well-known library too much, but the interfaces are much simpler.
@@ -242,7 +242,7 @@ a <<= 5;
 a >>= 5;
 ```
 
-##String convertion
+##String conversion
 ```C++
 number_t a = 123;
 

@@ -3,7 +3,7 @@ MYNUM
 
 Mynum is a portable library for big integer arithmetic, it aims to provide convenience for the research of number theory，cryptology and other fields.
 
-Using mynum, the length of an integer can be arbitrary under available memory conditions.
+mynum is currently only available on the LITTLE-ENDIAN machines.
 
 In the latest release version, mynum supplies:
 
@@ -20,20 +20,12 @@ In the latest release version, mynum supplies:
  * [String convertion](#string-convertion)
  * [Other utils](#other-utils)
 
-examples:
-
- * [Greatest common divisor](#greatest-common-divisor)
- * [Compute PI](#compute-pi)
- * [Compute the natural logarithms base](#compute-the-natural-logarithms-base)
-
 The efficiency of mynum is not inferior to GMP and other well-known library too much, but the interfaces are much simpler.
-Compared to the built-in big integer libaraies of java, python, ruby and other popular language, mynum is even more efficient.
+Compared to the built-in big integer libaraies of java, python, etc., mynum is even more efficient.
 
-Mynum is distributed in the hope that it will be useful, but without any warranty. No restrictions on the dissemination and modification of the source code, but should accord with socially beneficial purpose. 
+No restrictions on the dissemination and modification of the source code. The author hopes mynum will be useful, but dose not make any warranty.
 
 If you have any questions, please contact <brotherbeer@163.com>
-
-`NOTICE!! mynum is currently only available on the LITTLE-ENDIAN machines.`
 
 [mynumheaderfile]: https://github.com/brotherbeer/mynum/blob/master/mynum.h
 [mynumcppfile]: https://github.com/brotherbeer/mynum/blob/master/mynum.cpp
@@ -41,7 +33,7 @@ If you have any questions, please contact <brotherbeer@163.com>
 [testcppfile]: https://github.com/brotherbeer/mynum/blob/master/test.cpp
 
 ##Installation
-[mynum.h][mynumheaderfile] and [mynum.cpp][mynumcppfile] are the essential files the library required, and other files are the expansion of the core functions.
+[mynum.h][mynumheaderfile] and [mynum.cpp][mynumcppfile] are the essential files mynum required, and other files are the expansion of the core functions.
 
 Include [mynum.h][mynumheaderfile] and [mynum.cpp][mynumcppfile] into your project, and #include "mynum.h" in whichever file you need big integer operations.
 
@@ -56,34 +48,38 @@ mynum can also be compiled into a dynamic library, for example:
 The source code is currently applicable to g++, MSVC(2008 and above versions).
 
 ##Initialization
-The namespace is `'mynum'`, and the class name of big integer is `'number_t'`.
 ```C++
 #include "mynum.h"
-using namespace mynum;
+using namespace mynum;      // the namespace of mynum
 
-number_t a = 123, b(789L);  // use basic integer type to initialize number_t object
-number_t c("271828182845"); // use a string that represents decimal number
-number_t d("abcdef", 16);   // use a string that represents hexadecimal number
-number_t e("1111100", 2);   // use a string that represents binary number
-number_t f("HIJKLMN", x);   // use a string that represents arbitrary based number, x between [2, 36]
+number_t a = 123, b(789L);  // use basic integer type to initialize number_t objects
+number_t c("27182818284");  // use a decimal string to initialize the object
+number_t d("-abcdef", 16);  // use a hexadecimal number to initialize the object
+number_t e("1234567", 8);   // use an octal string to initialize the object
+number_t f("1111100", 2);   // use a binary string to initialize the object
 ```
-When using hexadecimal string, the efficiency is highest. The max base is 36.
+When using a string denoting a hexadecimal intger, the efficiency is the highest.
 
-In order to achieve a higher efficiency, mynum does not consider any prefix, such as 0x, 0b, and the constructor does not detect any wrong char in the string parameter. 
-
-If the string parameter is wrong, then the value of the object is wrong too, but will not crash.
+In order to achieve a higher efficiency, when constructing from string, mynum does not consider any prefixes, such as "0x", "0b", and all the constructors donot detect any wrong char in the string parameter.
+If the string parameter is wrong, the value of the object is wrong too, but the program will not crash. For example:
+```C++
+number_t x("123456789", 8);   // in octal number, '8' and '9' are wrong, so the value of x is wrong
+number_t y("1,234,567", 8);   // ',' and other punctuations are not acceptable
+number_t z("1 234 567", 8);   // the blank spaces are not acceptable
+```
+In the later version, mynum will optimize string related functions
 
 If you want to test the correctness of the string, you can use the 'check' function, for example:
 ```C++
 const char* s = "1234567890";
-assert(check(s, 10) > 0); // if s represents a decimal number, then s is correct
-assert(check(s, 8) == 0); // if s represents an octal number, then s is wrong
+assert(check(s, 10) > 0); // if s denotes a decimal number, then s is correct
+assert(check(s, 8) == 0); // if s denotes an octal number, then s is wrong
 ```
 The function 'check' returns the string length if the string is right, or 0 if the string is wrong.
 
-When the base is greater than 10, 'a' means 10, 'b' means 11, and so on, 'z' means 35, the chars are case insensitive.
+When the base is greater than 10, 'a' means 10, 'b' means 11, and so on, 'z' means 35, the max base is 36, and the chars are case insensitive.
 
-The value of object defined by the default constructor is 0
+The value of the object constructed by the default constructor is 0
 ```C++
 number_t a;
 assert(a == 0);   // == defined in myoperators.h
@@ -103,7 +99,7 @@ add(a, b, c);  // add a and b, c is the result
 
 c.add(a);      // add a to c
 
-c = add(a, b); // return object
+c = add(a, b); // return result as an object
 
 c = a + b;     // overloaded operator +, need myoperators.h
 
@@ -348,155 +344,3 @@ sign(a);         // if a > 0 return 1 else return -1
 same_sign(a, b); // if a and b have the same sign, return 1, else return 0
 ```
 
-#Examples:
-
-##Greatest common divisor 
-```C++
-#include "myoperators.h"
-using namespace mynum;
-
-/*
- * compute the greatest common divisor with division algorithm
- */
-void gcd_example()
-{
-    number_t m("3149916521386303663457"), n("97950481"), t;
-    while (m % n != 0)
-    {
-        mod(m, n, t);
-        m.steal(n);
-        n.steal(t);
-    }
-    assert(n == 19937);
-}
-```
-
-##Compute PI
-```C++
-#include "myoperators.h"
-using namespace mynum;
-
-/*
- * rearctan1 and rearctan2 have the same function,
- * they use Maclaurin expansion to get the product of arctan(1/x) and the n-th power of 10
- *
- * rearctan1 uses the overloaded operators, rearctan1 uses the normal APIs
- * operator overloading makes the source code briefer, but the efficiency is slightly lower
- * the two functions are used by PI_example() to compute the circumference ratio PI
- * the example obtaines 100 decimal places of PI, readers can set n to their interested value,
- * and get the result
- */
-void rearctan1(int x, int n, number_t& res);
-void rearctan2(int x, int n, number_t& res);
-
-/*
- *  Use Machin's formula to compute PI
- *  PI = 16 * arctan(1/5) - 4 * arctan(1/239)
- *  The last few decimal places may be wrong, increase n to obtain higher accuracy
- */
-void PI_example()
-{
-    int n = 100;
-    number_t t0, t1;
-
-    rearctan1(5, n, t0);
-    t0 <<= 2;
-    rearctan2(239, n, t1);
-    t0 -= t1;
-    t0 <<= 2;
-
-    // the result
-    assert (t0.to_dec_string() == "31415926535897932384626433832795028841971693993751058209749445923078164062862089986280348253421170712");
-}
-
-void rearctan1(int x, int n, number_t& res)
-{
-    int k = 1;
-    number_t u, v, xx(x * x);
-
-    res = 10;
-    res.pow(n).div(x);
-    u = res;
-
-    do
-    {
-        u /= xx;
-        v = u / (2 * k + 1);
-        v *= ((k & 1) * -1) | 1;
-        res += v;
-        k++;
-    } while (v);
-}
-
-void rearctan2(int x, int n, number_t& res)
-{
-    int k = 1;
-    number_t u, v, xx(x * x);
-
-    res = 10;
-    res.pow(n).div(x);
-    u = res;
-
-    do
-    {
-        u.div(xx);
-        div(u, 2 * k + 1, v);
-        v.set_sign(0 - (k & 1));
-        res.add(v);
-        k++;
-    } while (v);
-}
-```
-
-##Compute the natural logarithms base
-```C++
-#include "myoperators.h"
-using namespace mynum;
-
-/*
- *  This example computes the decimal places of the natural logarithms base E
- *  The last few decimal places may be wrong, increase n to obtain higher accuracy
- */
-void E_example()
-{
-    // unit_t is the basic computing unit type of mynum
-    // on 64bit systems, unit_t is unsigned int
-    // on 32bit systems, unit_t is unsigned short
-    // so the value of the unit_t type variable is between [0, 4294967295] on 64bit systems,
-    // or [0, 65535] on 32bits systems
-    // when the computing relates to small integers which can be hold by unit_t,
-    // unit_t operations will be more efficient
-
-    unit_t n = 100, i = 2;
-    number_t x = 10, e;
-    x.pow(n);
-
-    while (x)
-    {
-        x.div_unit(i++);  // faster than x.div(i++)
-        e.add(x);
-    }
-
-    // the result
-    assert(e.to_string() == "7182818284590452353602874713526624977572470936999595749669676277240766303535475945713821785251664238");
-}
-```
-
-other unit_t operations:
- * add_unit(unit_t x)
- * sub_unit(unit_t x)
- * mul_unit(unit_t x)
- * mod_unit(unit_t x)
-
-the macro UNITBITS indcates how many bits are in the unit_t 
-
-use precompiled instructions to determine the range of unit_t variable values
-```C++
-#if UNITBITS == 16
-//max 65535
-#elif UNITBITS == 32
-//max 4294967295
-#endif
-```
-
-more examples in [test.cpp][testcppfile]

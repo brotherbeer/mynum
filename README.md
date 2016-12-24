@@ -5,7 +5,7 @@ Mynum is a portable library for big integer arithmetic, it aims to provide conve
 
 mynum is currently only available on the LITTLE-ENDIAN machines.
 
-In the latest release version, mynum supplies:
+In the latest release version, mynum provides:
 
  * [Initialization](#initialization)
  * [Addition](#addition)

@@ -1,13 +1,12 @@
 /* MYNUM LIBARAY SOURCE CODE
  * 
  * This library provides addition, subtraction, multiplication, division,
- * modulo, involution, power, root  and bit operations  of large integers.
- * No restrictions on the dissemination and modification of this source code,
- * but should accord with socially beneficial purpose. 
- * This library is distributed in the hope that it will be useful, but without any warranty,
+ * modulo, exponentiation and bitwise operations for big integer arithmetic.
+ * No restrictions on the dissemination and modification of the source code.
+ * The author hopes mynum will be useful, but dose not make any warranty.
  * if you have any questions, please contact <brotherbeer@163.com>
  *
- * NOTICE!! This library is currently only available on the LITTLE-ENDIAN machines.
+ * NOTICE!! This library is only available on the LITTLE-ENDIAN machines now.
  */
 
 #include <cstdlib>

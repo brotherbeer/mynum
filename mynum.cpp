@@ -4,7 +4,7 @@
  * modulo, exponentiation and bitwise operations for big integer arithmetic.
  * No restrictions on the dissemination and modification of the source code.
  * The author hopes mynum will be useful, but dose not make any warranty.
- * if you have any questions, please contact <brotherbeer@163.com>
+ * If you have any questions, please contact <brotherbeer@163.com>
  *
  * NOTICE!! This library is only available on the LITTLE-ENDIAN machines now.
  */

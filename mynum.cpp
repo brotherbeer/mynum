@@ -2224,7 +2224,7 @@ string_t& number_t::__to_xbase_string(string_t& res, unit_t base, unit_t inner_b
     if (l)
     {
         slen_t size = 0;
-        char* str = NULL, *ps;
+        char* str = NULL, *ps = NULL;
 
         unit_t* tmp = __allocate_units(slen_t(LN_BASE * l / ln_inner_base + 1));
         for (slen_t i = l - 1; i >= 0; i--)

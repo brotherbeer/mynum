@@ -16,7 +16,7 @@ In the latest release version, mynum provides:
  * [Exponentiation](#exponentiation)
  * [Modular exponentiation](#modular-exponentiation)
  * [Comparison](#comparison)
- * [Bits operations](#bits-operations)
+ * [Bitwise operation](#bitwise-operation)
  * [String convertion](#string-convertion)
  * [Other utils](#other-utils)
 
@@ -211,7 +211,7 @@ a >= b;
 a <= b;
 ```
 
-##Bits operations
+##Bitwise operation
 ```C++
 number_t a = 123, b = 456, c;
 bit_and(a, b, c);  // bitwise and, c is the result

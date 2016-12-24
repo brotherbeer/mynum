@@ -2159,7 +2159,7 @@ void test_div_small()
         a.div_unit(0);
         a.div(int(0));
         a.div(long(0));
-        a.div(long long(0));
+        a.div((long long)0);
         a.div((unsigned int)0);
         a.div((unsigned long)0);
         a.div((unsigned long long)0);
@@ -2202,7 +2202,7 @@ void test_mod_small()
         a.mod_unit(0);
         a.mod(int(0));
         a.mod(long(0));
-        a.mod(long long(0));
+        a.mod((long long)0);
         a.mod((unsigned int)0);
         a.mod((unsigned long)0);
         a.mod((unsigned long long)0);

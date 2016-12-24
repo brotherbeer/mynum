@@ -53,21 +53,21 @@ The source code is currently applicable to g++, MSVC(2008 and above versions).
 using namespace mynum;      // the namespace of mynum
 
 number_t a = 123, b(789L);  // use basic integer type to initialize number_t objects
-number_t c("27182818284");  // use a decimal string to initialize the object
-number_t d("-abcdef", 16);  // use a hexadecimal number to initialize the object
-number_t e("1234567", 8);   // use an octal string to initialize the object
-number_t f("1111100", 2);   // use a binary string to initialize the object
+number_t c("27182818284");  // use a decimal string
+number_t d("-abcdef", 16);  // use a hexadecimal number
+number_t e("1234567", 8);   // use an octal string
+number_t f("1111100", 2);   // use a binary string
 ```
 When using a string denoting a hexadecimal intger, the efficiency is the highest.
 
-In order to achieve a higher efficiency, when constructing from string, mynum does not consider any prefixes, such as "0x", "0b", and all the constructors donot detect any wrong char in the string parameter.
+In order to achieve higher efficiency, when constructing from string, mynum does not consider any prefixes, such as "0x", "0b", and all the constructors don't detect any wrong char in the string parameter.
 If the string parameter is wrong, the value of the object is wrong too, but the program will not crash. For example:
 ```C++
 number_t x("123456789", 8);   // in octal number, '8' and '9' are wrong, so the value of x is wrong
 number_t y("1,234,567", 8);   // ',' and other punctuations are not acceptable
 number_t z("1 234 567", 8);   // the blank spaces are not acceptable
 ```
-In the later version, mynum will optimize string related functions
+In the later versions, mynum will optimize string related functions.
 
 If you want to test the correctness of the string, you can use the 'check' function, for example:
 ```C++
@@ -85,7 +85,7 @@ number_t a;
 assert(a == 0);   // == defined in myoperators.h
 ```
 
-The number_t object required memory is allocated on the heap, call the clear function to deallocate the memory
+The object memory is allocated on the heap, call the member function 'clear' to deallocate.
 ```C++
 number_t a(123456LL);
 a.clear();
@@ -246,23 +246,23 @@ a >>= 5;
 ```C++
 number_t a = 123;
 
-a.to_string(36);  // convert a to base-36 string
-a.to_string(19);  // convert a to base-19 string
-a.to_string(16);  // convert a to base-16 string
-a.to_string(10);  // convert a to base-10 string
-a.to_string(8);   // convert a to base-8 string
-a.to_string(2);   // convert a to base-2 string
+a.to_string(36);  // convert to a string in base 36
+a.to_string(19);  // in base 19
+a.to_string(16);  // in base 16
+a.to_string(10);  // in base 10
+a.to_string(8);   // in base 8
+a.to_string(2);   // in base 2
 ```
 Use follow methods for higher efficiency:
 
- * to_bin_string() to get base-2 string
- * to_oct_string() to get base-8 string
- * to_dec_string() to get base-10 string
- * to_hex_string() to get base-16 string
+ * to_bin_string() to get a string in base 2
+ * to_oct_string() to get a string in base 8
+ * to_dec_string() to get a string in base 10
+ * to_hex_string() to get a string in base 16
 
-in the above methods, the efficiency of to_hex_string() is the highest.
+in the above methods, to_hex_string() is the fastest.
 
-Currently, the max base supported is 36, it will be extended in the subsequent version,
+Currently, the max base supported is 36, and the min base is 2, it will be extended in the subsequent version,
 you can use max_base() to obtain the max base supported
 
 `NOTICE!! never use a.to_string(0), a.to_string(1) and a base larger than max_base() returned`
@@ -329,17 +329,17 @@ a.to_string(s, x);   // convert the value to string based x
 ```C++
 number_t a = 123, b = 456;
 
-swap(a, b);      // swap a and b, after this function called, a is 456, b is 123
+swap(a, b);      // swap a and b
 
-a.steal(b);      // a steals the data of b, so a gets the memory of b, and b is set 0
+a.steal(b);      // a steals the data of b, so a gets the memory of b, and b is set to 0
 
-a.set_one();     // set a 1
+a.set_one();     // set a to 1
 
-a.set_zero();    // set a 0
+a.set_zero();    // set a to 0
 
 a.set_sign(x);   // if x is 1 then set a to be positive, if x is -1 then set a to be negative
 
-sign(a);         // if a > 0 return 1 else return -1
+sign(a);         // if a >= 0 return 1 else return -1
 
 same_sign(a, b); // if a and b have the same sign, return 1, else return 0
 ```

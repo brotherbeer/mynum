@@ -2108,15 +2108,25 @@ static const char* __B[16] =
 string_t& number_t::__to_bin_string(string_t& res) const
 {
     slen_t l = __abs(len);
-    res.release();
     if (l)
     {
         char* str, *ps;
         byte_t* p = (byte_t*)(dat + l - 1) + sizeof(unit_t) - 1;
         byte_t* e = (byte_t*)dat - 1;
 
-        while (!*p) p--;
-        ps = str = (char*)mem::allocate(l * UNITBITS + 1 + 1, sizeof(char));
+        while (!*p)
+        {
+            p--;
+        }
+        size_t chars = l * UNITBITS + (len < 0);
+        if (res.cap >= chars)
+        {
+            ps = str = res.dat;
+        }
+        else
+        {
+            ps = str = (char*)mem::allocate(chars + 1, sizeof(char));
+        }
         if (len < 0)
         {
             *ps++ = '-';
@@ -2141,10 +2151,17 @@ string_t& number_t::__to_bin_string(string_t& res) const
             p--;
         }
         *ps = '\0';
-        res.take(str, ps - str);
+        if (str != res.dat)
+        {
+            res.take(str, ps - str);
+        }
+        else
+        {
+            res.len = ps - str;
+        }
         return res;
     }
-    res.__copy("0", 1);
+    res.assign("0", 1);
     return res;
 }
 
@@ -2164,7 +2181,6 @@ int __max_base()
 string_t& number_t::__to_hex_string(string_t& res) const
 {
     slen_t l = __abs(len);
-    res.release();      // should be improved
     if (l)
     {
         char* str, *ps;
@@ -2175,9 +2191,15 @@ string_t& number_t::__to_hex_string(string_t& res) const
         {
             p--;
         }
-
-        ps = str = (char*)mem::allocate(l * sizeof(unit_t) * 2 + 1 + 1, sizeof(char));
-
+        size_t chars = l * sizeof(unit_t) * 2 + (len < 0);
+        if (res.cap >= chars)
+        {
+            ps = str = res.dat;
+        }
+        else
+        {
+            ps = str = (char*)mem::allocate(chars + 1, sizeof(char));
+        }
         if (len < 0)
         {
             *ps++ = '-';
@@ -2194,10 +2216,17 @@ string_t& number_t::__to_hex_string(string_t& res) const
             *ps++ = __DIGIT_CHAR[*p-- & 0x0F];
         }
         *ps = '\0';
-        res.take(str, ps - str);
+        if (str != res.dat)
+        {
+            res.take(str, ps - str);
+        }
+        else
+        {
+            res.len = ps - str;
+        }
         return res;
     }
-    res.__copy("0", 1);
+    res.assign("0", 1);
     return res;
 }
 
@@ -2220,7 +2249,6 @@ static __always_inline(void) __unit_to_str(unit_t x, char* str, int base, int wi
 string_t& number_t::__to_xbase_string(string_t& res, unit_t base, unit_t inner_base, unit_t inner_base_digits, float ln_inner_base) const
 {
     slen_t l = __abs(len);
-    res.release();
     if (l)
     {
         slen_t size = 0;
@@ -2249,8 +2277,15 @@ string_t& number_t::__to_xbase_string(string_t& res, unit_t base, unit_t inner_b
             unit_t* e = tmp - 1;
 
             __unit_to_str(*p--, buf, base, inner_base_digits);
-            ps = str = (char*)mem::allocate(size * inner_base_digits + 1 + 1, sizeof(char));
-
+            size_t chars = size * inner_base_digits + (len < 0);
+            if (res.cap >= chars)
+            {
+                ps = str = res.dat;
+            }
+            else
+            {
+                ps = str = (char*)mem::allocate(chars + 1, sizeof(char));
+            }
             if (len < 0)
             {
                 *ps++ = '-';
@@ -2275,29 +2310,67 @@ string_t& number_t::__to_xbase_string(string_t& res, unit_t base, unit_t inner_b
         if (str)
         {
             *ps = '\0';
-            res.take(str, ps - str);
+            if (str != res.dat)
+            {
+                res.take(str, ps - str);
+            }
+            else
+            {
+                res.len = ps - str;
+            }
             return res;
         }
     }
-    res.__copy("0", 1);
+    res.assign("0", 1);
     return res;
 }
 
 /** class string_t implementation */
 
-string_t::string_t(const char* p): dat(NULL), len(0)
+string_t::string_t(size_t capacity): dat(NULL), len(0), cap(capacity)
 {
-    if (p)
+    if (cap)
     {
-        __copy(p, strlen(p));
+        dat = (char*)mem::allocate(cap + 1, sizeof(char));
     }
 }
 
-string_t::string_t(const char* p, size_t l): dat(NULL), len(0)
+string_t::string_t(const char* p): dat(NULL), len(0), cap(0)
 {
     if (p)
     {
-        __copy(p, l);
+        len = strlen(p);
+        cap = len;
+        dat = (char*)mem::allocate(cap + 1, sizeof(char));
+        memcpy(dat, p, len);
+        dat[len] = '\0';
+    }
+}
+
+string_t::string_t(const char* p, size_t l): dat(NULL), len(0), cap(0)
+{
+    if (p)
+    {
+        cap = len = l;
+        dat = (char*)mem::allocate(cap + 1, sizeof(char));
+        memcpy(dat, p, len);
+        dat[len] = '\0';
+    }
+}
+
+string_t::string_t(const char* p, size_t length, size_t capacity): dat(NULL), len(0), cap(0)
+{
+    if (p)
+    {
+        if (capacity < length)
+        {
+            capacity = length;
+        }
+        cap = capacity;
+        len = length;
+        dat = (char*)mem::allocate(cap + 1, sizeof(char));
+        memcpy(dat, p, len);
+        dat[len] = '\0';
     }
 }
 
@@ -2305,7 +2378,11 @@ string_t::string_t(const string_t& another): dat(NULL), len(0)
 {
     if (another.dat)
     {
-        __copy(another.dat, another.len);
+        cap = another.cap;
+        len = another.len;
+        dat = (char*)mem::allocate(cap + 1, sizeof(char));
+        memcpy(dat, another.dat, len);
+        dat[len] = '\0';
     }
 }
 
@@ -2314,37 +2391,139 @@ string_t::~string_t()
     release();
 }
 
-string_t& string_t::operator = (const string_t& another)
+string_t& string_t::assign(const char* p, size_t l)
 {
-    if (this != &another)
+    if (dat != p)
     {
-        release();
-        if (another.dat)
+        if (p && l)
         {
-            __copy(another.dat, another.len);
+            if (l > cap)
+            {
+                mem::deallocate(dat);
+                dat = (char*)mem::allocate((cap = l) + 1, sizeof(char));
+            }
+            memcpy(dat, p, l);
+            dat[len = l] = '\0';
+        }
+        else
+        {
+            len = 0;
         }
     }
     return *this;
 }
 
-string_t& string_t::operator = (const char* p)
+string_t& string_t::assign(const char* p)
 {
     if (dat != p)
     {
-        release();
         if (p)
         {
-            __copy(p, strlen(p));
+            size_t l = strlen(p);
+            if (l > cap)
+            {
+                mem::deallocate(dat);
+                dat = (char*)mem::allocate((cap = l) + 1, sizeof(char));
+            }
+            memcpy(dat, p, l);
+            dat[len = l] = '\0';
+        }
+        else
+        {
+            len = 0;
         }
     }
     return *this;
+}
+
+string_t& string_t::assign(const string_t& another)
+{
+    if (this != &another)
+    {
+        if (another.len)
+        {
+            if (another.len <= cap)
+            {
+                mem::deallocate(dat);
+                dat = (char*)mem::allocate(another.len + 1, sizeof(char));
+                cap = another.len;
+            }
+            memcpy(dat, another.dat, another.len);
+            dat[len = another.len] = '\0';
+        }
+        else
+        {
+            len = 0;
+        }
+    }
+    return *this;
+}
+
+string_t& string_t::assign(const string_t& another, size_t bpos, size_t epos)
+{
+    assert(bpos <= epos && epos <= another.len);
+
+    if (this != &another)
+    {
+        if (another.len)
+        {
+            return assign(another.dat + bpos, epos - bpos);
+        }
+        else
+        {
+            len = 0;
+        }
+    }
+    else
+    {
+        len = epos - bpos;
+        for (size_t i = 0; i < len; i++)
+        {
+            dat[i] = dat[i + bpos];
+        }
+        dat[len] = '\0';
+    }
+    return *this;
+}
+
+string_t& string_t::operator = (const string_t& another)
+{
+    return assign(another);
+}
+
+string_t& string_t::operator = (const char* p)
+{
+    return assign(p);
+}
+
+void string_t::take(char* p, size_t l)
+{
+    release(); dat = p; len = cap = l;
+}
+
+void string_t::take(char* p, size_t l, size_t c)
+{
+    release(); dat = p; len = l; cap = c;
 }
 
 void string_t::release()
 {
     mem::deallocate(dat);
     dat = NULL;
-    len = 0;
+    cap = len = 0;
+}
+
+void string_t::reserve(size_t newcap)
+{
+    if (newcap > cap)
+    {
+        char* newdat = (char*)mem::allocate(newcap + 1, sizeof(char));
+        memcpy(newdat, dat, len);
+        mem::deallocate(dat);
+        dat = newdat;
+        cap = newcap;
+        dat[len] = '\0';
+    }
 }
 
 int string_t::cmp(const string_t& another) const
@@ -2392,14 +2571,6 @@ string_t& string_t::to_upper(string_t& res)
     res = *this;
     __to_upper(res.dat, res.dat + res.len);
     return res;
-}
-
-void string_t::__copy(const char* p, size_t l)
-{
-    len = l;
-    dat = (char*)mem::allocate(len + 1, sizeof(char));
-    memcpy(dat, p, len);
-    dat[len] = '\0';
 }
 
 int cmp(const string_t& a, const string_t& b)

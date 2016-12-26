@@ -653,31 +653,40 @@ struct string_t
 {
     char* dat;
     size_t len;
+    size_t cap;
 
-    string_t(): dat(NULL), len(0) {}
+    string_t(): dat(NULL), len(0), cap(0) {}
+    string_t(size_t);
     string_t(const char*);
     string_t(const char*, size_t);
+    string_t(const char*, size_t length, size_t capacity);
     string_t(const string_t&);
 
     ~string_t();
 
     int cmp(const string_t&) const;
     const char* c_str() const { return dat; }
-    void take(char* p, size_t l) { dat = p; len = l; }
+    void take(char* p, size_t l);
+    void take(char* p, size_t l, size_t c);
+
     bool valid() const { return dat != NULL; }
     void release();
+    void reserve(size_t);
 
     string_t& to_upper();
     string_t& to_lower();
     string_t& to_upper(string_t& res);
     string_t& to_lower(string_t& res);
 
+    string_t& assign(const char*);
+    string_t& assign(const char*, size_t);
+    string_t& assign(const string_t&);
+    string_t& assign(const string_t&, size_t bpos, size_t epos);
+
     string_t& operator = (const char*);
     string_t& operator = (const string_t&);
     char operator [] (size_t x) const { return dat[x]; }
     char& operator [] (size_t x) { return dat[x]; }
-
-    void __copy(const char* p, size_t l);
 };
 
 int cmp(const string_t& a, const string_t& b);

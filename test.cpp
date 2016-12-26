@@ -33,6 +33,8 @@ void test_bits();
 void test_property();
 void test_swap();
 void test_operators();
+void test_string_assignment();
+void test_string_reserve();
 void test_string();
 void test_add_small();
 void test_sub_small();
@@ -1849,8 +1851,63 @@ void test_operators()
     }
 }
 
+void test_string_assignment()
+{
+    {
+        string_t a("xxxxxxxxxxxxxxxxxxxx"), b;
+        a.assign("123"); assert(a == "123");
+        a.assign("456"); assert(a == "456");
+        b.assign("123"); assert(b == "123");
+        b.assign("456"); assert(b == "456");
+        a.assign("xxxxxxxxxxxxxxxxxxxxyyyyyyyyyyyy");
+        assert(a == "xxxxxxxxxxxxxxxxxxxxyyyyyyyyyyyy");
+    }{
+        string_t a("12345678"), b;
+        b.assign(a, 1, 1);
+        assert(b == "");
+        b.assign(a, 0, a.len);
+        assert(b == a);
+        b.assign(a, 2, 3);
+        assert(b == "3");
+        a.assign(a, 1, 5);
+        assert(a == "2345");
+        a.assign(a, 1, 1);
+        assert(a == "");
+    }{
+        string_t a("12345678"), b;
+        a.assign(a.dat);
+        assert(a == "12345678");
+        a.assign(a);
+        assert(a == "12345678");
+        b.assign("12345", 0);
+        assert(b == "");
+    }
+}
+
+void test_string_reserve()
+{
+    {
+        string_t a;
+        a.reserve(100);
+        assert(a.cap == 100);
+        a.assign("123"); assert(a == "123");
+        a.reserve(200);
+        assert(a == "123");
+        assert(a.cap == 200);
+    }{
+        string_t a(100), b;
+        assert(a.cap == 100);
+        a.assign("123"); assert(a == "123");
+        b.reserve(0); assert(b == "");
+        b.reserve(10); assert(b == "");
+    }
+}
+
 void test_string()
 {
+    test_string_assignment();
+    test_string_reserve();
+
     string_t a("abcd");
     string_t b("ABCD");
     assert(a != b);

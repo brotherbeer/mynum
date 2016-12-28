@@ -673,6 +673,24 @@ struct string_t
     void release();
     void reserve(size_t);
 
+    string_t& append(const char*);
+    string_t& append(const char*, size_t);
+    string_t& append(const string_t&);
+    string_t& append(const string_t&, size_t bpos, size_t epos);
+
+    string_t& prepend(const char*);
+    string_t& prepend(const char*, size_t);
+    string_t& prepend(const string_t&);
+    string_t& prepend(const string_t&, size_t bpos, size_t epos);
+
+    string_t& insert(size_t pos, const char*);
+    string_t& insert(size_t pos, const char*, size_t);
+    string_t& insert(size_t pos, const string_t&);
+    string_t& insert(size_t pos, const string_t&, size_t bpos, size_t epos);
+
+    string_t& remove(size_t pos);
+    string_t& remove(size_t bpos, size_t epos);
+
     string_t& to_upper();
     string_t& to_lower();
     string_t& to_upper(string_t& res);

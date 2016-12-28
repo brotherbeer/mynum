@@ -2526,6 +2526,155 @@ void string_t::reserve(size_t newcap)
     }
 }
 
+string_t& string_t::append(const char* p)
+{
+    if (p)
+    {
+        size_t l = strlen(p);
+        if (len + l > cap)
+        {
+            reserve(len + l);
+        }
+        if (dat)
+        {
+            memcpy(dat + len, p, l);
+            len += l;
+            dat[len] = '\0';
+        }
+    }
+    return *this;
+}
+
+string_t& string_t::append(const char* p, size_t l)
+{
+    if (p)
+    {
+        if (len + l > cap)
+        {
+            reserve(len + l);
+        }
+        if (dat)
+        {
+            memcpy(dat + len, p, l);
+            len += l;
+            dat[len] = '\0';
+        }
+    }
+    return *this;
+}
+
+string_t& string_t::append(const string_t& another)
+{
+    return append(another.dat, another.len);
+}
+
+string_t& string_t::append(const string_t& another, size_t bpos, size_t epos)
+{
+    assert(bpos <= epos && epos <= another.len);
+
+    if (another.dat)
+    {
+        return append(another.dat + bpos, epos - bpos);
+    }
+    return *this;
+}
+
+string_t& string_t::prepend(const char* p)
+{
+    return insert(0, p);
+}
+
+string_t& string_t::prepend(const char* p, size_t l)
+{
+    return insert(0, p, l);
+}
+
+string_t& string_t::prepend(const string_t& another)
+{
+    return insert(0, another);
+}
+
+string_t& string_t::prepend(const string_t& another, size_t bpos, size_t epos)
+{
+    return insert(0, another, bpos, epos);
+}
+
+string_t& string_t::insert(size_t pos, const char* p)
+{
+    assert(pos <= len);
+
+    if (p)
+    {
+        size_t l = strlen(p);
+        if (len + l > cap)
+        {
+            reserve(len + l);
+        }
+        if (dat)
+        {
+            memmove(dat + pos + l, dat + pos, len - pos);
+            memcpy(dat + pos, p, l);
+            len += l;
+            dat[len] = '\0';
+        }
+    }
+    return *this;
+}
+
+string_t& string_t::insert(size_t pos, const char* p, size_t l)
+{
+    assert(pos <= len);
+
+    if (p)
+    {
+        if (len + l > cap)
+        {
+            reserve(len + l);
+        }
+        if (dat)
+        {
+            memmove(dat + pos + l, dat + pos, len - pos);
+            memcpy(dat + pos, p, l);
+            len += l;
+            dat[len] = '\0';
+        }
+    }
+    return *this;
+}
+
+string_t& string_t::insert(size_t pos, const string_t& another)
+{
+    assert(pos <= len);
+    return insert(pos, another.dat, another.len);
+}
+
+string_t& string_t::insert(size_t pos, const string_t& another, size_t bpos, size_t epos)
+{
+    assert(bpos <= epos && epos <= another.len);
+    return insert(pos, another.dat + bpos, epos - bpos);
+}
+
+string_t& string_t::remove(size_t pos)
+{
+    if (pos < len)
+    {
+        memmove(dat + pos, dat + pos + 1, len-- - pos);
+    }
+    return *this;
+}
+
+string_t& string_t::remove(size_t bpos, size_t epos)
+{
+    assert(bpos <= epos && epos <= len);
+
+    if (dat)
+    {
+        memmove(dat + bpos, dat + epos, len - epos + 1);
+        len -= epos - bpos;
+    }
+    return *this;
+}
+
 int string_t::cmp(const string_t& another) const
 {
     return mynum::cmp(*this, another);

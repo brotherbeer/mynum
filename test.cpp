@@ -2253,10 +2253,9 @@ void test_mod_small()
         a.set_zero();
         assert(a.mod_ui(3) == 0);
         assert(a.mod_si(33399) == 0);
-    }
-    {
-        NN a("1234567");
+
         a.mod_unit(0);
+        a.mod(123456);
         a.mod(int(0));
         a.mod(long(0));
         a.mod((long long)0);

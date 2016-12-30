@@ -690,6 +690,8 @@ struct string_t
 
     string_t& remove(size_t pos);
     string_t& remove(size_t bpos, size_t epos);
+    string_t& remove_to_begin(size_t pos);
+    string_t& remove_to_end(size_t pos);
 
     string_t& to_upper();
     string_t& to_lower();

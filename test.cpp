@@ -35,6 +35,8 @@ void test_swap();
 void test_operators();
 void test_string_assignment();
 void test_string_reserve();
+void test_string_insert();
+void test_string_remove();
 void test_string();
 void test_add_small();
 void test_sub_small();
@@ -1900,6 +1902,105 @@ void test_string_reserve()
         a.assign("123"); assert(a == "123");
         b.reserve(0); assert(b == "");
         b.reserve(10); assert(b == "");
+    }{
+        string_t a("1234567890");
+        a.reserve(0);
+        assert(a == "1234567890");
+        a.reserve(1);
+        assert(a == "1234567890");
+    }
+}
+
+void test_string_insert()
+{
+    {
+        string_t a("12345678"), b;
+        a.insert(0, "xxx"); assert(a == "xxx12345678");
+        a.insert(a.len, "yyy"); assert(a == "xxx12345678yyy");
+        a.insert(1, NULL); assert(a == "xxx12345678yyy");
+        a.insert(1, ""); assert(a == "xxx12345678yyy");
+        a.insert(7, "zzz"); assert(a == "xxx1234zzz5678yyy");
+        b.insert(0, NULL); assert(b == "");
+        b.insert(0, ""); assert(b == "");
+        b.insert(0, "1"); assert(b == "1");
+        b.prepend("a"); assert(b == "a1");
+        b.append("b"); assert(b == "a1b");
+        b.prepend(NULL); assert(b == "a1b");
+        b.append(NULL); assert(b == "a1b");
+    }{
+        string_t a("12345678"), b("xyz"), c("+-*/%");
+        a.insert(111111, b); assert(a == "12345678xyz");
+        a.insert(a.len, b); assert(a == "12345678xyzxyz");
+        a.insert(a.len, b, 1, 2); assert(a == "12345678xyzxyzy");
+        a.insert(a.len, b, 1, 2000); assert(a == "12345678xyzxyzyyz");
+        a.insert(1111111, b, 0, 2000); assert(a == "12345678xyzxyzyyzxyz");
+        a.insert(0, "abcdefg", 3); assert(a == "abc12345678xyzxyzyyzxyz");
+    }{
+        string_t b("xyz"), c("+-*/%");
+        b.prepend(c); assert(b == "+-*/%xyz");
+        b.prepend(c, 0, c.len); assert(b == "+-*/%+-*/%xyz");
+        b.prepend(c, 0, 1); assert(b == "++-*/%+-*/%xyz");
+        b.prepend(c, 4, 3); assert(b == "++-*/%+-*/%xyz");
+        b.prepend(c, 4, 30000); assert(b == "%++-*/%+-*/%xyz");
+        b.prepend("OKOK", 3); assert(b == "OKO%++-*/%+-*/%xyz");
+        b.prepend("OKOK", 4); assert(b == "OKOKOKO%++-*/%+-*/%xyz");
+        b.prepend("OKOK", 0); assert(b == "OKOKOKO%++-*/%+-*/%xyz");
+    }{
+        string_t b("xyz"), c("+-*/%");
+        b.append(c); assert(b == "xyz+-*/%");
+        b.append(c, 0, c.len); assert(b == "xyz+-*/%+-*/%");
+        b.append(c, 0, 1); assert(b == "xyz+-*/%+-*/%+");
+        b.append(c, 4, 3); assert(b == "xyz+-*/%+-*/%+");
+        b.append(c, 4, 30000); assert(b == "xyz+-*/%+-*/%+%");
+        b.append("OKOK", 3); assert(b == "xyz+-*/%+-*/%+%OKO");
+        b.append("OKOK", 4); assert(b == "xyz+-*/%+-*/%+%OKOOKOK");
+        b.append("OKOK", 0); assert(b == "xyz+-*/%+-*/%+%OKOOKOK");
+    }
+}
+
+void test_string_remove()
+{
+    {
+        string_t a("1234"), b("abcdefg"), c("xyz"), d;
+        a.remove(0); assert(a == "234");
+        a.remove(0); assert(a == "34");
+        a.remove(0); assert(a == "4");
+        a.remove(0); assert(a == "");
+        b.remove(6); assert(b == "abcdef");
+        b.remove(5); assert(b == "abcde");
+        b.remove(4); assert(b == "abcd");
+        b.remove(3); assert(b == "abc");
+        b.remove(2); assert(b == "ab");
+        b.remove(1); assert(b == "a");
+        b.remove(0); assert(b == "");
+        c.remove(1); assert(c == "xz");
+        d.remove(0); assert(d == "");
+        d.remove(1); assert(d == "");
+    }{
+        string_t a("1234567890");
+        a.remove(6, a.len); assert(a == "123456");
+        a.remove(2, 3); assert(a == "12456");
+        a.remove(3, 2); assert(a == "12456");
+        a.remove(3, 3); assert(a == "12456");
+        a.remove(3, 33333); assert(a == "124");
+        a.remove(3333, 33333); assert(a == "124");
+    }{
+        string_t a("1234567890");
+        a.remove_to_begin(0); assert(a == "234567890");
+        a.remove_to_begin(2); assert(a == "567890");
+        a.remove_to_begin(a.len); assert(a == "");
+        string_t b("1234567890");
+        b.remove_to_begin(1000);
+        assert(b == "");
+    }{
+        string_t a("1234567890");
+        a.remove_to_end(5); assert(a == "12345");
+        a.remove_to_end(2); assert(a == "12");
+        a.remove_to_end(a.len); assert(a == "12");
+        a.remove_to_end(0); assert(a == "");
+        string_t b("1234567890");
+        b.remove_to_end(1000);
+        assert(b == "1234567890");
     }
 }
 
@@ -1907,6 +2008,8 @@ void test_string()
 {
     test_string_assignment();
     test_string_reserve();
+    test_string_insert();
+    test_string_remove();
 
     string_t a("abcd");
     string_t b("ABCD");

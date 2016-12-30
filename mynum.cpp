@@ -2570,10 +2570,12 @@ string_t& string_t::append(const string_t& another)
 
 string_t& string_t::append(const string_t& another, size_t bpos, size_t epos)
 {
-    assert(bpos <= epos && epos <= another.len);
-
-    if (another.dat)
+    if (another.dat && bpos < epos)
     {
+        if (epos > another.len)
+        {
+            epos = another.len;
+        }
         return append(another.dat + bpos, epos - bpos);
     }
     return *this;
@@ -2586,6 +2588,7 @@ string_t& string_t::prepend(const char* p)
 
 string_t& string_t::prepend(const char* p, size_t l)
 {
+    assert(l <= strlen(p));
     return insert(0, p, l);
 }
 
@@ -2601,10 +2604,12 @@ string_t& string_t::prepend(const string_t& another, size_t bpos, size_t epos)
 
 string_t& string_t::insert(size_t pos, const char* p)
 {
-    assert(pos <= len);
-
     if (p)
     {
+        if (pos > len)
+        {
+            pos = len;
+        }
         size_t l = strlen(p);
         if (len + l > cap)
         {
@@ -2623,10 +2628,14 @@ string_t& string_t::insert(size_t pos, const char* p)
 
 string_t& string_t::insert(size_t pos, const char* p, size_t l)
 {
-    assert(pos <= len);
+    assert(l <= strlen(p));
 
     if (p)
     {
+        if (pos > len)
+        {
+            pos = len;
+        }
         if (len + l > cap)
         {
             reserve(len + l);
@@ -2644,14 +2653,20 @@ string_t& string_t::insert(size_t pos, const char* p, size_t l)
 
 string_t& string_t::insert(size_t pos, const string_t& another)
 {
-    assert(pos <= len);
     return insert(pos, another.dat, another.len);
 }
 
 string_t& string_t::insert(size_t pos, const string_t& another, size_t bpos, size_t epos)
 {
-    assert(bpos <= epos && epos <= another.len);
-    return insert(pos, another.dat + bpos, epos - bpos);
+    if (bpos < epos)
+    {
+        if (epos > another.len)
+        {
+            epos = another.len;
+        }
+        return insert(pos, another.dat + bpos, epos - bpos);
+    }
+    return *this;
 }
 
 string_t& string_t::remove(size_t pos)
@@ -2665,12 +2680,38 @@ string_t& string_t::remove(size_t pos)
 
 string_t& string_t::remove(size_t bpos, size_t epos)
 {
-    assert(bpos <= epos && epos <= len);
-
-    if (dat)
+    if (dat && bpos < epos)
     {
+        if (epos > len)
+        {
+            epos = len;
+        }
         memmove(dat + bpos, dat + epos, len - epos + 1);
         len -= epos - bpos;
+    }
+    return *this;
+}
+
+string_t& string_t::remove_to_begin(size_t pos)
+{
+    if (dat)
+    {
+        if (pos >= len)
+        {
+            pos = len - 1;
+        }
+        memmove(dat, dat + pos + 1, len = len - pos - 1);
+        dat[len] = '\0';
+    }
+    return *this;
+}
+
+string_t& string_t::remove_to_end(size_t pos)
+{
+    if (dat && pos < len)
+    {
+        len = pos;
+        dat[len] = '\0';
     }
     return *this;
 }

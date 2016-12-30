@@ -252,17 +252,17 @@ struct number_t: public _base_number_t
     bool is_pos() const  { return len > 0; }
     bool is_zero() const { return len == 0; }
 
-    string_t& to_bin_string(string_t&) const;
-    string_t& to_oct_string(string_t&) const;
-    string_t& to_dec_string(string_t&) const;
-    string_t& to_hex_string(string_t&) const;
-    string_t& to_string(string_t& res, int base = 10) const;
+    string_t& to_bin_string(string_t&, const char* prefix = NULL) const;
+    string_t& to_oct_string(string_t&, const char* prefix = NULL) const;
+    string_t& to_dec_string(string_t&, const char* prefix = NULL) const;
+    string_t& to_hex_string(string_t&, const char* prefix = NULL) const;
+    string_t& to_string(string_t& res, int base = 10, const char* prefix = NULL) const;
 
-    string_t to_bin_string() const;
-    string_t to_oct_string() const;
-    string_t to_dec_string() const;
-    string_t to_hex_string() const;
-    string_t to_string(int base = 10) const;
+    string_t to_bin_string(const char* prefix = NULL) const;
+    string_t to_oct_string(const char* prefix = NULL) const;
+    string_t to_dec_string(const char* prefix = NULL) const;
+    string_t to_hex_string(const char* prefix = NULL) const;
+    string_t to_string(int base = 10, const char* prefix = NULL) const;
 
     bool in_range_char() const;
     bool in_range_short() const;
@@ -399,9 +399,9 @@ struct number_t: public _base_number_t
     void __construct_from_xbase_string(const char*, slen_t l, int base, float ln_base, unit_t inner_base, unit_t inner_base_digits);
     void __construct_from_string(const char*, slen_t, int base);
 
-    string_t& __to_bin_string(string_t&) const;
-    string_t& __to_hex_string(string_t&) const;
-    string_t& __to_xbase_string(string_t& res, unit_t base, unit_t inner_base, unit_t inner_base_digits, float ln_inner_base) const;
+    string_t& __to_bin_string(string_t&, const char* prefix) const;
+    string_t& __to_hex_string(string_t&, const char* prefix) const;
+    string_t& __to_xbase_string(string_t& res, unit_t base, unit_t inner_base, unit_t inner_base_digits, float ln_inner_base, const char* prefix) const;
 };
 
 int cmp(const number_t& a, const number_t& b);
@@ -695,8 +695,8 @@ struct string_t
 
     string_t& to_upper();
     string_t& to_lower();
-    string_t& to_upper(string_t& res);
-    string_t& to_lower(string_t& res);
+    string_t& to_upper(string_t& res) const;
+    string_t& to_lower(string_t& res) const;
 
     string_t& assign(const char*);
     string_t& assign(const char*, size_t);

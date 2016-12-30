@@ -1,7 +1,8 @@
 #include "mynum.h"
 #include "myoperators.h"
 #include <ctime>
-#include <iostream>
+#include <iomanip>
+#include <sstream>
 
 
 using namespace mynum;
@@ -9,7 +10,7 @@ using namespace mynum;
 void test_construct();
 void test_assign();
 void test_copy();
-void test_string_convertion();
+void test_string_conversion();
 void test_abs();
 void test_neg();
 void test_zero();
@@ -43,7 +44,7 @@ void test_sub_small();
 void test_mul_small();
 void test_div_small();
 void test_mod_small();
-void test_basic_type_convertion();
+void test_basic_type_conversion();
 
 void test_detail()
 {
@@ -52,7 +53,7 @@ void test_detail()
     test_construct();
     test_assign();
     test_copy();
-    test_string_convertion();
+    test_string_conversion();
     test_abs();
     test_neg();
     test_zero();
@@ -81,7 +82,7 @@ void test_detail()
     test_mul_small();
     test_div_small();
     test_mod_small();
-    test_basic_type_convertion();
+    test_basic_type_conversion();
 }
 
 int main(int argc, char* argv[])
@@ -469,7 +470,7 @@ void test_zero()
     assert(x3.is_zero());
 }
 
-void test_string_convertion()
+void test_string_conversion()
 {
     {
         NN a;
@@ -478,8 +479,13 @@ void test_string_convertion()
         assert(a.to_hex_string() == "0");
         NN b("a", 16);
         assert(b.to_bin_string() == "1010");
+        assert(b.to_bin_string("0b") == "0b1010");
+        assert(b.to_oct_string() == "12");
+        assert(b.to_oct_string("0") == "012");
         assert(b.to_dec_string() == "10");
+        assert(b.to_dec_string("D") == "D10");
         assert(b.to_hex_string() == "a");
+        assert(b.to_hex_string("0x") == "0xa");
         NN c("ab", 16);
         assert(c.to_bin_string() == "10101011");
         assert(c.to_dec_string() == "171");
@@ -573,18 +579,18 @@ void test_string_convertion()
         NN z("111081904039280882364734303563924724896151377915077421802106532333963046922011197865487511669501041505270875");
 
         assert(a.to_string(3) == "-22011111102211211121111000000111101010101101112");
-        assert(b.to_string(4) == "3002120002302111000013");
-        assert(c.to_string(5) == "43002120002344402111000013");
+        assert(b.to_string(4, "base(4):") == "base(4):3002120002302111000013");
+        assert(c.to_string(5, "") == "43002120002344402111000013");
         assert(d.to_string(6) == "434532123453512234512");
         assert(e.to_string(7) == "434532123453512234512");
         assert(f.to_string(8) == "434532123453512234512");
         assert(g.to_string(9) == "434532123453512234512");
-        assert(h.to_string(11) == "464647382827a36557a171828394a9000595767650");
+        assert(h.to_string(11, "ssssss") == "ssssss464647382827a36557a171828394a9000595767650");
         assert(i.to_string(12) == "-aaaaabbb127363647838bb1b2b3b2b");
-        assert(j.to_string(19) == "acccahhhaaabbb12736fffgh3647838bb1b2b3b2b");
+        assert(j.to_string(19, "base(19):") == "base(19):acccahhhaaabbb12736fffgh3647838bb1b2b3b2b");
         assert(n.to_string(32) == "mcnvkopachtalb36fughij6q3sr");
         assert(o.to_string(33) == "-mcnvkopachtalb36fughij6q3sr");
-        assert(z.to_string(36) == "ghfsdkfjghsfkdjfgslfgdfk2r5g2rfefewfrt45t356y76ii7juytrerge1gjhdfg123");
+        assert(z.to_string(36, "base(36):") == "base(36):ghfsdkfjghsfkdjfgslfgdfk2r5g2rfefewfrt45t356y76ii7juytrerge1gjhdfg123");
     }
     {
         NN a("32768");
@@ -1856,33 +1862,71 @@ void test_operators()
 void test_string_assignment()
 {
     {
-        string_t a("xxxxxxxxxxxxxxxxxxxx"), b;
-        a.assign("123"); assert(a == "123");
-        a.assign("456"); assert(a == "456");
-        b.assign("123"); assert(b == "123");
-        b.assign("456"); assert(b == "456");
-        a.assign("xxxxxxxxxxxxxxxxxxxxyyyyyyyyyyyy");
-        assert(a == "xxxxxxxxxxxxxxxxxxxxyyyyyyyyyyyy");
-    }{
-        string_t a("12345678"), b;
-        b.assign(a, 1, 1);
-        assert(b == "");
-        b.assign(a, 0, a.len);
-        assert(b == a);
-        b.assign(a, 2, 3);
-        assert(b == "3");
-        a.assign(a, 1, 5);
-        assert(a == "2345");
-        a.assign(a, 1, 1);
+        string_t a, b;
+        a.assign(b);
+        assert(a == b);
         assert(a == "");
     }{
+        string_t a("asdfasdfasfsa"), b;
+        a.assign(b);
+        assert(a == b);
+        assert(a == "");
+    }{
+        string_t a, b("asdfasdfasfsa");
+        a.assign(b);
+        assert(a == b);
+        assert(a == "asdfasdfasfsa");
+    }{
+        string_t a("abcde"), b("1234567890");
+        a.assign(b); assert(a == b); assert(a == "1234567890");
+        string_t c("1234567890"), d("abcde");
+        c.assign(d); assert(c == d); assert(c == "abcde");
+        string_t e("1111"), f("1111");
+        e.assign(f); assert(e == f); assert(e == "1111");
+    }
+    {
+        string_t a("xxxxxxxxxxxxxxxxxxxx"), b;
+        a.assign("123"); assert(a == "123");
+        a.assign("4567890", 3); assert(a == "456");
+        a.assign("4567890", 0); assert(a == "");
+        b.assign("123"); assert(b == "123");
+        b.assign("4567890"); assert(b == "4567890");
+        a.assign("xxxxxxxxxxxxxxxxxxxxyyyyyyyyyyyy");
+        assert(a == "xxxxxxxxxxxxxxxxxxxxyyyyyyyyyyyy");
+        a.release(); a.assign(""); assert(a == "");
+        a.release(); a.assign("0000"); assert(a == "0000");
+        a.assign("123456", 0); assert(a == "");
+    }{
         string_t a("12345678"), b;
-        a.assign(a.dat);
-        assert(a == "12345678");
-        a.assign(a);
-        assert(a == "12345678");
-        b.assign("12345", 0);
-        assert(b == "");
+        b.assign(a, 1, 1); assert(b == "");
+        b.assign(a, 0, a.len); assert(b == a);
+        b.assign(a, 2, 3); assert(b == "3");
+        b.release(); b.assign(a, 2, 33333); assert(b == "345678");
+        b.release(); b.assign(a, 22222, 33333); assert(b == "");
+        a.assign(a, 1, 5); assert(a == "2345");
+        a.assign(a, 1, 1); assert(a == "");
+    }{
+        string_t a("12345678"), b;
+        a.assign(a.dat); assert(a == "12345678");
+        a.assign(a); assert(a == "12345678");
+        b.assign("12345", 0); assert(b == "");
+    }{
+        string_t a("12345678"), b("abcdefghijklmn");
+        a.assign(b, 3, 5); assert(a == "de");
+        a.assign(b, 0, b.len); assert(a == b);
+        a.assign(b, 0, 100); assert(a == b);
+        a.assign(b, 100, 200); assert(a == "");
+        a.assign(b, 4, 3); assert(a == "");
+        a.assign(b, 400000, 3000); assert(a == "");
+    }{
+        string_t a("1234567890");
+        a.assign(a.dat); assert(a == "1234567890");
+        a.assign(a.dat + 3, 4); assert(a == "4567");
+        a.assign(a, 3, 4); assert(a == "7");
+        a.assign(a, 8, 4); assert(a == "");
+
+        a.assign(NULL); assert(a == "");
+        a.assign("123"); a.assign(NULL); assert(a == "");
     }
 }
 
@@ -2055,6 +2099,31 @@ void test_string()
     assert(string_t("abcde") != "abcd");
 
     // TODO: add cases about 'check' function
+#ifndef NO_STL_SUPPORT
+    {
+        using namespace std;
+        number_t a("2348975234572304985723890457");
+        number_t b("-2348975234572304985723890457");
+        ostringstream oss;
+        oss << a;
+        assert(oss.str() == "2348975234572304985723890457");
+        oss.str("");
+        oss << b;
+        assert(oss.str() == "-2348975234572304985723890457");
+        oss.str("");
+        oss << setw(32) << setfill('*') << left << hex << showpos << showbase << a;
+        assert(oss.str() == "+0x79706da9f34a4acc209eb19******");
+        oss.str("");
+        oss << setw(32) << setfill('*') << left << hex << showpos << showbase << b;
+        assert(oss.str() == "-0x79706da9f34a4acc209eb19******");
+
+        oss.str("");
+        oss << a(33);
+        assert(oss.str() == "12wifbtceu89thjubk6");
+        oss << uppercase << a(33);
+        assert(oss.str() == "12wifbtceu89thjubk612WIFBTCEU89THJUBK6");
+    }
+#endif
 }
 
 void test_add_small()
@@ -2368,7 +2437,7 @@ void test_mod_small()
     }
 }
 
-void test_basic_type_convertion()
+void test_basic_type_conversion()
 {
     {
         NN a(INT_MAX), b(LONG_MAX), c(LLONG_MAX);

@@ -400,3 +400,62 @@ template <class T> inline T* operator + (T* p, const number_t& x) { return p + (
 template <class T> inline T* operator + (const number_t& x, T* p) { return p + (intptr_t)x; }
 
 } // namespace end
+
+#ifndef NO_STL_SUPPORT
+
+#include <iostream>
+
+namespace mynum {
+
+inline std::ostream& operator << (std::ostream& os, const number_t& a)
+{
+    string_t s;
+    int base = 10;
+    const char* prefix = NULL;
+    std::ostream::fmtflags ff = os.flags();
+    
+    if (ff & std::ostream::oct)
+    {
+        base = 8;
+        prefix = "0";
+    }
+    else if (ff & std::ostream::hex)
+    {
+        base = 16;
+        prefix = "0x";
+    }
+    prefix = std::ostream::showbase? prefix: NULL;
+    a.to_string(s, base, prefix);
+    if (ff & std::ostream::uppercase)
+    {
+        s.to_upper();
+    }
+    if (ff & std::ostream::showpos)
+    {
+        if (a.is_pos())
+        {
+            s.prepend("+");
+        }
+    }
+    return os << s.c_str();
+}
+
+inline std::ostream& operator << (std::ostream& os, const string_t& s)
+{
+    if (os.flags() & std::ostream::uppercase)
+    {
+        string_t tmp;
+        s.to_upper(tmp);
+        return os << tmp.c_str();
+    }
+    return os << s.c_str();
+}
+
+inline std::ostream& operator << (std::ostream& os, const bitref_t& b)
+{
+    return os << (bool)b;
+}
+
+}  // namespace end
+
+#endif

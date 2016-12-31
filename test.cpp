@@ -479,13 +479,13 @@ void test_string_conversion()
         assert(a.to_hex_string() == "0");
         NN b("a", 16);
         assert(b.to_bin_string() == "1010");
-        assert(b.to_bin_string("0b") == "0b1010");
+        assert(b.to_bin_string() == "1010");
         assert(b.to_oct_string() == "12");
-        assert(b.to_oct_string("0") == "012");
+        assert(b.to_oct_string() == "12");
         assert(b.to_dec_string() == "10");
-        assert(b.to_dec_string("D") == "D10");
+        assert(b.to_dec_string() == "10");
         assert(b.to_hex_string() == "a");
-        assert(b.to_hex_string("0x") == "0xa");
+        assert(b.to_hex_string() == "a");
         NN c("ab", 16);
         assert(c.to_bin_string() == "10101011");
         assert(c.to_dec_string() == "171");
@@ -579,18 +579,18 @@ void test_string_conversion()
         NN z("111081904039280882364734303563924724896151377915077421802106532333963046922011197865487511669501041505270875");
 
         assert(a.to_string(3) == "-22011111102211211121111000000111101010101101112");
-        assert(b.to_string(4, "base(4):") == "base(4):3002120002302111000013");
-        assert(c.to_string(5, "") == "43002120002344402111000013");
+        assert(b.to_string(4) == "3002120002302111000013");
+        assert(c.to_string(5) == "43002120002344402111000013");
         assert(d.to_string(6) == "434532123453512234512");
         assert(e.to_string(7) == "434532123453512234512");
         assert(f.to_string(8) == "434532123453512234512");
         assert(g.to_string(9) == "434532123453512234512");
-        assert(h.to_string(11, "ssssss") == "ssssss464647382827a36557a171828394a9000595767650");
+        assert(h.to_string(11) == "464647382827a36557a171828394a9000595767650");
         assert(i.to_string(12) == "-aaaaabbb127363647838bb1b2b3b2b");
-        assert(j.to_string(19, "base(19):") == "base(19):acccahhhaaabbb12736fffgh3647838bb1b2b3b2b");
+        assert(j.to_string(19) == "acccahhhaaabbb12736fffgh3647838bb1b2b3b2b");
         assert(n.to_string(32) == "mcnvkopachtalb36fughij6q3sr");
         assert(o.to_string(33) == "-mcnvkopachtalb36fughij6q3sr");
-        assert(z.to_string(36, "base(36):") == "base(36):ghfsdkfjghsfkdjfgslfgdfk2r5g2rfefewfrt45t356y76ii7juytrerge1gjhdfg123");
+        assert(z.to_string(36) == "ghfsdkfjghsfkdjfgslfgdfk2r5g2rfefewfrt45t356y76ii7juytrerge1gjhdfg123");
     }
     {
         NN a("32768");
@@ -1941,12 +1941,6 @@ void test_string_reserve()
         assert(a == "123");
         assert(a.cap == 200);
     }{
-        string_t a(100), b;
-        assert(a.cap == 100);
-        a.assign("123"); assert(a == "123");
-        b.reserve(0); assert(b == "");
-        b.reserve(10); assert(b == "");
-    }{
         string_t a("1234567890");
         a.reserve(0);
         assert(a == "1234567890");
@@ -1972,13 +1966,14 @@ void test_string_insert()
         b.prepend(NULL); assert(b == "a1b");
         b.append(NULL); assert(b == "a1b");
     }{
-        string_t a("12345678"), b("xyz"), c("+-*/%");
+        string_t a("12345678"), b("xyz");
         a.insert(111111, b); assert(a == "12345678xyz");
         a.insert(a.len, b); assert(a == "12345678xyzxyz");
         a.insert(a.len, b, 1, 2); assert(a == "12345678xyzxyzy");
         a.insert(a.len, b, 1, 2000); assert(a == "12345678xyzxyzyyz");
         a.insert(1111111, b, 0, 2000); assert(a == "12345678xyzxyzyyzxyz");
         a.insert(0, "abcdefg", 3); assert(a == "abc12345678xyzxyzyyzxyz");
+        a.insert(3, "---", 3); assert(a == "abc---12345678xyzxyzyyzxyz");
     }{
         string_t b("xyz"), c("+-*/%");
         b.prepend(c); assert(b == "+-*/%xyz");
@@ -1999,6 +1994,9 @@ void test_string_insert()
         b.append("OKOK", 3); assert(b == "xyz+-*/%+-*/%+%OKO");
         b.append("OKOK", 4); assert(b == "xyz+-*/%+-*/%+%OKOOKOK");
         b.append("OKOK", 0); assert(b == "xyz+-*/%+-*/%+%OKOOKOK");
+    }{
+        //string_t a("abcdefghijklmnopqrst");
+        //a.insert(3, a.dat + 5, 5); assert(a == "abcfghijdefghijklmnopqrst");  // TODO
     }
 }
 
@@ -2113,6 +2111,7 @@ void test_string()
         oss.str("");
         oss << setw(32) << setfill('*') << left << hex << showpos << showbase << a;
         assert(oss.str() == "+0x79706da9f34a4acc209eb19******");
+
         oss.str("");
         oss << setw(32) << setfill('*') << left << hex << showpos << showbase << b;
         assert(oss.str() == "-0x79706da9f34a4acc209eb19******");

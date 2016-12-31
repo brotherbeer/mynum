@@ -252,17 +252,17 @@ struct number_t: public _base_number_t
     bool is_pos() const  { return len > 0; }
     bool is_zero() const { return len == 0; }
 
-    string_t& to_bin_string(string_t&, const char* prefix = NULL) const;
-    string_t& to_oct_string(string_t&, const char* prefix = NULL) const;
-    string_t& to_dec_string(string_t&, const char* prefix = NULL) const;
-    string_t& to_hex_string(string_t&, const char* prefix = NULL) const;
-    string_t& to_string(string_t& res, int base = 10, const char* prefix = NULL) const;
+    string_t& to_bin_string(string_t&) const;
+    string_t& to_oct_string(string_t&) const;
+    string_t& to_dec_string(string_t&) const;
+    string_t& to_hex_string(string_t&) const;
+    string_t& to_string(string_t& res, int base = 10) const;
 
-    string_t to_bin_string(const char* prefix = NULL) const;
-    string_t to_oct_string(const char* prefix = NULL) const;
-    string_t to_dec_string(const char* prefix = NULL) const;
-    string_t to_hex_string(const char* prefix = NULL) const;
-    string_t to_string(int base = 10, const char* prefix = NULL) const;
+    string_t to_bin_string() const;
+    string_t to_oct_string() const;
+    string_t to_dec_string() const;
+    string_t to_hex_string() const;
+    string_t to_string(int base = 10) const;
 
     bool in_range_char() const;
     bool in_range_short() const;
@@ -399,9 +399,9 @@ struct number_t: public _base_number_t
     void __construct_from_xbase_string(const char*, slen_t l, int base, float ln_base, unit_t inner_base, unit_t inner_base_digits);
     void __construct_from_string(const char*, slen_t, int base);
 
-    string_t& __to_bin_string(string_t&, const char* prefix) const;
-    string_t& __to_hex_string(string_t&, const char* prefix) const;
-    string_t& __to_xbase_string(string_t& res, unit_t base, unit_t inner_base, unit_t inner_base_digits, float ln_inner_base, const char* prefix) const;
+    string_t& __to_bin_string(string_t&) const;
+    string_t& __to_hex_string(string_t&) const;
+    string_t& __to_xbase_string(string_t& res, unit_t base, unit_t inner_base, unit_t inner_base_digits, float ln_inner_base) const;
 };
 
 int cmp(const number_t& a, const number_t& b);
@@ -656,16 +656,22 @@ struct string_t
     size_t cap;
 
     string_t(): dat(NULL), len(0), cap(0) {}
-    string_t(size_t);
+    string_t(char);
     string_t(const char*);
     string_t(const char*, size_t);
     string_t(const char*, size_t length, size_t capacity);
     string_t(const string_t&);
+    string_t(const string_t&, size_t bpos, size_t epos);
+    string_t(const string_t&, bool strip, const char* chars = " \t\r\n\f\v");
 
     ~string_t();
 
+    size_t capacity() const { return cap; }
+    void clear();
     int cmp(const string_t&) const;
     const char* c_str() const { return dat; }
+    bool empty() const { return len != 0; }
+    size_t length() const { return len; }
     void take(char* p, size_t l);
     void take(char* p, size_t l, size_t c);
 
@@ -702,6 +708,36 @@ struct string_t
     string_t& assign(const char*, size_t);
     string_t& assign(const string_t&);
     string_t& assign(const string_t&, size_t bpos, size_t epos);
+   
+    size_t pos_not_chars(size_t pos, const char*) const;
+    size_t pos_not_blank(size_t pos) const;
+    size_t pos_not_chars(const char*) const;
+    size_t pos_not_blank() const;
+    size_t pos_not_chars(const string_t&) const;
+
+    size_t rpos_not_chars(size_t pos, const char*) const;
+    size_t rpos_not_blank(size_t pos) const;
+    size_t rpos_not_chars(const char*) const;
+    size_t rpos_not_blank() const;
+    size_t rpos_not_chars(const string_t&) const;
+
+    string_t& strip();
+    string_t& strip(const char*);
+    string_t& strip(const string_t&);
+
+    bool starts_with(size_t pos, const char*) const;
+    bool starts_with(size_t pos, const char*, size_t) const;
+    bool starts_with(size_t pos, const string_t&) const;
+    bool starts_with(const char*) const;
+    bool starts_with(const char*, size_t) const;
+    bool starts_with(const string_t&) const;
+
+    bool ends_with(size_t pos, const char*) const;
+    bool ends_with(size_t pos, const char*, size_t) const;
+    bool ends_with(size_t pos, const string_t&) const;
+    bool ends_with(const char*) const;
+    bool ends_with(const char*, size_t) const;
+    bool ends_with(const string_t&) const;
 
     string_t& operator = (const char*);
     string_t& operator = (const string_t&);
@@ -714,6 +750,30 @@ int cmp(const string_t& a, const char* b);
 int cmp(const char* a, const string_t& b);
 int check(const char* p, int base);
 int check(const char* p, const char* e, int base);
+
+struct format_t
+{
+    int base;
+    int group;
+    bool uppercase;
+    bool showpos;
+    bool ignoreblank;
+
+    string_t prefix;
+    string_t postfix;
+    string_t separator;
+
+    format_t(int b = 10, const char* pre = ""):
+        base(b), group(0), uppercase(false),
+        showpos(false), ignoreblank(true), prefix(pre)
+    {}
+
+    string_t  dump(const number_t& a);
+    string_t& dump(const number_t& a, string_t& str);
+
+    number_t  load(const string_t& str);
+    number_t& load(const string_t& str, number_t& a);
+};
 
 struct bitref_t
 {

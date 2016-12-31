@@ -403,7 +403,9 @@ template <class T> inline T* operator + (const number_t& x, T* p) { return p + (
 
 #ifndef NO_STL_SUPPORT
 
+#include <string>
 #include <iostream>
+
 
 namespace mynum {
 
@@ -413,7 +415,7 @@ inline std::ostream& operator << (std::ostream& os, const number_t& a)
     int base = 10;
     const char* prefix = NULL;
     std::ostream::fmtflags ff = os.flags();
-    
+
     if (ff & std::ostream::oct)
     {
         base = 8;
@@ -425,30 +427,72 @@ inline std::ostream& operator << (std::ostream& os, const number_t& a)
         prefix = "0x";
     }
     prefix = std::ostream::showbase? prefix: NULL;
-    a.to_string(s, base, prefix);
-    if (ff & std::ostream::uppercase)
+
+    format_t format;
+    format.base = base;
+    format.prefix = prefix;
+    format.uppercase = (ff & std::ostream::uppercase) != 0;
+    format.showpos = (ff & std::ostream::showpos) != 0;
+    return os << format.dump(a, s).c_str();
+}
+
+inline std::istream& operator >> (std::istream& is, number_t& a)  // not finished
+{
+    std::string tmp;
+    is >> tmp;
+
+    int base = 10;
+    size_t l = tmp.length();
+    const char* p = tmp.c_str();
+    if (l > 0 && *p == '+')
     {
-        s.to_upper();
+        p++;
+        l--;
     }
-    if (ff & std::ostream::showpos)
+    if (l >= 2 && p[0] == '0')   // -0x123 or 0x-123 ???
     {
-        if (a.is_pos())
+        if (p[1] == 'x' || p[1] == 'X')
         {
-            s.prepend("+");
+            base = 16; p += 2; l -= 2;
+        }
+        else if (p[1] == 'b' || p[1] == 'B')
+        {
+            base = 2; p += 2; l -= 2;
         }
     }
-    return os << s.c_str();
+    else if (l >= 1 && p[0] == '0')
+    {
+        base = 8; p += 1; l -= 1;
+    }
+    else
+    {
+        if (is.flags() & std::istream::oct)
+        {
+            base = 8;
+        }
+        else if (is.flags() & std::istream::hex)
+        {
+            base = 16;
+        }
+    }
+    a.assign(p, l, base);
+    return is;
 }
 
 inline std::ostream& operator << (std::ostream& os, const string_t& s)
 {
     if (os.flags() & std::ostream::uppercase)
     {
-        string_t tmp;
-        s.to_upper(tmp);
-        return os << tmp.c_str();
+        for (size_t i = 0; i < s.length(); i++)
+        {
+            os.put(toupper(s[i]));
+        }
     }
-    return os << s.c_str();
+    else if (s.valid())
+    {
+        os << s.c_str();
+    }
+    return os;
 }
 
 inline std::ostream& operator << (std::ostream& os, const bitref_t& b)

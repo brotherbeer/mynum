@@ -500,68 +500,68 @@ void number_t::bits_reserve(size_t n)
     }
 }
 
-string_t number_t::to_bin_string(const char* prefix) const
+string_t number_t::to_bin_string() const
 {
     string_t res;
-    return __to_bin_string(res, prefix);
+    return __to_bin_string(res);
 }
 
-string_t& number_t::to_bin_string(string_t& res, const char* prefix) const
+string_t& number_t::to_bin_string(string_t& res) const
 {
-    return __to_bin_string(res, prefix);
+    return __to_bin_string(res);
 }
 
-string_t number_t::to_oct_string(const char* prefix) const
-{
-    string_t res;
-    return __to_xbase_string(res, 8, INNEROCT_BASE, INNEROCT_BASE_DIGITS, LN_INNEROCT_BASE, prefix);
-}
-
-string_t& number_t::to_oct_string(string_t& res, const char* prefix) const
-{
-    return __to_xbase_string(res, 8, INNEROCT_BASE, INNEROCT_BASE_DIGITS, LN_INNEROCT_BASE, prefix);
-}
-
-string_t number_t::to_dec_string(const char* prefix) const
+string_t number_t::to_oct_string() const
 {
     string_t res;
-    return __to_xbase_string(res, 10, INNERDEC_BASE, INNERDEC_BASE_DIGITS, LN_INNERDEC_BASE, prefix);
+    return __to_xbase_string(res, 8, INNEROCT_BASE, INNEROCT_BASE_DIGITS, LN_INNEROCT_BASE);
 }
 
-string_t& number_t::to_dec_string(string_t& res, const char* prefix) const
+string_t& number_t::to_oct_string(string_t& res) const
 {
-    return __to_xbase_string(res, 10, INNERDEC_BASE, INNERDEC_BASE_DIGITS, LN_INNERDEC_BASE, prefix);
+    return __to_xbase_string(res, 8, INNEROCT_BASE, INNEROCT_BASE_DIGITS, LN_INNEROCT_BASE);
 }
 
-string_t number_t::to_hex_string(const char* prefix) const
-{
-    string_t res;
-    return __to_hex_string(res, prefix);
-}
-
-string_t& number_t::to_hex_string(string_t& res, const char* prefix) const
-{
-    return __to_hex_string(res, prefix);
-}
-
-string_t number_t::to_string(int base, const char* prefix) const
+string_t number_t::to_dec_string() const
 {
     string_t res;
-    return to_string(res, base, prefix);
+    return __to_xbase_string(res, 10, INNERDEC_BASE, INNERDEC_BASE_DIGITS, LN_INNERDEC_BASE);
 }
 
-string_t& number_t::to_string(string_t& res, int base, const char* prefix) const
+string_t& number_t::to_dec_string(string_t& res) const
+{
+    return __to_xbase_string(res, 10, INNERDEC_BASE, INNERDEC_BASE_DIGITS, LN_INNERDEC_BASE);
+}
+
+string_t number_t::to_hex_string() const
+{
+    string_t res;
+    return __to_hex_string(res);
+}
+
+string_t& number_t::to_hex_string(string_t& res) const
+{
+    return __to_hex_string(res);
+}
+
+string_t number_t::to_string(int base) const
+{
+    string_t res;
+    return to_string(res, base);
+}
+
+string_t& number_t::to_string(string_t& res, int base) const
 {
     if (base > 1) switch (base)
     {
-        case  2: return __to_bin_string(res, prefix);
-        case  8: return __to_xbase_string(res, 8,  INNEROCT_BASE, INNEROCT_BASE_DIGITS, LN_INNEROCT_BASE, prefix);
-        case 10: return __to_xbase_string(res, 10, INNERDEC_BASE, INNERDEC_BASE_DIGITS, LN_INNERDEC_BASE, prefix);
-        case 16: return __to_hex_string(res, prefix);
+        case  2: return __to_bin_string(res);
+        case  8: return __to_xbase_string(res, 8,  INNEROCT_BASE, INNEROCT_BASE_DIGITS, LN_INNEROCT_BASE);
+        case 10: return __to_xbase_string(res, 10, INNERDEC_BASE, INNERDEC_BASE_DIGITS, LN_INNERDEC_BASE);
+        case 16: return __to_hex_string(res);
         default: if (base <= __max_base())
         {
             _radix_t r(base);
-            return __to_xbase_string(res, base, r.inner_base, r.inner_base_digits, r.ln_inner_base, prefix);
+            return __to_xbase_string(res, base, r.inner_base, r.inner_base_digits, r.ln_inner_base);
         }
     }
     res.release();
@@ -2105,7 +2105,7 @@ static const char* __B[16] =
     "1000", "1001", "1010", "1011", "1100", "1101", "1110", "1111",
 };
 
-string_t& number_t::__to_bin_string(string_t& res, const char* prefix) const
+string_t& number_t::__to_bin_string(string_t& res) const
 {
     slen_t l = __abs(len);
     if (l)
@@ -2118,8 +2118,7 @@ string_t& number_t::__to_bin_string(string_t& res, const char* prefix) const
         {
             p--;
         }
-        size_t pfl = prefix? strlen(prefix): 0;
-        size_t chars = pfl + l * UNITBITS + (len < 0);
+        size_t chars = l * UNITBITS + (len < 0);
         if (res.cap >= chars)
         {
             ps = str = res.dat;
@@ -2131,11 +2130,6 @@ string_t& number_t::__to_bin_string(string_t& res, const char* prefix) const
         if (len < 0)
         {
             *ps++ = '-';
-        }
-        if (pfl)
-        {
-            memcpy(ps, prefix, pfl);
-            ps += pfl;
         }
         for (int i = 0; i < 8; i++)
         {
@@ -2184,7 +2178,7 @@ int __max_base()
     return sizeof(__DIGIT_CHAR);
 }
 
-string_t& number_t::__to_hex_string(string_t& res, const char* prefix) const
+string_t& number_t::__to_hex_string(string_t& res) const
 {
     slen_t l = __abs(len);
     if (l)
@@ -2197,8 +2191,7 @@ string_t& number_t::__to_hex_string(string_t& res, const char* prefix) const
         {
             p--;
         }
-        size_t pfl = prefix? strlen(prefix): 0;
-        size_t chars = pfl + l * sizeof(unit_t) * 2 + (len < 0);
+        size_t chars = l * sizeof(unit_t) * 2 + (len < 0);
         if (res.cap >= chars)
         {
             ps = str = res.dat;
@@ -2210,11 +2203,6 @@ string_t& number_t::__to_hex_string(string_t& res, const char* prefix) const
         if (len < 0)
         {
             *ps++ = '-';
-        }
-        if (pfl)
-        {
-            memcpy(ps, prefix, pfl);
-            ps += pfl;
         }
         if (*p & 0xF0)
         {
@@ -2258,7 +2246,7 @@ static __always_inline(void) __unit_to_str(unit_t x, char* str, int base, int wi
     }
 }
 
-string_t& number_t::__to_xbase_string(string_t& res, unit_t base, unit_t inner_base, unit_t inner_base_digits, float ln_inner_base, const char* prefix) const
+string_t& number_t::__to_xbase_string(string_t& res, unit_t base, unit_t inner_base, unit_t inner_base_digits, float ln_inner_base) const
 {
     slen_t l = __abs(len);
     if (l)
@@ -2289,8 +2277,7 @@ string_t& number_t::__to_xbase_string(string_t& res, unit_t base, unit_t inner_b
             unit_t* e = tmp - 1;
 
             __unit_to_str(*p--, buf, base, inner_base_digits);
-            size_t pfl = prefix? strlen(prefix): 0;
-            size_t chars = pfl + size * inner_base_digits + (len < 0);
+            size_t chars = size * inner_base_digits + (len < 0);
             if (res.cap >= chars)
             {
                 ps = str = res.dat;
@@ -2302,11 +2289,6 @@ string_t& number_t::__to_xbase_string(string_t& res, unit_t base, unit_t inner_b
             if (len < 0)
             {
                 *ps++ = '-';
-            }
-            if (pfl)
-            {
-                memcpy(ps, prefix, pfl);
-                ps += pfl;
             }
             slen_t i = 0;
             while (buf[i] == '0')
@@ -2344,12 +2326,11 @@ string_t& number_t::__to_xbase_string(string_t& res, unit_t base, unit_t inner_b
 
 /** class string_t implementation */
 
-string_t::string_t(size_t capacity): dat(NULL), len(0), cap(capacity)
+string_t::string_t(char c): cap(sizeof(dunit_t))
 {
-    if (cap)
-    {
-        dat = (char*)mem::allocate(cap + 1, sizeof(char));
-    }
+    dat = (char*)mem::allocate(cap + 1, sizeof(char));
+    *dat = c;
+    dat[len = 1] = '\0';
 }
 
 string_t::string_t(const char* p): dat(NULL), len(0), cap(0)
@@ -2391,7 +2372,7 @@ string_t::string_t(const char* p, size_t length, size_t capacity): dat(NULL), le
     }
 }
 
-string_t::string_t(const string_t& another): dat(NULL), len(0)
+string_t::string_t(const string_t& another): dat(NULL), len(0), cap(0)
 {
     if (another.dat)
     {
@@ -2400,6 +2381,35 @@ string_t::string_t(const string_t& another): dat(NULL), len(0)
         dat = (char*)mem::allocate(cap + 1, sizeof(char));
         memcpy(dat, another.dat, len);
         dat[len] = '\0';
+    }
+}
+
+string_t::string_t(const string_t& another, size_t bpos, size_t epos): dat(NULL), len(0), cap(0)
+{
+    if (another.dat)
+    {
+        if (epos > another.len)
+        {
+            epos = another.len;
+        }
+        if (bpos < epos)
+        {
+            string_t(another.dat, epos - bpos);
+        }
+    }
+}
+
+string_t::string_t(const string_t& another, bool strip, const char* chars)
+{
+    if (strip)
+    {
+        size_t bpos = another.pos_not_chars(chars);
+        size_t epos = another.rpos_not_chars(chars);
+        string_t(another, bpos, epos);
+    }
+    else
+    {
+        string_t(another);
     }
 }
 
@@ -2491,6 +2501,172 @@ string_t& string_t::assign(const string_t& another, size_t bpos, size_t epos)
         dat[len] = '\0';
     }
     return *this;
+}
+
+size_t string_t::pos_not_chars(size_t pos, const char* chars) const
+{
+    if (dat && chars && pos < len)
+    {
+        for (char* p = dat + pos; *p != '\0'; p++) if (!strchr(chars, *p))
+        {
+            return p - dat;
+        }
+    }
+    return -1;    
+}
+
+size_t string_t::pos_not_chars(const char* p) const
+{
+    return pos_not_chars(0, p);
+}
+
+size_t string_t::pos_not_chars(const string_t& another) const
+{
+    return pos_not_chars(0, another.dat);
+}
+
+size_t string_t::pos_not_blank(size_t pos) const
+{
+    return pos_not_chars(pos, " \t\n\r\f\v");
+}
+
+size_t string_t::pos_not_blank() const
+{
+    return pos_not_chars(0, " \t\n\r\f\v");
+}
+
+size_t string_t::rpos_not_chars(size_t pos, const char* chars) const
+{
+    if (dat && chars && pos < len)
+    {
+        const char* p = dat + pos;
+        for (; p != dat - 1; p--) if (!strchr(chars, *p))
+        {
+            return p - dat;
+        }
+    }
+    return -1;
+}
+
+size_t string_t::rpos_not_chars(const char* p) const
+{
+    size_t pos = p? strlen(p) - 1: 0;
+    return rpos_not_chars(pos, p);
+}
+
+size_t string_t::rpos_not_chars(const string_t& another) const
+{
+    return rpos_not_chars(another.len - 1, another.dat);
+}
+
+string_t& string_t::strip(const char* chars)
+{
+    size_t bpos = pos_not_chars(0, chars);
+    size_t epos = rpos_not_chars(0, chars);
+    return assign(*this, bpos, epos);
+}
+
+string_t& string_t::strip(const string_t& another)
+{
+    return strip(another.dat);
+}
+
+string_t& string_t::strip()
+{
+    return strip(" \t\r\n\f\v");
+}
+
+bool string_t::starts_with(size_t pos, const char* p, size_t l) const
+{
+    bool ret = false;
+    if (dat && p && pos < len)
+    {
+        const char* q = dat + pos;
+        if ((ret = len >= l))
+        {
+            for (size_t i = 0; i != l; i++) if (p[i] != q[i])
+            {
+                ret = false;
+                break;
+            }
+        }
+    }
+    return ret;
+}
+
+bool string_t::starts_with(size_t pos, const char* p) const
+{
+    size_t l = p? strlen(p): 0;
+    return starts_with(pos, p, l);
+}
+
+bool string_t::starts_with(size_t pos, const string_t& another) const
+{
+    return starts_with(pos, another.dat, another.len);
+}
+
+bool string_t::starts_with(const char* p) const
+{
+    size_t l = p? strlen(p): 0;
+    return starts_with(0, p, l);
+}
+
+bool string_t::starts_with(const char* p, size_t l) const
+{
+    return starts_with(0, p, l);
+}
+
+bool string_t::starts_with(const string_t& another) const
+{
+    return starts_with(0, another.dat, another.len);
+}
+
+bool string_t::ends_with(size_t pos, const char* p, size_t l) const
+{
+    bool ret = false;
+    if (dat && p && pos < len)
+    {
+        if ((ret = len >= l))
+        {
+            const char* e, *E, *b;
+            e = p + pos;
+            E = dat + pos;
+            b = p - 1;
+            for (; e != b; e--, E--) if (*e != *E)
+            {
+                ret = false;
+                break;
+            }
+        }
+    }
+    return ret;
+}
+
+bool string_t::ends_with(size_t pos, const char* p) const
+{
+    size_t l = p? strlen(p): 0;
+    return ends_with(pos, p, l);
+}
+
+bool string_t::ends_with(size_t pos, const string_t& another) const
+{
+    return ends_with(pos, another.dat, another.len);
+}
+
+bool string_t::ends_with(const char* p) const
+{
+    size_t l = p? strlen(p): 0;
+    return ends_with(l - 1, p, l);
+}
+
+bool string_t::ends_with(const char* p, size_t l) const
+{
+    return ends_with(l - 1, p, l);
+}
+
+bool string_t::ends_with(const string_t& another) const
+{
+    return ends_with(0, another.dat, another.len);
 }
 
 string_t& string_t::operator = (const string_t& another)
@@ -2635,10 +2811,10 @@ string_t& string_t::insert(size_t pos, const char* p)
 
 string_t& string_t::insert(size_t pos, const char* p, size_t l)
 {
-    assert(l <= strlen(p));
-
     if (p)
     {
+        assert(l <= strlen(p));
+
         if (pos > len)
         {
             pos = len;
@@ -2650,7 +2826,7 @@ string_t& string_t::insert(size_t pos, const char* p, size_t l)
         if (dat)
         {
             memmove(dat + pos + l, dat + pos, len - pos);
-            memcpy(dat + pos, p, l);
+            memmove(dat + pos, p, l);
             len += l;
             dat[len] = '\0';
         }
@@ -2726,6 +2902,15 @@ string_t& string_t::remove_to_end(size_t pos)
     return *this;
 }
 
+void string_t::clear()
+{
+    len = 0;
+    if (dat)
+    {
+        dat[len] = '\0';
+    }
+}
+
 int string_t::cmp(const string_t& another) const
 {
     return mynum::cmp(*this, another);
@@ -2771,6 +2956,63 @@ string_t& string_t::to_upper(string_t& res) const
     res = *this;
     __to_upper(res.dat, res.dat + res.len);
     return res;
+}
+
+string_t format_t::dump(const number_t& a)
+{
+    string_t str;
+    return dump(a, str);
+}
+
+string_t& format_t::dump(const number_t& a, string_t& str)  // TODO: chars subgroup
+{
+    string_t tmp;
+    a.to_string(tmp, base);
+
+    str.clear();
+    if (uppercase)
+    {
+        tmp.to_upper();
+    }
+    if (!a.is_neg())
+    {
+        if (showpos)
+        {
+            str.append('+');
+        }
+        str.append(prefix);
+        str.append(tmp);
+    }
+    else
+    {
+        str.assign(tmp);
+        str.insert(1, prefix);
+    }
+    return str.append(postfix);
+}
+
+number_t format_t::load(const string_t& str)
+{
+    number_t a;
+    return load(str, a);
+}
+
+number_t& format_t::load(const string_t& str, number_t& a)
+{
+    string_t tmp(str, true);
+    //tmp.remove(separator);
+
+    const char* p = tmp.c_str();  // -0x123 or 0x-123 ???  and --123 ---123 ???
+    size_t l = tmp.length();
+    if (!prefix.empty() && tmp.starts_with(prefix))
+    {
+        p += prefix.length();
+    }
+    if (!postfix.empty() && tmp.ends_with(postfix))
+    {
+        l -= postfix.length();
+    }
+    return a.assign(p, l, base);
 }
 
 int cmp(const string_t& a, const string_t& b)

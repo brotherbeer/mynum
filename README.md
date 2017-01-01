@@ -1,5 +1,4 @@
-MYNUM
--------------
+![logo](https://github.com/brotherbeer/mydocument/blob/master/mynum/mynum-logo.png?raw=true)
 
 Mynum is a portable library for big integer arithmetic, it aims to provide convenience for the research of number theory，cryptology and other fields.
 

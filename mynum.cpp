@@ -12,7 +12,6 @@
 #include <cstdlib>
 #include <cstring>
 #include <cmath>
-#include <iostream>
 #include "mynum.h"
 
 
@@ -473,9 +472,17 @@ number_t& number_t::assign(const string_t& s, int base)
     return assign(s.dat, base);
 }
 
-number_t& number_t::assign(const string_t& s, size_t length, int base)
+number_t& number_t::assign(const string_t& s, size_t bpos, size_t epos, int base)
 {
-    return assign(s.dat, length, base);
+    if (epos > s.len)
+    {
+        epos = s.len;
+    }
+    if (bpos < epos)
+    {
+        return assign(s.dat + bpos, epos - bpos, base);
+    }
+    return *this;
 }
 
 number_t::~number_t()
@@ -2356,22 +2363,6 @@ string_t::string_t(const char* p, size_t l): dat(NULL), len(0), cap(0)
     }
 }
 
-string_t::string_t(const char* p, size_t length, size_t capacity): dat(NULL), len(0), cap(0)
-{
-    if (p)
-    {
-        if (capacity < length)
-        {
-            capacity = length;
-        }
-        cap = capacity;
-        len = length;
-        dat = (char*)mem::allocate(cap + 1, sizeof(char));
-        memcpy(dat, p, len);
-        dat[len] = '\0';
-    }
-}
-
 string_t::string_t(const string_t& another): dat(NULL), len(0), cap(0)
 {
     if (another.dat)
@@ -2394,22 +2385,8 @@ string_t::string_t(const string_t& another, size_t bpos, size_t epos): dat(NULL)
         }
         if (bpos < epos)
         {
-            string_t(another.dat, epos - bpos);
+            assign(another.dat + bpos, epos - bpos);
         }
-    }
-}
-
-string_t::string_t(const string_t& another, bool strip, const char* chars)
-{
-    if (strip)
-    {
-        size_t bpos = another.pos_not_chars(chars);
-        size_t epos = another.rpos_not_chars(chars);
-        string_t(another, bpos, epos);
-    }
-    else
-    {
-        string_t(another);
     }
 }
 
@@ -2438,6 +2415,18 @@ string_t& string_t::assign(const char* p, size_t l)
             dat[len] = '\0';
         }
     }
+    return *this;
+}
+
+string_t& string_t::assign(char c)
+{
+    if (!dat)
+    {
+        cap = sizeof(word_t);
+        dat = (char*)mem::allocate(cap + 1, sizeof(char));
+    }
+    *dat = c;
+    dat[len = 1] = '\0';
     return *this;
 }
 
@@ -2709,6 +2698,21 @@ void string_t::reserve(size_t newcap)
     }
 }
 
+string_t& string_t::append(char c, size_t n)
+{
+    if (len + n > cap)
+    {
+        reserve(len + n);
+    }
+    for (size_t i = 0; i < n; i++)
+    {
+        *(dat + len + i) = c;
+    }
+    len += n;
+    dat[len] = '\0';
+    return *this;
+}
+
 string_t& string_t::append(const char* p)
 {
     if (p)
@@ -2764,6 +2768,11 @@ string_t& string_t::append(const string_t& another, size_t bpos, size_t epos)
     return *this;
 }
 
+string_t& string_t::prepend(char c, size_t n)
+{
+    return insert(0, c, n);
+}
+
 string_t& string_t::prepend(const char* p)
 {
     return insert(0, p);
@@ -2785,6 +2794,28 @@ string_t& string_t::prepend(const string_t& another, size_t bpos, size_t epos)
     return insert(0, another, bpos, epos);
 }
 
+string_t& string_t::insert(size_t pos, char c, size_t n)
+{
+    if (pos > len)
+    {
+        pos = len;
+    }
+    if (len + n > cap)
+    {
+        reserve(len + n);
+    }
+    memmove(dat + pos + n, dat + pos, len - pos);
+    char* p = dat + pos;
+    char* e = p + n;
+    for (; p != e; p++)
+    {
+        *p = c;
+    }
+    len += n;
+    dat[len] = '\0';
+    return *this;
+}
+
 string_t& string_t::insert(size_t pos, const char* p)
 {
     if (p)
@@ -2801,7 +2832,7 @@ string_t& string_t::insert(size_t pos, const char* p)
         if (dat)
         {
             memmove(dat + pos + l, dat + pos, len - pos);
-            memcpy(dat + pos, p, l);
+            memmove(dat + pos, p, l);
             len += l;
             dat[len] = '\0';
         }
@@ -2958,61 +2989,274 @@ string_t& string_t::to_upper(string_t& res) const
     return res;
 }
 
-string_t format_t::dump(const number_t& a)
+_leadings_t format_t::leadings;
+
+_leadings_t::_leadings_t()
+{
+    size_t size = __max_base() + 1;
+    strs = (string_t*)mem::allocate(size, sizeof(string_t));
+    refs = (reference_t*)mem::allocate(size, sizeof(reference_t));
+    memset(strs, 0, size * sizeof(string_t));
+    memset(refs, 0, size * sizeof(reference_t));
+    strs[2].assign("0b");
+    strs[8].assign("0");
+    strs[16].assign("0x");
+    refs[0].pstr = &strs[2];
+    refs[0].base = 2;
+    refs[1].pstr = &strs[8];
+    refs[1].base = 8;
+    refs[2].pstr = &strs[16];
+    refs[2].base = 16;
+}
+
+_leadings_t::~_leadings_t()
+{
+    for (int i = 0; i <= __max_base(); i++)
+    {
+        strs[i].release();
+    }
+    mem::deallocate(strs);
+    mem::deallocate(refs);
+}
+
+void set_leading(int base, const char* chars)
+{
+    if (base >= 2 && base <= __max_base())
+    {
+        int l = chars? strlen(chars): 0, i;
+        _leadings_t& leadings = format_t::leadings;
+        _leadings_t::reference_t* refs = leadings.refs;
+        if (l)
+        {
+            string_t& str = leadings.strs[base].assign(chars, l);
+            for (i = 0; i <= __max_base(); i++)
+            {
+                if (refs[i].base == base)
+                {
+                    refs[i].pstr = &str;
+                    break;
+                }
+                else if (refs[i].base == 0)
+                {
+                    refs[i].pstr = &str;
+                    refs[i].base = base;
+                    break;
+                }
+            }
+        }
+        else
+        {
+            leadings.strs[base].release();
+            for (i = 0; i <= __max_base() - 2; i++)
+            {
+                if (refs[i].base == base)
+                {
+                    break;
+                }
+            }
+            for (; i <= __max_base() - 1; i++)
+            {
+                refs[i] = refs[i + 1];
+                if (!refs[i].base)
+                {
+                    break;
+                }
+            }
+        }
+    }
+}
+
+const char* get_leading(int base)
+{
+    if (base >= 2 && base <= __max_base())
+    {
+        return format_t::leadings.strs[base].c_str();
+    }
+    return NULL;
+}
+
+string_t format_t::dump(const number_t& a) const
 {
     string_t str;
     return dump(a, str);
 }
 
-string_t& format_t::dump(const number_t& a, string_t& str)  // TODO: chars subgroup
+string_t& format_t::dump(const number_t& a, string_t& str) const
 {
-    string_t tmp;
-    a.to_string(tmp, base);
+    return dump(a, base, str);
+}
+
+string_t& format_t::dump(const number_t& a, int b, string_t& str) const
+{
+    string_t tmp, sign(16), leading(16);
+    a.to_string(tmp, b);
+    const char* p = tmp.dat;
+    size_t l = tmp.len, r, space;
+
+    if (*p == '-')
+    {
+        p++;
+        l--;
+        sign.assign('-');
+    }
+    else if (has(SHOW_POS))
+    {
+        sign.assign('+');
+    }
 
     str.clear();
-    if (uppercase)
+    space = tmp.len + group + 16;
+    if (group)
     {
-        tmp.to_upper();
-    }
-    if (!a.is_neg())
-    {
-        if (showpos)
-        {
-            str.append('+');
-        }
-        str.append(prefix);
-        str.append(tmp);
+        str.reserve((l / group + 1) * separator.len + space);
     }
     else
     {
-        str.assign(tmp);
-        str.insert(1, prefix);
+        str.reserve(space);
     }
-    return str.append(postfix);
+    if (has(SHOW_LEADING))
+    {
+        leading.assign(get_leading(b));
+        if (has(SIGN_RIGHT_LEADING))
+        {
+            str.append(leading);
+            str.append(sign);
+        }
+        else
+        {
+            str.append(sign);
+            str.append(leading);
+        }
+    }
+    else
+    {
+        str.append(sign);
+    }
+    r = group? l % group: 0;
+    if (group && has(GROUP_STUFF) && r)
+    {
+        str.append(groupstuff, group - r);
+    }
+    if (group && l > group)
+    {
+        if (r)
+        {
+            str.append(p, r);
+            str.append(separator);
+            p += r;
+        }
+        for (size_t i = 0; i < l / group - 1; i++)
+        {
+            str.append(p, group);
+            str.append(separator);
+            p += group;
+        }
+        str.append(p, group);
+    }
+    else
+    {
+        str.append(p, l);
+    }
+    if (has(UPPER_CASE))
+    {
+        str.to_upper();
+    }
+    return str;
 }
 
-number_t format_t::load(const string_t& str)
+int load(number_t& a, const string_t& str, int base, const format_t* fmt)
 {
-    number_t a;
-    return load(str, a);
-}
+    string_t tmp(str.cap);
+    size_t i = 0, j = 0;
+    size_t negn = 0;
 
-number_t& format_t::load(const string_t& str, number_t& a)
-{
-    string_t tmp(str, true);
-    //tmp.remove(separator);
+    for (; i < str.len; i++)
+    {
+        if (strchr(" \t\n\r\f\v", str[i]) || (fmt && strchr(fmt->separator.c_str(), str[i])))
+        {
+            continue;
+        }
+        tmp[j++] = str[i];
+    }
 
-    const char* p = tmp.c_str();  // -0x123 or 0x-123 ???  and --123 ---123 ???
-    size_t l = tmp.length();
-    if (!prefix.empty() && tmp.starts_with(prefix))
+    tmp.len = j;
+    if (tmp.dat) tmp.dat[j] = '\0';
+
+    for (i = 0; i < tmp.len; i++)
     {
-        p += prefix.length();
+        if (tmp[i] == '-')
+        {
+            negn++;
+        }
+        else if (tmp[i] == '+')
+        {
+            continue;
+        }
+        else
+        {
+            break;
+        }
     }
-    if (!postfix.empty() && tmp.ends_with(postfix))
+    if (base <= 1 || base > __max_base())
     {
-        l -= postfix.length();
+        size_t matchmax = 0;
+        _leadings_t::reference_t* ref;
+        ref = format_t::leadings.refs;
+        for (; ref->pstr != NULL; ref++)  // 还是不对
+        {
+            const string_t& leading = *ref->pstr;
+            if (tmp.starts_with(i, leading) && matchmax < leading.len)
+            {
+                base = ref->base;
+                matchmax = leading.len;
+            }
+        }
+        i += matchmax;
+        if (!matchmax && fmt)
+        {
+            base = fmt->base;
+        }
+        if (base <= 1 || base > __max_base())
+        {
+            base = 10;
+        }
     }
-    return a.assign(p, l, base);
+    else
+    {
+        string_t leading = get_leading(base);
+        if (tmp.starts_with(i, leading))
+        {
+            i += leading.len;
+        }
+    }
+    for (; i < tmp.len; i++)
+    {
+        if (tmp[i] == '-')
+        {
+            negn++;
+        }
+        else if (tmp[i] == '+')
+        {
+            continue;
+        }
+        else
+        {
+            break;
+        }
+    }
+    for (j = i; j < tmp.len; j++)
+    {
+        if (!__char_digit_valid(tmp[j], base))
+        {
+            return 0;
+        }
+    }
+    a.assign(tmp, i, tmp.len, base);
+    if (negn & 1)
+    {
+        a.set_neg();
+    }
+    return 1;
 }
 
 int cmp(const string_t& a, const string_t& b)

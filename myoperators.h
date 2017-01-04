@@ -412,28 +412,31 @@ namespace mynum {
 inline std::ostream& operator << (std::ostream& os, const number_t& a)
 {
     string_t s;
-    int base = 10;
-    const char* prefix = NULL;
-    std::ostream::fmtflags ff = os.flags();
+    format_t fmt;
+    fmt.base = 10;
 
+    std::ostream::fmtflags ff = os.flags();
     if (ff & std::ostream::oct)
     {
-        base = 8;
-        prefix = "0";
+        fmt.base = 8;
     }
     else if (ff & std::ostream::hex)
     {
-        base = 16;
-        prefix = "0x";
+        fmt.base = 16;
     }
-    prefix = std::ostream::showbase? prefix: NULL;
-
-    format_t format;
-    format.base = base;
-    format.prefix = prefix;
-    format.uppercase = (ff & std::ostream::uppercase) != 0;
-    format.showpos = (ff & std::ostream::showpos) != 0;
-    return os << format.dump(a, s).c_str();
+    if (ff & std::ostream::showbase)
+    {
+        fmt.set(SHOW_LEADING);
+    }
+    if (ff & std::ostream::uppercase)
+    {
+        fmt.set(UPPER_CASE);
+    }
+    if (ff & std::ostream::showpos)
+    {
+        fmt.set(SHOW_POS);
+    }
+    return os << fmt.dump(a, s).c_str();
 }
 
 inline std::istream& operator >> (std::istream& is, number_t& a)  // not finished

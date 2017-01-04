@@ -127,7 +127,7 @@ struct number_t: public _base_number_t
     number_t& assign(const char*, size_t length, int base);
     number_t& assign(const string_t&);
     number_t& assign(const string_t&, int base);
-    number_t& assign(const string_t&, size_t length, int base);
+    number_t& assign(const string_t&, size_t bpos, size_t epos, int base);
 
     void clear();
     void copy(const number_t&);
@@ -656,22 +656,35 @@ struct string_t
     size_t cap;
 
     string_t(): dat(NULL), len(0), cap(0) {}
+    template<class T> string_t(T n): dat(NULL), len(0), cap(0)
+    {
+        reserve(n);
+    }
+    template<class T> string_t(T n, char c): dat(NULL), len(0), cap(0)
+    {
+        if (n)
+        {
+            reserve(n);
+            for (size_t i = 0; i != n; i++) dat[i] = c;
+            dat[len = n] = '\0';
+        }
+    }
     string_t(char);
     string_t(const char*);
     string_t(const char*, size_t);
-    string_t(const char*, size_t length, size_t capacity);
     string_t(const string_t&);
     string_t(const string_t&, size_t bpos, size_t epos);
-    string_t(const string_t&, bool strip, const char* chars = " \t\r\n\f\v");
 
     ~string_t();
 
+    const char* c_str() const { return dat; }
+    size_t length() const { return len; }
     size_t capacity() const { return cap; }
+    bool empty() const { return len == 0; }
+
     void clear();
     int cmp(const string_t&) const;
-    const char* c_str() const { return dat; }
-    bool empty() const { return len != 0; }
-    size_t length() const { return len; }
+    
     void take(char* p, size_t l);
     void take(char* p, size_t l, size_t c);
 
@@ -679,16 +692,19 @@ struct string_t
     void release();
     void reserve(size_t);
 
+    string_t& append(char, size_t);
     string_t& append(const char*);
     string_t& append(const char*, size_t);
     string_t& append(const string_t&);
     string_t& append(const string_t&, size_t bpos, size_t epos);
 
+    string_t& prepend(char, size_t);
     string_t& prepend(const char*);
     string_t& prepend(const char*, size_t);
     string_t& prepend(const string_t&);
     string_t& prepend(const string_t&, size_t bpos, size_t epos);
 
+    string_t& insert(size_t pos, char, size_t);
     string_t& insert(size_t pos, const char*);
     string_t& insert(size_t pos, const char*, size_t);
     string_t& insert(size_t pos, const string_t&);
@@ -704,6 +720,7 @@ struct string_t
     string_t& to_upper(string_t& res) const;
     string_t& to_lower(string_t& res) const;
 
+    string_t& assign(char);
     string_t& assign(const char*);
     string_t& assign(const char*, size_t);
     string_t& assign(const string_t&);
@@ -751,29 +768,68 @@ int cmp(const char* a, const string_t& b);
 int check(const char* p, int base);
 int check(const char* p, const char* e, int base);
 
+typedef unsigned int format_flags_t;
+const format_flags_t UPPER_CASE = 1;
+const format_flags_t SHOW_POS = 2;
+const format_flags_t SHOW_LEADING = 4;
+const format_flags_t SIGN_RIGHT_LEADING = 8;
+const format_flags_t GROUP_STUFF = 16;
+const format_flags_t EMPTY_ERROR = 32;
+const format_flags_t FLAGS_ALL = -1;
+
+struct _leadings_t
+{
+    struct reference_t
+    {
+        const string_t* pstr;
+        int base;
+    };
+
+    string_t* strs;
+    reference_t* refs;
+
+    _leadings_t();
+    ~_leadings_t();
+};
+
+void set_leading(int base, const char* leading);
+const char* get_leading(int base);
+
 struct format_t
 {
+    static _leadings_t leadings;
+    format_flags_t flags;
     int base;
-    int group;
-    bool uppercase;
-    bool showpos;
-    bool ignoreblank;
-
-    string_t prefix;
-    string_t postfix;
+    size_t group;
     string_t separator;
-
-    format_t(int b = 10, const char* pre = ""):
-        base(b), group(0), uppercase(false),
-        showpos(false), ignoreblank(true), prefix(pre)
+    char groupstuff;
+ 
+    format_t():
+        flags(0), base(10), group(0), groupstuff('0')
+    {}
+    format_t(int b):
+        flags(0), base(b), group(0), groupstuff('0')
+    {}
+    format_t(int b, format_flags_t ff):
+        flags(ff), base(b), group(0), groupstuff('0')
+    {}
+    format_t(format_flags_t f, int b, size_t g, string_t s, char gs):
+        flags(f), base(b), group(g), separator(s), groupstuff(gs)
     {}
 
-    string_t  dump(const number_t& a);
-    string_t& dump(const number_t& a, string_t& str);
+    void set(format_flags_t ff) { flags |= ff; }
+    void clear(format_flags_t ff) { flags &= ~ff; }
+    void clear_all() { flags = 0; }
 
-    number_t  load(const string_t& str);
-    number_t& load(const string_t& str, number_t& a);
+    bool has(format_flags_t ff) const { return (flags & ff) > 0; }
+    format_flags_t get() const { return flags; }
+
+    string_t  dump(const number_t& a) const;
+    string_t& dump(const number_t& a, string_t& str) const;
+    string_t& dump(const number_t& a, int base, string_t& str) const;
 };
+
+int load(number_t& a, const string_t& str, int base, const format_t* format = NULL);
 
 struct bitref_t
 {

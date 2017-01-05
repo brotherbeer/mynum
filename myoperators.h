@@ -439,46 +439,24 @@ inline std::ostream& operator << (std::ostream& os, const number_t& a)
     return os << fmt.dump(a, s).c_str();
 }
 
-inline std::istream& operator >> (std::istream& is, number_t& a)  // not finished
+inline std::istream& operator >> (std::istream& is, number_t& a)
 {
     std::string tmp;
     is >> tmp;
 
     int base = 10;
-    size_t l = tmp.length();
-    const char* p = tmp.c_str();
-    if (l > 0 && *p == '+')
+    if (is.flags() & std::istream::oct)
     {
-        p++;
-        l--;
+        base = 8;
     }
-    if (l >= 2 && p[0] == '0')   // -0x123 or 0x-123 ???
+    else if (is.flags() & std::istream::hex)
     {
-        if (p[1] == 'x' || p[1] == 'X')
-        {
-            base = 16; p += 2; l -= 2;
-        }
-        else if (p[1] == 'b' || p[1] == 'B')
-        {
-            base = 2; p += 2; l -= 2;
-        }
+        base = 16;
     }
-    else if (l >= 1 && p[0] == '0')
+    if (!load(a, tmp.c_str(), tmp.length(), base))
     {
-        base = 8; p += 1; l -= 1;
+        a.set_zero();
     }
-    else
-    {
-        if (is.flags() & std::istream::oct)
-        {
-            base = 8;
-        }
-        else if (is.flags() & std::istream::hex)
-        {
-            base = 16;
-        }
-    }
-    a.assign(p, l, base);
     return is;
 }
 

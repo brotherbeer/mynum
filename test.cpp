@@ -2228,7 +2228,7 @@ void test_string_load()
         number_t a;
         const char* s = "";
         assert(load(a, s, 0)); assert(a.is_zero());
-        assert(load(a, NULL, 0)); assert(a.is_zero());
+        assert(!load(a, NULL, 0));
     }{
         number_t a;
         string_t s;

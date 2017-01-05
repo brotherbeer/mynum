@@ -3217,13 +3217,22 @@ string_t& format_t::dump(const number_t& a, int b, string_t& str) const
     return str;
 }
 
-int load(number_t& a, const string_t& str, int base, const format_t* fmt)
+int load(number_t& a, const char* str, int base, const format_t* fmt)
 {
-    string_t tmp(str.cap);
+    if (str)
+    {
+        return load(a, str, strlen(str), base, fmt);
+    }
+    return 0;
+}
+
+int load(number_t& a, const char* str, size_t len, int base, const format_t* fmt)
+{
+    string_t tmp(len);
     size_t i = 0, j = 0;
     size_t negn = 0;
 
-    for (; i < str.len; i++)
+    for (; i < len; i++)
     {
         if (strchr(" \t\n\r\f\v", str[i]) || (fmt && strchr(fmt->separator.c_str(), str[i])))
         {
@@ -3310,6 +3319,11 @@ int load(number_t& a, const string_t& str, int base, const format_t* fmt)
         a.set_neg();
     }
     return 1;
+}
+
+int load(number_t& a, const string_t& str, int base, const format_t* fmt)
+{
+    return load(a, str.dat, str.len, base, fmt);
 }
 
 int cmp(const string_t& a, const string_t& b)

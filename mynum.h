@@ -839,6 +839,8 @@ struct format_t
     string_t& dump(const number_t& a, int base, string_t& str) const;
 };
 
+int load(number_t& a, const char* p, int base, const format_t* format = NULL);
+int load(number_t& a, const char* p, size_t l, int base, const format_t* format = NULL);
 int load(number_t& a, const string_t& str, int base, const format_t* format = NULL);
 
 struct bitref_t

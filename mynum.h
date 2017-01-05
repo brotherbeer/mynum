@@ -651,6 +651,8 @@ int max_base();
 
 struct string_t
 {
+    static const size_t npos = -1;
+
     char* dat;
     size_t len;
     size_t cap;
@@ -684,7 +686,7 @@ struct string_t
 
     void clear();
     int cmp(const string_t&) const;
-    
+
     void take(char* p, size_t l);
     void take(char* p, size_t l, size_t c);
 
@@ -738,6 +740,12 @@ struct string_t
     size_t rpos_not_blank() const;
     size_t rpos_not_chars(const string_t&) const;
 
+    string_t& strip_left(const char*);
+    string_t& strip_left(const string_t&);
+    string_t& strip_right(const char*);
+    string_t& strip_right(const string_t&);
+    string_t& strip_left();
+    string_t& strip_right();
     string_t& strip();
     string_t& strip(const char*);
     string_t& strip(const string_t&);
@@ -760,6 +768,8 @@ struct string_t
     string_t& operator = (const string_t&);
     char operator [] (size_t x) const { return dat[x]; }
     char& operator [] (size_t x) { return dat[x]; }
+
+    bool overlap(const char* p, size_t l);
 };
 
 int cmp(const string_t& a, const string_t& b);
@@ -913,4 +923,3 @@ struct bitref_t
 };
 
 }  //namespace end
-

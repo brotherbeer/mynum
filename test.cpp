@@ -38,6 +38,7 @@ void test_string_assignment();
 void test_string_reserve();
 void test_string_insert();
 void test_string_remove();
+void test_string_strip();
 void test_string_load();
 void test_string();
 void test_add_small();
@@ -1994,6 +1995,9 @@ void test_string_assignment()
         string_t a;
         a.assign('a'); assert(a == "a");
         a.assign('b'); assert(a == "b");
+        a.assign("1234567890"); assert(a == "1234567890");
+        a.assign(a.dat, 8); assert(a == "12345678");
+        a.assign(a.dat + 3, 4); assert(a == "4567");
     }
 }
 
@@ -2058,6 +2062,8 @@ void test_string_insert()
         b.prepend("OKOK", 3); assert(b == "OKO%++-*/%+-*/%xyz");
         b.prepend("OKOK", 4); assert(b == "OKOKOKO%++-*/%+-*/%xyz");
         b.prepend("OKOK", 0); assert(b == "OKOKOKO%++-*/%+-*/%xyz");
+        b.prepend((const char*)NULL, 10); assert(b == "OKOKOKO%++-*/%+-*/%xyz");
+        b.prepend(string_t()); assert(b == "OKOKOKO%++-*/%+-*/%xyz");
     }{
         string_t b("xyz"), c("+-*/%");
         b.append(c); assert(b == "xyz+-*/%");
@@ -2068,10 +2074,17 @@ void test_string_insert()
         b.append("OKOK", 3); assert(b == "xyz+-*/%+-*/%+%OKO");
         b.append("OKOK", 4); assert(b == "xyz+-*/%+-*/%+%OKOOKOK");
         b.append("OKOK", 0); assert(b == "xyz+-*/%+-*/%+%OKOOKOK");
-        //b.append(NULL, 10); assert(b == "xyz+-*/%+-*/%+%OKOOKOK");
+        b.append((const char*)NULL, 10); assert(b == "xyz+-*/%+-*/%+%OKOOKOK");
+        b.append(string_t()); assert(b == "xyz+-*/%+-*/%+%OKOOKOK");
     }{
-        //string_t a("abcdefghijklmnopqrst");
-        //a.insert(3, a.dat + 5, 5); assert(a == "abcfghijdefghijklmnopqrst");  // TODO
+        string_t a("abcdefghijklmnopqrst");
+        a.append(a.dat, 3); assert(a == "abcdefghijklmnopqrstabc");
+        a.append(a.dat + 3, 3); assert(a == "abcdefghijklmnopqrstabcdef");
+        a.prepend(a.dat, 3); assert(a == "abcabcdefghijklmnopqrstabcdef");
+        a.prepend(a.dat + 8, 3); assert(a == "fghabcabcdefghijklmnopqrstabcdef");
+        a.insert(3, a.dat + 5, 5); assert(a == "fghcabcdabcabcdefghijklmnopqrstabcdef");
+        a.insert(a.len, a.dat, 3); assert(a == "fghcabcdabcabcdefghijklmnopqrstabcdeffgh");
+        a.insert(a.len, a.dat, a.len); assert(a == "fghcabcdabcabcdefghijklmnopqrstabcdeffghfghcabcdabcabcdefghijklmnopqrstabcdeffgh");
     }
 }
 
@@ -2118,6 +2131,72 @@ void test_string_remove()
         string_t b("1234567890");
         b.remove_to_end(1000);
         assert(b == "1234567890");
+    }
+}
+
+void test_string_strip()
+{
+    {
+        string_t a, c("\t  a\r\n"), d("  \r\t    ");
+        a.strip(); assert(a.empty());
+        c.strip(); assert(c == "a");
+        d.strip(); assert(d == "");
+    }{
+        string_t a, c("\t  a\r\n"), d("  \r\t    ");
+        a.strip_left(); assert(a == "");
+        c.strip_left(); assert(c == "a\r\n");
+        d.strip_left(); assert(d == "");
+    }{
+        string_t a, c("\t  a\r\n"), d("  \r\t    ");
+        a.strip_right(); assert(a == "");
+        c.strip_right();
+        assert(c == "\t  a");
+        d.strip_right(); assert(d == "");
+    }{
+        string_t a("+--+111---+"), b("+++---"), c;
+        assert(a.pos_not_chars(0, "+-") == 4);
+        assert(a.pos_not_chars(1, "+-") == 4);
+        assert(a.pos_not_chars(2, "+-") == 4);
+        assert(a.rpos_not_chars(a.len - 1, "+-") == 6);
+        assert(a.rpos_not_chars("+-") == 6);
+        assert(b.pos_not_chars("+-") == -1);
+        assert(b.rpos_not_chars("+-") == -1);
+        assert(c.pos_not_chars("+-") == -1);
+        assert(c.rpos_not_chars("+-") == -1);
+        assert(a.rpos_not_chars(NULL) == -1);
+        assert(a.rpos_not_chars(NULL) == -1);
+        assert(b.pos_not_chars(NULL) == -1);
+        assert(b.rpos_not_chars(NULL) == -1);
+        assert(c.pos_not_chars(NULL) == -1);
+        assert(c.rpos_not_chars(NULL) == -1);
+    }{
+        string_t a("111222"), b("111"), c;
+        assert(a.starts_with("111"));
+        assert(a.starts_with("111222"));
+        assert(!a.starts_with("1112223"));
+        assert(!a.starts_with("@@@"));
+        assert(!a.ends_with("111"));
+        assert(a.ends_with("222"));
+        assert(a.ends_with("111222"));
+        assert(!a.ends_with("0111222"));
+        assert(a.starts_with(string_t("111")));
+        assert(a.starts_with(string_t("111222")));
+        assert(!a.starts_with(string_t("1112223")));
+        assert(!a.starts_with(string_t("@@@")));
+        assert(!a.ends_with(string_t("111")));
+        assert(a.ends_with(string_t("222")));
+        assert(a.ends_with(string_t("111222")));
+        assert(!a.ends_with(string_t("0111222")));
+        assert(a.starts_with(1, "1122"));
+        assert(a.ends_with(4, "1122"));
+        assert(!a.starts_with(""));
+        assert(!c.starts_with(""));
+        assert(!a.starts_with(NULL));
+        assert(!c.starts_with(NULL));
+        assert(!a.ends_with(""));
+        assert(!c.ends_with(""));
+        assert(!a.ends_with(NULL));
+        assert(!c.ends_with(NULL));
     }
 }
 
@@ -2198,6 +2277,7 @@ void test_string()
     test_string_reserve();
     test_string_insert();
     test_string_remove();
+    test_string_strip();
     test_string_load();
 
     string_t a("abcd");

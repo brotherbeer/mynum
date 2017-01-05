@@ -2356,6 +2356,8 @@ string_t::string_t(const char* p, size_t l): dat(NULL), len(0), cap(0)
 {
     if (p)
     {
+        assert(l <= strlen(p));
+
         cap = len = l;
         dat = (char*)mem::allocate(cap + 1, sizeof(char));
         memcpy(dat, p, len);
@@ -2397,23 +2399,22 @@ string_t::~string_t()
 
 string_t& string_t::assign(const char* p, size_t l)
 {
-    if (dat != p)
+    len = 0;
+    if (p && l)
     {
-        len = 0;
-        if (p && l)
+        assert(l <= strlen(p));
+
+        if (l > cap)
         {
-            if (l > cap)
-            {
-                mem::deallocate(dat);
-                dat = (char*)mem::allocate((cap = l) + 1, sizeof(char));
-            }
-            memcpy(dat, p, l);
-            len = l;
+            mem::deallocate(dat);
+            dat = (char*)mem::allocate((cap = l) + 1, sizeof(char));
         }
-        if (dat)
-        {
-            dat[len] = '\0';
-        }
+        memcpy(dat, p, l);
+        len = l;
+    }
+    if (dat)
+    {
+        dat[len] = '\0';
     }
     return *this;
 }
@@ -2480,14 +2481,13 @@ string_t& string_t::assign(const string_t& another, size_t bpos, size_t epos)
     {
         epos = another.len;
     }
-    len = 0;
     if (bpos <= epos && another.dat)
     {
         return assign(another.dat + bpos, epos - bpos);
     }
-    if (dat)
+    else if (dat)
     {
-        dat[len] = '\0';
+        dat[len = 0] = '\0';
     }
     return *this;
 }
@@ -2501,7 +2501,7 @@ size_t string_t::pos_not_chars(size_t pos, const char* chars) const
             return p - dat;
         }
     }
-    return -1;    
+    return npos;    
 }
 
 size_t string_t::pos_not_chars(const char* p) const
@@ -2534,25 +2534,64 @@ size_t string_t::rpos_not_chars(size_t pos, const char* chars) const
             return p - dat;
         }
     }
-    return -1;
+    return npos;
 }
 
 size_t string_t::rpos_not_chars(const char* p) const
 {
-    size_t pos = p? strlen(p) - 1: 0;
-    return rpos_not_chars(pos, p);
+    return rpos_not_chars(len - 1, p);
 }
 
 size_t string_t::rpos_not_chars(const string_t& another) const
 {
-    return rpos_not_chars(another.len - 1, another.dat);
+    return rpos_not_chars(len - 1, another.dat);
+}
+
+string_t& string_t::strip_left(const char* chars)
+{
+    size_t bpos = pos_not_chars(0, chars);
+    return assign(*this, bpos, len);
+}
+
+string_t& string_t::strip_left(const string_t& another)
+{
+    return strip_left(another.dat);
+}
+
+string_t& string_t::strip_right(const char* chars)
+{
+    if (len)
+    {
+        size_t epos = rpos_not_chars(len - 1, chars);
+        return remove_to_end(epos + 1);
+    }
+    return *this;
+}
+
+string_t& string_t::strip_right(const string_t& another)
+{
+    return strip_right(another.dat);
 }
 
 string_t& string_t::strip(const char* chars)
 {
-    size_t bpos = pos_not_chars(0, chars);
-    size_t epos = rpos_not_chars(0, chars);
-    return assign(*this, bpos, epos);
+    if (len)
+    {
+        size_t bpos = pos_not_chars(0, chars);
+        size_t epos = rpos_not_chars(len - 1, chars);
+        return assign(*this, bpos, epos + 1);
+    }
+    return *this;
+}
+
+string_t& string_t::strip_left()
+{
+    return strip_left(" \t\r\n\f\v");
+}
+
+string_t& string_t::strip_right()
+{
+    return strip_right(" \t\r\n\f\v");
 }
 
 string_t& string_t::strip(const string_t& another)
@@ -2568,7 +2607,7 @@ string_t& string_t::strip()
 bool string_t::starts_with(size_t pos, const char* p, size_t l) const
 {
     bool ret = false;
-    if (dat && p && pos < len)
+    if (dat && p && pos < len && l)
     {
         const char* q = dat + pos;
         if ((ret = len >= l))
@@ -2613,14 +2652,14 @@ bool string_t::starts_with(const string_t& another) const
 bool string_t::ends_with(size_t pos, const char* p, size_t l) const
 {
     bool ret = false;
-    if (dat && p && pos < len)
+    if (dat && p && pos < len && l)
     {
         if ((ret = len >= l))
         {
             const char* e, *E, *b;
-            e = p + pos;
-            E = dat + pos;
             b = p - 1;
+            e = b + l;
+            E = dat + pos;
             for (; e != b; e--, E--) if (*e != *E)
             {
                 ret = false;
@@ -2645,17 +2684,17 @@ bool string_t::ends_with(size_t pos, const string_t& another) const
 bool string_t::ends_with(const char* p) const
 {
     size_t l = p? strlen(p): 0;
-    return ends_with(l - 1, p, l);
+    return ends_with(len - 1, p, l);
 }
 
 bool string_t::ends_with(const char* p, size_t l) const
 {
-    return ends_with(l - 1, p, l);
+    return ends_with(len - 1, p, l);
 }
 
 bool string_t::ends_with(const string_t& another) const
 {
-    return ends_with(0, another.dat, another.len);
+    return ends_with(len - 1, another.dat, another.len);
 }
 
 string_t& string_t::operator = (const string_t& another)
@@ -2732,12 +2771,23 @@ string_t& string_t::append(const char* p)
     return *this;
 }
 
+bool string_t::overlap(const char* p, size_t l)
+{
+    return p >= dat && p <= dat + len;
+}
+
 string_t& string_t::append(const char* p, size_t l)
 {
     if (p)
     {
+        string_t tmp;
         if (len + l > cap)
         {
+            if (overlap(p, l))
+            {
+                tmp.assign(p, l);
+                p = tmp.dat;
+            }
             reserve(len + l);
         }
         if (dat)
@@ -2780,7 +2830,6 @@ string_t& string_t::prepend(const char* p)
 
 string_t& string_t::prepend(const char* p, size_t l)
 {
-    assert(l <= strlen(p));
     return insert(0, p, l);
 }
 
@@ -2844,8 +2893,12 @@ string_t& string_t::insert(size_t pos, const char* p, size_t l)
 {
     if (p)
     {
-        assert(l <= strlen(p));
-
+        string_t tmp;
+        if (overlap(p, l))
+        {
+            tmp.assign(p, l);
+            p = tmp.dat;
+        }
         if (pos > len)
         {
             pos = len;

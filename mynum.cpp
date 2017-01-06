@@ -3196,7 +3196,7 @@ string_t& format_t::dump(const number_t& a, int b, string_t& str) const
     {
         sign.assign('-');
     }
-    else if (has(SHOW_POS) && a.is_pos() || has(ZERO_POS) && a.is_zero())
+    else if ((has(SHOW_POS) && a.is_pos()) || (has(ZERO_POS) && a.is_zero()))
     {
         sign.assign('+');
     }
@@ -3525,30 +3525,6 @@ bool neq(const number_t& a, const number_t& b)
     }
     return __neq_core(a.dat, b.dat, __abs(a.len));
 }
-
-//int cmp(const number_t& a, word_t b)
-//{
-//    basic_unsigned_type_ref_t<word_t> ref(b);
-//    return cmp(a, (const number_t&)ref);
-//}
-//
-//int cmp(const number_t& a, sword_t b)
-//{
-//    basic_signed_type_ref_t<sword_t> ref(b);
-//    return cmp(a, (const number_t&)ref);
-//}
-//
-//int cmp(word_t a, const number_t& b)
-//{
-//    basic_unsigned_type_ref_t<word_t> ref(a);
-//    return cmp((const number_t&)ref, b);
-//}
-//
-//int cmp(sword_t a, const number_t& b)
-//{
-//    basic_signed_type_ref_t<sword_t> ref(a);
-//    return cmp((const number_t&)ref, b);
-//}
 
 void abs(const number_t& a, number_t& res)
 {

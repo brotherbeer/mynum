@@ -2697,6 +2697,15 @@ bool string_t::ends_with(const string_t& another) const
     return ends_with(len - 1, another.dat, another.len);
 }
 
+bool string_t::has(char c) const
+{
+    if (dat)
+    {
+        return strchr(dat, c) != NULL;
+    }
+    return false;
+}
+
 string_t& string_t::operator = (const string_t& another)
 {
     return assign(another);
@@ -3119,6 +3128,17 @@ void set_leading(int base, const char* chars)
     }
 }
 
+void reset_leading()
+{
+    for (int i = 2; i <= __max_base(); i++)
+    {
+        set_leading(i, NULL);
+    }
+    set_leading(2, "0b");
+    set_leading(8, "0");
+    set_leading(16, "0x");
+}
+
 const char* get_leading(int base)
 {
     if (base >= 2 && base <= __max_base())
@@ -3126,6 +3146,26 @@ const char* get_leading(int base)
         return format_t::leadings.strs[base].c_str();
     }
     return NULL;
+}
+
+void format_t::set(format_flags_t ff)
+{
+    if (ff & ZERO_POS && ff & ZERO_NEG)
+    {
+        ff &= ~ZERO_POS & ~ZERO_NEG;
+        flags &= ~ZERO_POS & ~ZERO_NEG;
+    }
+    else if (ff & ZERO_POS)
+    {
+        ff &= ~ZERO_NEG;
+        flags &= ~ZERO_NEG;
+    }
+    else if (ff & ZERO_NEG)
+    {
+        ff &= ~ZERO_POS;
+        flags &= ~ZERO_POS;
+    }
+    flags |= ff;
 }
 
 string_t format_t::dump(const number_t& a) const
@@ -3152,7 +3192,11 @@ string_t& format_t::dump(const number_t& a, int b, string_t& str) const
         l--;
         sign.assign('-');
     }
-    else if (has(SHOW_POS))
+    else if (a.is_zero() && has(ZERO_NEG))
+    {
+        sign.assign('-');
+    }
+    else if (has(SHOW_POS) && a.is_pos() || has(ZERO_POS) && a.is_zero())
     {
         sign.assign('+');
     }
@@ -3167,7 +3211,7 @@ string_t& format_t::dump(const number_t& a, int b, string_t& str) const
     {
         str.reserve(space);
     }
-    if (has(SHOW_LEADING))
+    if (has(SHOW_LEADING) && !(a.is_zero() && has(ZERO_NO_LEADING)))
     {
         leading.assign(get_leading(b));
         if (has(SIGN_RIGHT_LEADING))
@@ -3186,9 +3230,9 @@ string_t& format_t::dump(const number_t& a, int b, string_t& str) const
         str.append(sign);
     }
     r = group? l % group: 0;
-    if (group && has(GROUP_STUFF) && r)
+    if (group && has(GROUP_COMPELTE) && r)
     {
-        str.append(groupstuff, group - r);
+        str.append(filler, group - r);
     }
     if (group && l > group)
     {
@@ -3234,7 +3278,7 @@ int load(number_t& a, const char* str, size_t len, int base, const format_t* fmt
 
     for (; i < len; i++)
     {
-        if (strchr(" \t\n\r\f\v", str[i]) || (fmt && strchr(fmt->separator.c_str(), str[i])))
+        if (strchr(" \t\n\r\f\v", str[i]) || (fmt && fmt->separator.has(str[i])))
         {
             continue;
         }
@@ -3309,6 +3353,14 @@ int load(number_t& a, const char* str, size_t len, int base, const format_t* fmt
     for (j = i; j < tmp.len; j++)
     {
         if (!__char_digit_valid(tmp[j], base))
+        {
+            return 0;
+        }
+    }
+
+    if (fmt && fmt->has(EMPTY_AS_ERROR))
+    {
+        if (i == tmp.len)
         {
             return 0;
         }

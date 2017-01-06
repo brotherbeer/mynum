@@ -764,6 +764,8 @@ struct string_t
     bool ends_with(const char*, size_t) const;
     bool ends_with(const string_t&) const;
 
+    bool has(char c) const;
+
     string_t& operator = (const char*);
     string_t& operator = (const string_t&);
     char operator [] (size_t x) const { return dat[x]; }
@@ -783,9 +785,11 @@ const format_flags_t UPPER_CASE = 1;
 const format_flags_t SHOW_POS = 2;
 const format_flags_t SHOW_LEADING = 4;
 const format_flags_t SIGN_RIGHT_LEADING = 8;
-const format_flags_t GROUP_STUFF = 16;
-const format_flags_t EMPTY_ERROR = 32;
-const format_flags_t FLAGS_ALL = -1;
+const format_flags_t GROUP_COMPELTE = 16;
+const format_flags_t ZERO_NO_LEADING = 32;
+const format_flags_t ZERO_POS = 64;
+const format_flags_t ZERO_NEG = 128;
+const format_flags_t EMPTY_AS_ERROR = 0x80000000;
 
 struct _leadings_t
 {
@@ -802,8 +806,9 @@ struct _leadings_t
     ~_leadings_t();
 };
 
-void set_leading(int base, const char* leading);
+void reset_leading();
 const char* get_leading(int base);
+void set_leading(int base, const char* leading);
 
 struct format_t
 {
@@ -812,22 +817,22 @@ struct format_t
     int base;
     size_t group;
     string_t separator;
-    char groupstuff;
+    char filler;
  
     format_t():
-        flags(0), base(10), group(0), groupstuff('0')
+        flags(0), base(10), group(0), filler('0')
     {}
-    format_t(int b):
-        flags(0), base(b), group(0), groupstuff('0')
+    format_t(format_flags_t ff):
+        flags(ff), base(10), group(0), filler('0')
     {}
-    format_t(int b, format_flags_t ff):
-        flags(ff), base(b), group(0), groupstuff('0')
+    format_t(format_flags_t ff, int b):
+        flags(ff), base(b), group(0), filler('0')
     {}
-    format_t(format_flags_t f, int b, size_t g, string_t s, char gs):
-        flags(f), base(b), group(g), separator(s), groupstuff(gs)
+    format_t(format_flags_t f, int b, size_t g, string_t s, char gs = '0'):
+        flags(f), base(b), group(g), separator(s), filler(gs)
     {}
 
-    void set(format_flags_t ff) { flags |= ff; }
+    void set(format_flags_t ff);
     void clear(format_flags_t ff) { flags &= ~ff; }
     void clear_all() { flags = 0; }
 

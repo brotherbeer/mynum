@@ -40,6 +40,7 @@ void test_string_insert();
 void test_string_remove();
 void test_string_strip();
 void test_string_load();
+void test_string_dump();
 void test_string();
 void test_add_small();
 void test_sub_small();
@@ -600,78 +601,6 @@ void test_string_conversion()
         {
             assert(b.to_string(i) == "0"); 
         }
-    }{
-        NN a(123), b, c(-123);
-        string_t s;
-        format_t f2(2), f10, f16(16), f33(33);
-
-        f10.dump(a, s); assert(s == "123");
-        f10.dump(c, s); assert(s == "-123");
-        f10.set(SHOW_POS);
-        f10.dump(a, s); assert(s == "+123");
-        f10.dump(c, s); assert(s == "-123");
-        f10.set(SHOW_LEADING);
-        f10.dump(a, s); assert(s == "+123");
-        f10.dump(c, s); assert(s == "-123");
-
-        f16.dump(a, s);
-        assert(s == "7b");
-        f16.dump(c, s); assert(s == "-7b");
-        f16.set(SHOW_LEADING);
-        f16.dump(a, s); assert(s == "0x7b");
-        f16.dump(c, s); assert(s == "-0x7b");
-        f16.set(SHOW_POS);
-        f16.dump(a, s); assert(s == "+0x7b");
-        f16.dump(c, s); assert(s == "-0x7b");
-        f16.set(SIGN_RIGHT_LEADING);
-        f16.dump(a, s); assert(s == "0x+7b");
-        f16.dump(c, s); assert(s == "0x-7b");
-        f16.group = 1;
-        f16.separator = " ";
-        f16.dump(c, s); assert(s == "0x-7 b");
-        f16.group = 2;
-        f16.dump(c, s); assert(s == "0x-7b");
-        f16.group = 3;
-        f16.dump(c, s); assert(s == "0x-7b");
-
-        f33.dump(a, s); assert(s == "3o");
-        assert(get_leading(33) == NULL);
-        set_leading(33, "base(33):");
-        assert(get_leading(33) == string_t("base(33):"));
-
-        f33.dump(a, s); assert(s == "3o");
-        f33.set(SHOW_LEADING);
-        f33.dump(a, s); assert(s == "base(33):3o");
-
-        f33.set(SIGN_RIGHT_LEADING);
-        f33.dump(c, s); assert(s == "base(33):-3o");
-        f33.set(UPPER_CASE);
-        f33.dump(c, s); assert(s == "BASE(33):-3O");
-        set_leading(33, "");
-        assert(get_leading(33) == NULL);
-        set_leading(33, NULL);
-        assert(get_leading(33) == NULL);
-
-        f10.clear_all();
-        f10.group = 4;
-        f10.separator = ", ";
-        f10.dump(a, s); assert(s == "123");
-        a.sqr().sqr();
-        f10.dump(a, s); assert(s == "2, 2888, 6641");
-        f10.group = 1; f10.dump(a, s); assert(s == "2, 2, 8, 8, 8, 6, 6, 4, 1");
-        f10.set(GROUP_STUFF);
-        f10.group = 1; f10.dump(a, s); assert(s == "2, 2, 8, 8, 8, 6, 6, 4, 1");
-        f10.group = 2; f10.dump(a, s); assert(s == "02, 28, 88, 66, 41");
-        f10.groupstuff = '*';
-        f10.group = 2; f10.dump(a, s); assert(s == "*2, 28, 88, 66, 41");
-
-        f2.separator = " ";
-        f2.group = 8;
-        f2.dump(a, s); assert(s == "1101 10100100 10001000 01110001");
-        f2.set(GROUP_STUFF);
-        f2.dump(a, s); assert(s == "00001101 10100100 10001000 01110001");
-        f2.set(SHOW_LEADING);
-        f2.dump(a, s); assert(s == "0b00001101 10100100 10001000 01110001");
     }
 }
 
@@ -2244,10 +2173,10 @@ void test_string_load()
         set_leading(34, "b34:"); set_leading(35, "b35:"); set_leading(36, "b36:"); set_leading(37, "b37:");
         assert(load(a, "b16:abcde", 0)); assert(a == number_t("abcde", 16));
         assert(load(a, "b36:-uvwxyz", 0)); assert(a == number_t("-uvwxyz", 36));
-        format_t f(36, SHOW_LEADING|SIGN_RIGHT_LEADING);
-        f.dump(a, s); assert(s == "b36:-uvwxyz");
+        format_t f(SHOW_LEADING|SIGN_RIGHT_LEADING);
+        f.dump(a, 36, s); assert(s == "b36:-uvwxyz");
         set_leading(36, NULL); assert(!load(a, "b36:-uvwxyz", 0));
-        f.dump(a, s); assert(s == "-uvwxyz");
+        f.dump(a, 36, s); assert(s == "-uvwxyz");
         assert(load(a, "b35:-uvwxxx", 0)); assert(a == number_t("-uvwxxx", 35));
         f.base = 35; f.dump(a, s); assert(s == "b35:-uvwxxx");
         set_leading(35, NULL); assert(!load(a, "b35:-uvwxxx", 0));
@@ -2260,14 +2189,113 @@ void test_string_load()
 
         assert(load(a, "b17:-12345", 0)); assert(a == number_t("-12345", 17));
         assert(load(a, "b19:-12345", 0)); assert(a == number_t("-12345", 19));
+    }{
+        reset_leading();
+        number_t a;
+        assert(load(a, "", 0)); assert(a.is_zero());
+        assert(load(a, "- 0x ", 0)); assert(a.is_zero());
+        format_t f(EMPTY_AS_ERROR);
+        assert(!load(a, "", 0, &f));
+        assert(!load(a, " - 0x", 0, &f));
+    }
+}
 
-        set_leading(2, "0b");
-        set_leading(8, "0");
-        set_leading(16, "0x");
+void test_string_dump()
+{
+    {
+        reset_leading();
+        number_t a, b, c(-123);
+        string_t s;
+        format_t f(SHOW_LEADING | SIGN_RIGHT_LEADING);
+
         set_leading(32, "0xx");
-        assert(load(a, "0xx12345", 0)); assert(a == number_t("12345", 32));
-        f.base = 32;
-        f.dump(a, s); assert(s == "0xx12345");
+        assert(load(a, "0xx12345 ", 0)); assert(a == number_t("12345", 32));
+        f.dump(a, 32, s); assert(s == "0xx12345");
+
+        f.set(SHOW_POS); f.dump(b, 16, s); assert(s == "0x0");
+        f.set(ZERO_POS); f.dump(b, 16, s); assert(s == "0x+0");
+        f.set(ZERO_NEG); f.dump(b, 16, s); assert(s == "0x-0");
+        f.set(ZERO_NO_LEADING); f.dump(b, 16, s); assert(s == "-0");
+        f.clear(ZERO_NEG); f.dump(b, 16, s); assert(s == "0");
+        f.set(ZERO_NEG|ZERO_POS); f.dump(b, 16, s); assert(s == "0");
+    }{
+        reset_leading();
+        NN a(123), b, c(-123);
+        string_t s;
+        format_t f2(0, 2), f10, f16(0, 16), f33(0, 33);
+
+        f10.dump(a, s); assert(s == "123");
+        f10.dump(c, s); assert(s == "-123");
+        f10.set(SHOW_POS);
+        f10.dump(a, s); assert(s == "+123");
+        f10.dump(c, s); assert(s == "-123");
+        f10.set(SHOW_LEADING);
+        f10.dump(a, s); assert(s == "+123");
+        f10.dump(c, s); assert(s == "-123");
+
+        f16.dump(a, s); assert(s == "7b");
+        f16.dump(c, s); assert(s == "-7b");
+        f16.set(SHOW_LEADING);
+        f16.dump(a, s); assert(s == "0x7b");
+        f16.dump(c, s); assert(s == "-0x7b");
+        f16.set(SHOW_POS);
+        f16.dump(a, s); assert(s == "+0x7b");
+        f16.dump(c, s); assert(s == "-0x7b");
+        f16.set(SIGN_RIGHT_LEADING);
+        f16.dump(a, s); assert(s == "0x+7b");
+        f16.dump(c, s); assert(s == "0x-7b");
+        f16.group = 1;
+        f16.separator = " ";
+        f16.dump(c, s); assert(s == "0x-7 b");
+        f16.group = 2; f16.dump(c, s); assert(s == "0x-7b");
+        f16.group = 3; f16.dump(c, s); assert(s == "0x-7b");
+
+        f33.dump(a, s); assert(s == "3o");
+        assert(get_leading(33) == NULL);
+        set_leading(33, "base(33):");
+        assert(get_leading(33) == string_t("base(33):"));
+
+        f33.dump(a, s); assert(s == "3o");
+        f33.set(SHOW_LEADING);
+        f33.dump(a, s); assert(s == "base(33):3o");
+
+        f33.set(SIGN_RIGHT_LEADING);
+        f33.dump(c, s); assert(s == "base(33):-3o");
+        f33.set(UPPER_CASE);
+        f33.dump(c, s); assert(s == "BASE(33):-3O");
+        set_leading(33, "");
+        assert(get_leading(33) == NULL);
+        set_leading(33, NULL);
+        assert(get_leading(33) == NULL);
+
+        f10.clear_all();
+        f10.group = 4;
+        f10.separator = ", ";
+        f10.dump(a, s); assert(s == "123");
+        a.sqr().sqr();
+        f10.dump(a, s); assert(s == "2, 2888, 6641");
+        f10.group = 1; f10.dump(a, s); assert(s == "2, 2, 8, 8, 8, 6, 6, 4, 1");
+        f10.dump(b, s); assert(s == "0");
+        f10.set(GROUP_COMPELTE);
+        f10.group = 1; f10.dump(a, s); assert(s == "2, 2, 8, 8, 8, 6, 6, 4, 1");
+        f10.group = 2; f10.dump(a, s); assert(s == "02, 28, 88, 66, 41");
+        f10.filler = '*';
+        f10.group = 2; f10.dump(a, s); assert(s == "*2, 28, 88, 66, 41");
+        f10.dump(b, s); assert(s == "*0");
+
+        f2.separator = " ";
+        f2.dump(a, s); assert(s == "1101101001001000100001110001");
+        f2.group = 8;
+        f2.dump(a, s); assert(s == "1101 10100100 10001000 01110001");
+        f2.set(GROUP_COMPELTE);
+        f2.dump(a, s); assert(s == "00001101 10100100 10001000 01110001");
+        f2.set(SHOW_LEADING);
+        f2.dump(a, s); assert(s == "0b00001101 10100100 10001000 01110001");
+        f2.separator = "";
+        f2.dump(a, s); assert(s == "0b00001101101001001000100001110001");
+        f2.clear(GROUP_COMPELTE);
+        f2.group = 8000;
+        f2.dump(a, s); assert(s == "0b1101101001001000100001110001");
     }
 }
 
@@ -2279,6 +2307,7 @@ void test_string()
     test_string_remove();
     test_string_strip();
     test_string_load();
+    test_string_dump();
 
     string_t a("abcd");
     string_t b("ABCD");
@@ -2368,6 +2397,8 @@ void test_string()
         number_t x(123);
         string_t e(x);  assert(e.capacity() == 123);
     }
+
+    reset_leading();
 }
 
 void test_add_small()

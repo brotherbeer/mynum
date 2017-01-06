@@ -1747,9 +1747,7 @@ void number_t::__copy(const number_t& another)
     }
     else
     {
-        dat = NULL;
-        len = another.len;
-        cap = another.cap;
+        clear();
     }
 }
 
@@ -3085,13 +3083,13 @@ void set_leading(int base, const char* chars)
 {
     if (base >= 2 && base <= __max_base())
     {
-        int l = chars? strlen(chars): 0, i;
+        size_t l = chars? strlen(chars): 0;
         _leadings_t& leadings = format_t::leadings;
         _leadings_t::reference_t* refs = leadings.refs;
         if (l)
         {
             string_t& str = leadings.strs[base].assign(chars, l);
-            for (i = 0; i <= __max_base(); i++)
+            for (int i = 0; i <= __max_base(); i++)
             {
                 if (refs[i].base == base)
                 {
@@ -3108,8 +3106,9 @@ void set_leading(int base, const char* chars)
         }
         else
         {
+            int i = 0;
             leadings.strs[base].release();
-            for (i = 0; i <= __max_base() - 2; i++)
+            for (; i <= __max_base() - 2; i++)
             {
                 if (refs[i].base == base)
                 {

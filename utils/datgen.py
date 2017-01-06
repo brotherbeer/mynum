@@ -33,7 +33,7 @@ opers = [
     '&s32', '&u32', '&s64', '&u64',
     '|s32', '|u32', '|s64', '|u64',
     '^s32', '^u32', '^s64', '^u64',
-    '**', '<<', '>>', 'po',
+    '<<', '>>', 
 ]
 
 signs = ['-', '', ]
@@ -342,8 +342,13 @@ def parseArgs():
     parser = argparse.ArgumentParser(usage = USAGE)
     parser.add_argument('-d', '--max-digits-count', type = int, help='The max digits of each integer', default = 64)
     parser.add_argument('-i', '--items-count', type = int, help = 'How many items should be generated', default = 32)
+    parser.add_argument('-p', '--with-power', help = 'With operations about power', action = 'store_true')
     args = parser.parse_args()
     return args
  
 if __name__ == '__main__':
-    genTestData(parseArgs())
+    args = parseArgs()
+    if args.with_power:
+        opers.append('**')
+        opers.append('po')
+    genTestData(args)

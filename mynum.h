@@ -94,6 +94,17 @@ template <class T> struct _utype_ref_t: public _base_number_t
     }
 };
 
+struct UDM   // Unit Divisor to Multiplier
+{
+    dunit_t multiplier;
+    unit_t divisor;
+    unsigned char shift;
+    bool shiftonly;
+    bool overflow;
+
+    UDM(unit_t d);
+};
+
 struct string_t;
 struct bitref_t;
 struct number_t: public _base_number_t
@@ -158,6 +169,20 @@ struct number_t: public _base_number_t
     number_t& ksqr();
     number_t& pow(size_t);
     number_t& pom(const number_t&, const number_t&);
+
+    void add_unit(unit_t);
+    void sub_unit(unit_t);
+    void mul_unit(unit_t);
+    unit_t div_unit(unit_t);
+    unit_t div_unit(const UDM&);
+    void mod_unit(unit_t);
+    void mod_unit(const UDM&);
+    void bit_and_unit(unit_t);
+    void bit_or_unit(unit_t);
+    void bit_xor_unit(unit_t);
+
+    unit_t absrem_unit(unit_t) const;
+    unit_t absrem_unit(const UDM&) const;
 
     number_t& add_ui(word_t);
     number_t& sub_ui(word_t);
@@ -225,15 +250,6 @@ struct number_t: public _base_number_t
     number_t& bit_xor(unsigned long x);
     number_t& bit_xor(long long x);
     number_t& bit_xor(unsigned long long x);
-
-    number_t& add_unit(unit_t);
-    number_t& sub_unit(unit_t);
-    number_t& mul_unit(unit_t);
-    number_t& div_unit(unit_t);
-    number_t& mod_unit(unit_t);
-    number_t& bit_and_unit(unit_t);
-    number_t& bit_or_unit(unit_t);
-    number_t& bit_xor_unit(unit_t);
 
     bool bit_at(size_t) const;
     void bit_set(size_t, bool v = 1);
@@ -306,8 +322,8 @@ struct number_t: public _base_number_t
     number_t  operator ~ () const                { number_t x(*this); return x.bit_not(); }
     number_t& operator ++ ()                     { return operator ++ (0); }
     number_t& operator -- ()                     { return operator -- (0); }
-    number_t& operator ++ (int)                  { return add_unit(1); }
-    number_t& operator -- (int)                  { return sub_unit(1); }
+    number_t& operator ++ (int)                  { add_unit(1); return *this; }
+    number_t& operator -- (int)                  { sub_unit(1); return *this; }
     number_t& operator += (const number_t& x)    { return add(x); }
     number_t& operator -= (const number_t& x)    { return sub(x); }
     number_t& operator *= (const number_t& x)    { return mul(x); }
@@ -385,7 +401,7 @@ struct number_t: public _base_number_t
     bitref_t operator [] (size_t);
 
     void __reserve(slen_t units);
-    void __add(unit_t);
+    void __add(unit_t);  // rename
     void __mul(unit_t);
     slen_t __abs_add_unit(unit_t);
     slen_t __abs_sub_unit(unit_t);
@@ -517,6 +533,17 @@ void bit_or(const number_t& a, const number_t& b, number_t& res);
 void bit_xor(const number_t& a, const number_t& b, number_t& res);
 void bit_not(const number_t& a, number_t& res);
 
+void add_unit(const number_t& a, unit_t x, number_t& res);
+void sub_unit(const number_t& a, unit_t x, number_t& res);
+void mul_unit(const number_t& a, unit_t x, number_t& res);
+unit_t div_unit(const number_t& a, unit_t x, number_t& res);
+unit_t div_unit(const number_t& a, const UDM&, number_t& res);
+void mod_unit(const number_t& a, unit_t x, number_t& res);
+void mod_unit(const number_t& a, const UDM&, number_t& res);
+void bit_and_unit(const number_t& a, unit_t x, number_t& res);
+void bit_or_unit(const number_t& a, unit_t x, number_t& res);
+void bit_xor_unit(const number_t& a, unit_t x, number_t& res);
+
 inline void add(const number_t& a, int x, number_t& res)                 { _stype_ref_t<int> ref(x); add(a, (const number_t&)ref, res);}
 inline void add(const number_t& a, unsigned int x, number_t& res)        { _utype_ref_t<unsigned int> ref(x); add(a, (const number_t&)ref, res);}
 inline void add(const number_t& a, long x, number_t& res)                { _stype_ref_t<long> ref(x); add(a, (const number_t&)ref, res);}
@@ -641,6 +668,7 @@ inline number_t bit_and(const number_t& a, const number_t& b)  { number_t res; b
 inline number_t bit_or(const number_t& a, const number_t& b)   { number_t res; bit_or(a, b, res); return res; }
 inline number_t bit_xor(const number_t& a, const number_t& b)  { number_t res; bit_xor(a, b, res); return res; }
 inline number_t bit_not(const number_t& a)                     { number_t res; bit_not(a, res); return res; }
+
 inline int sign(const number_t& a)                             { return (a.len >> (sizeof(slen_t) * 8 - 1)) | 1; }
 inline int sign(const number_t& a, const number_t& b)          { return ((a.len ^ b.len) >> (sizeof(slen_t) * 8 - 1)) | 1; }
 inline bool same_sign(const number_t& a, const number_t& b)    { return (a.len ^ b.len) >> (sizeof(slen_t) * 8 - 1) == 0; }
@@ -727,7 +755,7 @@ struct string_t
     string_t& assign(const char*, size_t);
     string_t& assign(const string_t&);
     string_t& assign(const string_t&, size_t bpos, size_t epos);
-   
+
     size_t pos_not_chars(size_t pos, const char*) const;
     size_t pos_not_blank(size_t pos) const;
     size_t pos_not_chars(const char*) const;
@@ -928,5 +956,34 @@ struct bitref_t
         return v;
     }
 };
+
+/** inner functions */
+void __mul(const unit_t* x, slen_t lx, const unit_t* y, slen_t ly, number_t& res);
+void __kmul(const unit_t* x, slen_t lx, const unit_t* y, slen_t ly, number_t& res);
+void __sqr(const unit_t* x, slen_t lx, number_t& res);
+void __ksqr(const unit_t* x, slen_t lx, number_t& res);
+void __div(const unit_t* a, slen_t la, const unit_t* b, slen_t lb, number_t& q, number_t& r);
+void __div(const unit_t* a, slen_t la, const unit_t* b, slen_t lb, number_t& q);
+bool __neq_core(const unit_t* x, const unit_t* y, slen_t l);
+int __cmp_same_len_core(const unit_t* x, const unit_t* y, slen_t l);
+int __cmp_core(const unit_t* x, slen_t lx, const unit_t* y, slen_t ly);
+slen_t __add_core(const unit_t* x, slen_t lx, const unit_t* y, slen_t ly, unit_t* res);
+slen_t __sub_core(const unit_t* x, slen_t lx, const unit_t* y, slen_t ly, unit_t* res);
+slen_t __mul_core(const unit_t* x, slen_t lx, const unit_t* y, slen_t ly, unit_t* res);
+slen_t __sqr_core(const unit_t* x, slen_t lx, unit_t* res);
+unit_t __mul_unit_core(const unit_t* x, slen_t lx, unit_t y, unit_t* z);
+unit_t __div_unit_core(const unit_t* x, slen_t lx, unit_t y, unit_t* q, slen_t* lq);
+unit_t __div_unit_core(const unit_t* x, slen_t lx, const UDM& udm, unit_t* q, slen_t* lq);
+unit_t __mod_unit_core(const unit_t* x, slen_t lx, unit_t y);
+unit_t __mod_unit_core(const unit_t* x, slen_t lx, const UDM& udm);
+unit_t __guess_quotient(unit_t x1, unit_t x2, unit_t x3, unit_t y1, unit_t y2);
+unit_t __truing_quotient(unit_t* x, const unit_t* y, slen_t len, unit_t trial);
+slen_t __div_core(unit_t* x, slen_t lx, const unit_t* y, slen_t ly, unit_t* q);
+slen_t __shl_core(unit_t* x, slen_t lx, slen_t d);
+unit_t __shr_core(unit_t* x, slen_t lx, slen_t d);
+slen_t __bit_and_core(const unit_t* x, const unit_t* y, slen_t lx, unit_t* res);
+slen_t __bit_or_core(const unit_t* x, slen_t lx, const unit_t* y, slen_t ly, unit_t* res);
+slen_t __bit_xor_core(const unit_t* x, slen_t lx, const unit_t* y, slen_t ly, unit_t* res);
+slen_t __bit_not_core(const unit_t* x, slen_t lx, unit_t* res);
 
 }  //namespace end

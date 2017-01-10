@@ -2568,6 +2568,9 @@ void test_mul_small()
         assert(a == NN("270127424034073692837664953532416"));
         a.mul_unit(0);
         assert(a == NN("0"));
+        NN zero;
+        zero.mul_unit(123);zero.mul_unit(456);zero.mul_unit(7890);
+        assert(zero.is_zero());
     }{
         NN a("1234567890"), b("-1234567890"), c, d(-1234);
         a.mul_unit(1234); assert(a == NN("1523456776260"));
@@ -2623,8 +2626,8 @@ void test_div_small()
 {
     {
         NN a;
-        assert(a.div_unit(1) == 0);
-        assert(a.div_unit(13459) == 0);
+        a.div_unit(1); assert(a == 0);
+        a.div_unit(13459); assert(a == 0);
     }
     {
         NN a("270127424034073692837664953532416");
@@ -2636,10 +2639,10 @@ void test_div_small()
     }
     {
         NN a("94837582435723485723049587239057");
-        assert(a.div_unit(1234) == NN("76853794518414494102957526125"));
-        assert(a.div_unit(1234) == NN("62280222462248374475654397"));
-        assert(a.div_unit(1234) == NN("50470196484804193254176"));
-        assert(a.div_unit(1234) == NN("40899673002272441859"));
+        a.div_unit(1234); assert(a == NN("76853794518414494102957526125"));
+        a.div_unit(1234); assert(a == NN("62280222462248374475654397"));
+        a.div_unit(1234); assert(a == NN("50470196484804193254176"));
+        a.div_unit(1234); assert(a == NN("40899673002272441859"));
     }
     {
         NN a("45633457894837582435723485546897235468972348900998918122737467723049587239057");
@@ -2674,18 +2677,18 @@ void test_mod_small()
 {
     {
         NN a("94837582435723485723049587239057");
-        assert(a.mod_unit(1234) == 807);
+        a.mod_unit(1234); assert(a == 807);
         a.assign("2453562355438");
-        assert(a.mod_unit(1) == 0);
+        a.mod_unit(1); assert(a == 0);
         a.assign("2453562355438");
-        assert(a.mod_unit(2) == 0);
+        a.mod_unit(2); assert(a == 0);
         a.assign("2453562355438");
-        assert(a.mod_unit(3) == 1);
+        a.mod_unit(3); assert(a == 1);
         a.assign("-2453562355438");
-        assert(a.mod_unit(3) == -1);
+        a.mod_unit(3); assert(a == -1);
         a.set_zero();
-        assert(a.mod_unit(3) == 0);
-        assert(a.mod_unit(33399) == 0);
+        a.mod_unit(3); assert(a == 0);
+        a.mod_unit(33399); assert(a == 0);
     }{
         NN a("94837582435723485723049587239057");
         assert(a.mod_ui(1234) == 807);

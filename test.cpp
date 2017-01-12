@@ -1512,6 +1512,12 @@ void test_shr()
         a.assign("123132423423423423423123123");
         a.shr(18);
         assert(eq(a, NN("469712918943113034908")));
+    }{
+        NN a, c;
+        a.assign("123132423423423423423123123");
+        a.shr(16); assert(a == NN("1878851675772452139635"));
+        a.shr(32); assert(a == NN("437454245000"));
+        a.shr(33); assert(a == 50);
     }
 }
 
@@ -2409,11 +2415,14 @@ void test_add_small()
         a.add_unit(56756); a.add_unit(332); a.add_unit(8976); a.add_unit(993);
         a.add_unit(4321); a.add_unit(8907); a.add_unit(0);
         assert(a == 118446);
+
         a.set_neg();
         a.add_unit(32452); a.add_unit(5648); a.add_unit(57); a.add_unit(4);
         a.add_unit(56756); a.add_unit(332); a.add_unit(8976); a.add_unit(993);
         a.add_unit(4321); a.add_unit(8907); a.add_unit(0);
         assert(a == 0);
+        add_unit(a, 123, a); assert(a == 123);
+        add_unit(a, 123, a); assert(a == 246);
 
         a.clear();
         a.bits_reserve(1111);
@@ -2429,6 +2438,7 @@ void test_add_small()
 
         NN b(-456); b.add_unit(1000); assert(b == 544);
         NN c(-123); c.add_unit(123); assert(c == 0);
+        add_unit(a, 123, b); assert(b == 123);
     }{
         NN a;
         a.bit_set_one(1111);
@@ -2566,11 +2576,16 @@ void test_mul_small()
         a.mul_unit(56756); a.mul_unit(332); a.mul_unit(8976); a.mul_unit(993);
         a.mul_unit(4321); a.mul_unit(8907); a.mul_unit(1);
         assert(a == NN("270127424034073692837664953532416"));
-        a.mul_unit(0);
-        assert(a == NN("0"));
-        NN zero;
-        zero.mul_unit(123);zero.mul_unit(456);zero.mul_unit(7890);
-        assert(zero.is_zero());
+        a.mul_unit(0); assert(a == NN("0"));
+        mul_unit(a, 12345, a); assert(a == NN("0"));
+        sub_unit(a, 12345, a); assert(a == NN("-12345"));
+        mul_unit(a, 12345, a); assert(a == NN("-152399025"));
+
+        NN z;
+        z.mul_unit(123); z.mul_unit(456); z.mul_unit(7890);
+        assert(z.is_zero());
+        mul_unit(a, 12345, z); assert(z == NN("-1881365963625"));
+        mul_unit(a, 0, z); assert(z.is_zero());
     }{
         NN a("1234567890"), b("-1234567890"), c, d(-1234);
         a.mul_unit(1234); assert(a == NN("1523456776260"));
@@ -2619,32 +2634,42 @@ void test_mul_small()
         a.assign(-655365); a.mul_si(-655365); assert(a == 429503283225);
         a.mul_ui(65536); assert(a == 28147927169433600ULL);
         a.assign(-65536); a.mul_ui(65536); assert(a == -4294967296);
+    }{
+        NN a, b;
+        mul_unit(a, 123, b); assert(b == 0);
+        mul_unit(a, 123, a); assert(a == 0);
+        a.assign(1111); mul_unit(a, 0, a); assert(a == 0);
+        a.clear();
+        mul_unit(a, 0, a); assert(a == 0);
+        a.clear();
+        a.mul_unit(123); assert(a == 0);
+        a.mul_unit(0); assert(a == 0);
+        a.assign(1111); a.mul_unit(0); assert(a == 0);
     }
 }
 
 void test_div_small()
 {
     {
-        NN a;
+        NN a, b;
         a.div_unit(1); assert(a == 0);
         a.div_unit(13459); assert(a == 0);
-    }
-    {
+        div_unit(a, 123, a); assert(a == 0);
+        div_unit(a, 123, b); assert(b == 0);
+    }{
         NN a("270127424034073692837664953532416");
         a.div_unit(1);
-        a.div_unit(32452); a.div_unit(5648); a.div_unit(57); a.div_unit(4);
-        a.div_unit(56756); a.div_unit(332); a.div_unit(8976); a.div_unit(993);
-        a.div_unit(4321); a.div_unit(8907);
+        a.div_unit(32452); div_unit(a, 5648, a); a.div_unit(57); a.div_unit(4);
+        a.div_unit(56756); a.div_unit(332); div_unit(a, 8976, a); a.div_unit(993);
+        a.div_unit(4321); div_unit(a, 8907, a);
         assert(a == 1);
-    }
-    {
+    }{
         NN a("94837582435723485723049587239057");
         a.div_unit(1234); assert(a == NN("76853794518414494102957526125"));
         a.div_unit(1234); assert(a == NN("62280222462248374475654397"));
-        a.div_unit(1234); assert(a == NN("50470196484804193254176"));
+        div_unit(a, 1234, a); assert(a == NN("50470196484804193254176"));
         a.div_unit(1234); assert(a == NN("40899673002272441859"));
-    }
-    {
+    }{
         NN a("45633457894837582435723485546897235468972348900998918122737467723049587239057");
         assert(a.div(1234) == NN("36980111746221703756664088773822719180690720341166060067048191023540994521"));
         assert(a.div(1234567) == NN("29953912380795618023699069207116923731713807627424076673885006665123"));
@@ -2660,8 +2685,21 @@ void test_div_small()
         a.assign(1); assert(a.div_ui(1234) == 0);
         a.assign(0); assert(a.div_si(-1234) == 0);
         a.assign(1); assert(a.div_si(-1234) == 0);
-    }
-    {
+        a.assign(437454245000ULL);
+        assert(!a.absrem_unit(50));
+        assert(a.absrem_unit(12) == 8);
+        assert(!a.absrem_unit(20));
+        assert(a.absrem_unit(12345) == 10010);
+        assert(!a.absrem_unit(5));
+        a.set_zero();
+        assert(a.absrem_unit(12) == 0);
+        assert(a.absrem_unit(12345) == 0);
+        a.clear();
+        assert(a.absrem_unit(12) == 0);
+        assert(a.absrem_unit(12345) == 0);
+        assert(a.absrem_unit(UDM(12)) == 0);
+        assert(a.absrem_unit(UDM(12345)) == 0);
+    }{
         NN a("1234567");
         a.div_unit(0);
         a.div(int(0));
@@ -2670,25 +2708,56 @@ void test_div_small()
         a.div((unsigned int)0);
         a.div((unsigned long)0);
         a.div((unsigned long long)0);
+    }{
+        NN a("1234567"), b;
+        div_unit(a, 3, b); assert (b == 411522);
+        div_unit(b, 3, a); assert (a == 137174);
+        div_unit(a, 317, a); assert (a == 432);
+        div_unit(a, 433, b); assert (b == 0);
+    }{
+        NN a("335456123445434567097887489567346758"), b;
+        assert(a.div_unit(UDM(1)) == 0); assert(a == NN("335456123445434567097887489567346758"));
+        assert(a.div_unit(UDM(3)) == 2); assert(a == NN("111818707815144855699295829855782252"));
+        assert(a.div_unit(UDM(377)) == 163); assert(a == NN("296601346989774153048530052667857"));
+        assert(a.div_unit(UDM(1024)) == 465); assert(a == NN("289649752919701321336455129558"));
+        assert(a.div_unit(UDM(32768)) == 27094); assert(a == NN("8839408963613931925550998"));
+        assert(a.div_unit(UDM(65535)) == 54058); assert(a == NN("134880734929639611284"));
+        a.assign("-335456123445434567097887489567346758");
+        assert(div_unit(a, UDM(1), b) == 0); assert(b == NN("-335456123445434567097887489567346758"));
+        assert(div_unit(a, UDM(3), b) == 2); assert(b == NN("-111818707815144855699295829855782252"));
+        assert(div_unit(b, UDM(377), a) == 163); assert(a == NN("-296601346989774153048530052667857"));
+        assert(div_unit(a, UDM(1024), a) == 465); assert(a == NN("-289649752919701321336455129558"));
+        assert(div_unit(a, UDM(32768), b) == 27094); assert(b == NN("-8839408963613931925550998"));
+        assert(div_unit(a, UDM(65535), b) == 54123); assert(b == NN("-4419771922174430782581141"));
+        a.assign(437454245000ULL);
+        assert(!a.absrem_unit(UDM(50)));
+        assert(a.absrem_unit(UDM(12)) == 8);
+        assert(!a.absrem_unit(UDM(20)));
+        assert(a.absrem_unit(UDM(12345)) == 10010);
+        assert(!a.absrem_unit(UDM(5)));
+        assert(!a.div_unit(UDM(5))); assert(a == 87490849000ULL);
+        assert(!a.div_unit(UDM(20)));
+        assert(!a.div_unit(UDM(50)));
     }
 }
 
 void test_mod_small()
 {
     {
-        NN a("94837582435723485723049587239057");
+        NN a("94837582435723485723049587239057"), b;
+        mod_unit(a, 1234, b); assert(b == 807);
         a.mod_unit(1234); assert(a == 807);
         a.assign("2453562355438");
-        a.mod_unit(1); assert(a == 0);
+        mod_unit(a, 1, a); assert(a == 0);
         a.assign("2453562355438");
         a.mod_unit(2); assert(a == 0);
         a.assign("2453562355438");
-        a.mod_unit(3); assert(a == 1);
+        mod_unit(a, 3, a); assert(a == 1);
         a.assign("-2453562355438");
         a.mod_unit(3); assert(a == -1);
         a.set_zero();
         a.mod_unit(3); assert(a == 0);
-        a.mod_unit(33399); assert(a == 0);
+        mod_unit(a, 33399, a); assert(a == 0);
     }{
         NN a("94837582435723485723049587239057");
         assert(a.mod_ui(1234) == 807);
@@ -2706,12 +2775,23 @@ void test_mod_small()
 
         a.mod_unit(0);
         a.mod(123456);
-        a.mod(int(0));
+        mod(a, int(0), a);
         a.mod(long(0));
         a.mod((long long)0);
         a.mod((unsigned int)0);
         a.mod((unsigned long)0);
         a.mod((unsigned long long)0);
+    }{
+        NN a("335456123445434567097887489567346758"), b;
+        mod_unit(b, UDM(1), b); assert(b == 0);
+        mod_unit(a, UDM(3), b); assert(b == 2);
+        mod_unit(a, UDM(377), b); assert(b == 114);
+        mod_unit(a, UDM(1024), b); assert(b == 70);
+        mod_unit(a, UDM(32768), b); assert(b == 20550);
+
+        a.assign(4096); a.mod_unit(UDM(32)); assert(a.is_zero());
+        a.assign(64); a.mod_unit(UDM(64)); assert(a.is_zero());
+        a.assign(65); a.mod_unit(UDM(64)); assert(a.is_one());
     }
 }
 

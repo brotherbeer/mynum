@@ -99,8 +99,8 @@ struct UDM   // Unit Divisor to Multiplier
     dunit_t multiplier;
     unit_t divisor;
     unsigned char shift;
-    bool shiftonly;
-    bool overflow;
+    bool notpo2;
+    bool nooverflow;
 
     UDM(unit_t d);
 };

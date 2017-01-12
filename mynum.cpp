@@ -709,12 +709,20 @@ number_t& number_t::pom(const number_t& x, const number_t& y)
 
 unit_t number_t::absrem_unit(unit_t x) const
 {
-    return __mod_unit_core(dat, __abs(len), x);
+    if (len && x)
+    {
+        return __mod_unit_core(dat, __abs(len), x);
+    }
+    return 0;
 }
 
 unit_t number_t::absrem_unit(const UDM& udm) const
 {
-    return __mod_unit_core(dat, __abs(len), udm);
+    if (len && udm.divisor)
+    {
+        return __mod_unit_core(dat, __abs(len), udm);
+    }
+    return 0;
 }
 
 void number_t::add_unit(unit_t x)
@@ -822,13 +830,14 @@ unit_t number_t::div_unit(const UDM& udm)
 {
     dunit_t r = 0, h;
     slen_t l = __abs(len);
-    if (!udm.shiftonly)
+    unsigned char shift = udm.shift;
+    if (udm.notpo2)
     {
         unit_t* p = dat + l;
-        if (!udm.overflow) while (--p >= dat)
+        if (udm.nooverflow) while (--p >= dat)
         {
             r = __make_dunit(r, *p);
-            h = __mul_dunit_high(r, udm.multiplier) >> udm.shift;
+            h = __mul_dunit_high(r, udm.multiplier) >> shift;
             r -= h * udm.divisor;
             *p = h;
         }
@@ -836,14 +845,14 @@ unit_t number_t::div_unit(const UDM& udm)
         {
             r = __make_dunit(r, *p);
             h = __mul_dunit_high(r, udm.multiplier);
-            h = (((r - h) >> 1) + h) >> udm.shift;
+            h = (((r - h) >> 1) + h) >> shift;
             r -= h * udm.divisor;
             *p = h;
         }
     }
     else
     {
-        r = __shr_core(dat, l, udm.shift);
+        r = __shr_core(dat, l, shift);
     }
     __trim_leading_zeros(dat, l);
     len = l * __sign(len);
@@ -2357,14 +2366,14 @@ string_t& number_t::__to_xbase_string(string_t& res, unit_t base, unit_t inner_b
 
 /** class UDM implementation */
 
-UDM::UDM(unit_t d): divisor(d), shift(0), shiftonly(!(d & (d - 1))), overflow(false)
+UDM::UDM(unit_t d): divisor(d), shift(0), notpo2((d & (d - 1)) != 0), nooverflow(true)
 {
     if (divisor)
     {
         dunit_t q, r, b, h;
         b = __vbits_count(d);
         shift = b - 1;
-        if (!shiftonly)
+        if (notpo2)
         {
             h = 1 << shift;
             q = __qunit_div_by_dunit(h, 0, d, &r);
@@ -2372,7 +2381,7 @@ UDM::UDM(unit_t d): divisor(d), shift(0), shiftonly(!(d & (d - 1))), overflow(fa
             if (d > r + h)
             {
                 multiplier = (q << 1) | 1;
-                overflow = true;
+                nooverflow = false;
             }
         }
     }
@@ -2395,10 +2404,10 @@ void mul_unit(const number_t& a, unit_t x, number_t& res)
     unit_t carry;
     slen_t la = __abs(a.len);
 
-    if (res.cap < la)
+    if (res.cap < la + 1)
     {
         res.clear();
-        res.__reserve(la);
+        res.__reserve(la + 1);
     }
     if ((carry = __mul_unit_core(a.dat, la, x, res.dat)))
     {
@@ -2410,7 +2419,7 @@ void mul_unit(const number_t& a, unit_t x, number_t& res)
 
 unit_t div_unit(const number_t& a, unit_t x, number_t& res)
 {
-    if (x)
+    if (a.len && x)
     {
         slen_t la = __abs(a.len), lr;
         if (res.cap < la)
@@ -2487,7 +2496,6 @@ void bit_xor_unit(const number_t& a, unit_t x, number_t& res)
     res.assign(a);
     res.bit_xor_unit(x);
 }
-
 
 /** class string_t implementation */
 
@@ -4779,7 +4787,7 @@ unit_t __mul_unit_core(const unit_t* x, slen_t lx, unit_t y, unit_t* z)  // inpl
 
 unit_t __div_unit_core(const unit_t* x, slen_t lx, unit_t y, unit_t* q, slen_t* lq)  // inplace
 {
-    assert(y != 0);
+    assert(lx && y != 0);
 
     dunit_t r = 0;
     const unit_t* px = x + lx;
@@ -4797,7 +4805,7 @@ unit_t __div_unit_core(const unit_t* x, slen_t lx, unit_t y, unit_t* q, slen_t* 
 
 unit_t __mod_unit_core(const unit_t* x, slen_t lx, unit_t y)  // inplace
 {
-    assert(y != 0);
+    assert(x && y != 0);
 
     dunit_t r = 0;
     const unit_t* px = x + lx;
@@ -4811,11 +4819,11 @@ unit_t __mod_unit_core(const unit_t* x, slen_t lx, unit_t y)  // inplace
 unit_t __div_unit_core(const unit_t* x, slen_t lx, const UDM& udm, unit_t* q, slen_t* lq)  // inplace
 {
     dunit_t r = 0, h;
-    if (!udm.shiftonly)
+    if (udm.notpo2)
     {
         unit_t* qt = q + lx;
         const unit_t* xt = x + lx;
-        if (!udm.overflow)
+        if (udm.nooverflow)
         {
             while (--xt >= x)
             {
@@ -4853,13 +4861,14 @@ unit_t __div_unit_core(const unit_t* x, slen_t lx, const UDM& udm, unit_t* q, sl
 unit_t __mod_unit_core(const unit_t* x, slen_t lx, const UDM& udm)  // inplace
 {
     dunit_t r = 0, h;
-    if (!udm.shiftonly)
+    if (udm.notpo2)
     {
         const unit_t* xt = x + lx;
-        if (!udm.overflow) while (--xt >= x)
+        if (udm.nooverflow) while (--xt >= x)
         {
             r = __make_dunit(r, *xt);
-            r -= (__mul_dunit_high(r, udm.multiplier) >> udm.shift) * udm.divisor;
+            h = __mul_dunit_high(r, udm.multiplier) >> udm.shift;
+            r -= h * udm.divisor;
         }
         else while (--xt >= x)
         {
@@ -4869,8 +4878,9 @@ unit_t __mod_unit_core(const unit_t* x, slen_t lx, const UDM& udm)  // inplace
             r -= h * udm.divisor;
         }
     }
-    else
+    else if (lx)
     {
+        r = *x & (((unit_t)1 << udm.shift) - 1);
     }
     return r & MASK;
 }
@@ -4972,6 +4982,8 @@ slen_t __shl_core(unit_t* x, slen_t lx, slen_t d)
 
 unit_t __shr_core(unit_t* x, slen_t lx, slen_t d)
 {
+    assert(d < UNITBITS);
+
     slen_t i = lx;
     unit_t mask = ((unit_t)1 << d) - 1, carry = 0;
     while (i-- > 0)
@@ -5268,6 +5280,7 @@ dunit_t __qunit_mod_by_dunit(dunit_t h, dunit_t l, dunit_t d)
 #elif UNITBITS == 32
 
 #pragma intrinsic(_umul128)
+
 dunit_t __mul_dunit_high(dunit_t x, dunit_t y)
 {
     unsigned __int64 h;

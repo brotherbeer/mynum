@@ -23,14 +23,18 @@
 #define __always_inline(x)  inline x
 #endif
 
+#if defined(_MSC_VER) && !defined(NO_INTRINSIC)
+#include <intrin.h>
+#endif
+
 #if INT_MAX != 2147483647 || UINT_MAX != 0xffffffff
-#error int is not 32-bit, temporarily not supported
+#error int is not 32-bit, not supported
 #endif
 #if LLONG_MAX != 9223372036854775807LL || ULLONG_MAX != 0xffffffffffffffffULL
-#error long long is not 64-bit, temporarily not supported
+#error long long is not 64-bit, not supported
 #endif
 #if LONG_MAX != INT_MAX && LONG_MAX != LLONG_MAX
-#error long is neither 32-bit nor 64-bit, temporarily not supported
+#error long is neither 32-bit nor 64-bit, not supported
 #endif
 
 namespace mynum {
@@ -63,8 +67,6 @@ const float LN_INNERDEC_BASE = 20.7233f;
 const float LN_INNEROCT_BASE = 20.7944f;
 
 #endif
-
-typedef unsigned char byte_t;
 
 struct mem
 {
@@ -496,14 +498,12 @@ void number_t::bits_reserve(size_t n)
     n = (n + (sizeof(unit_t) * 8) - 1) / (sizeof(unit_t) * 8);
     if ((slen_t)n > cap)
     {
-        slen_t l, s, newcap;
+        slen_t l, newcap;
         unit_t* tmp = __allocate_units(n, &newcap);
         l = __abs(len);
-        s = __sign(len);
         __copy_units(tmp, dat, l);
         __deallocate_units(dat);
         dat = tmp;
-        len = l * s;
         cap = newcap;
     }
 }
@@ -5182,13 +5182,13 @@ __always_inline(dunit_t) __original_div_4by2(dunit_t h, dunit_t l, dunit_t d, du
     return __make_dunit(q1, q2 & MASK);  // Oh~ It's too slowwwww
 }
 
-#ifdef __GNUC__
+#if defined(__GNUC__) && !defined(NO_INTRINSIC)
 
 slen_t __vbits_count(unit_t x)
 {
     assert(x != 0);
 
-    return UNITBITS - __builtin_clz((unsigned int)x << (32 - UNITBITS));
+    return 32 - __builtin_clz(x);
 }
 
 #if UNITBITS == 16
@@ -5228,9 +5228,7 @@ dunit_t __qunit_mod_by_dunit(dunit_t h, dunit_t l, dunit_t d)
     return dunit_t(qunit % d);
 }
 
-#elif defined(_MSC_VER)
-
-#include <intrin.h>
+#elif defined(_MSC_VER) && !defined(NO_INTRINSIC)
 
 #pragma intrinsic(_BitScanReverse)
 
@@ -5353,26 +5351,29 @@ slen_t __vbits_count(unit_t x)
 {
     assert(x != 0);
 
-    return __bsr32((unsigned int)x) + 1;
+    return __bsr32(x) + 1;
 }
 
-dunit_t __mul_add_dunit(dunit_t x, dunit_t y, dunit_t z, dunit_t* l)
+dunit_t __mul_dunit_high(dunit_t x, dunit_t y)
 {
     dunit_t a, b, c, d;
-    dunit_t m, n, o, h;
+    dunit_t m, n, o;
 
     a = x >> UNITBITS; b = x & MASK;
     c = y >> UNITBITS; d = y & MASK;
     m = d * a + (d * b >> UNITBITS);    // never overflow
     n = c * b;
     o = m + n;   // maybe overflow, if overflow o < m
+    return a * c + (o >> UNITBITS) + (dunit_t(o < m) << UNITBITS);
+}
 
-    h = a * c + (o >> UNITBITS) + (dunit_t(o < m) << UNITBITS);
-    *l = x * y;
-
-    a = *l;
+dunit_t __mul_add_dunit(dunit_t x, dunit_t y, dunit_t z, dunit_t* l)
+{
+    dunit_t t, h;
+    h = __mul_dunit_high(x, y);
+    t = *l = x * y;
     *l += z;
-    h += *l < a;
+    h += *l < t;
     return h;
 }
 

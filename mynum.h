@@ -30,6 +30,7 @@ typedef long long slen_t;
 
 typedef dunit_t word_t;
 typedef sdunit_t sword_t;
+typedef unsigned char byte_t;
 
 #define __pad_word(dat, len) \
 { \

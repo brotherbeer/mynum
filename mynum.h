@@ -257,6 +257,7 @@ struct number_t: public _base_number_t
     void bit_set_one(size_t);
     void bit_set_zero(size_t);
     size_t bits_count() const;
+    size_t tzbits_count() const;
     void bits_reserve(size_t);
 
     bool is_even() const;
@@ -413,12 +414,12 @@ struct number_t: public _base_number_t
     void __copy(const number_t&);
     void __construct_from_bin_string(const char*, slen_t);
     void __construct_from_hex_string(const char*, slen_t);
-    void __construct_from_xbase_string(const char*, slen_t l, int base, float ln_base, unit_t inner_base, unit_t inner_base_digits);
+    void __construct_from_xbase_string(const char*, slen_t l, int base, float ln_base, unit_t power_base, unit_t power_base_digits);
     void __construct_from_string(const char*, slen_t, int base);
 
     string_t& __to_bin_string(string_t&) const;
     string_t& __to_hex_string(string_t&) const;
-    string_t& __to_xbase_string(string_t& res, unit_t base, unit_t inner_base, unit_t inner_base_digits, float ln_inner_base) const;
+    string_t& __to_xbase_string(string_t& res, unit_t base, unit_t power_base, unit_t power_base_digits, float ln_power_base) const;
 };
 
 int cmp(const number_t& a, const number_t& b);

@@ -49,22 +49,22 @@ const int KMUL_THRESHOLD = 80;
 const int KSQR_THRESHOLD = 120;
 
 #if UNITBITS == 16
-const int INNERDEC_BASE_DIGITS = 4;
-const int INNEROCT_BASE_DIGITS = 5;
-const unit_t INNERDEC_BASE = 10000;
-const unit_t INNEROCT_BASE = 0100000;
+const int POWERDEC_BASE_DIGITS = 4;
+const int POWEROCT_BASE_DIGITS = 5;
+const unit_t POWERDEC_BASE = 10000;
+const unit_t POWEROCT_BASE = 0100000;
 const float LN_BASE = 11.0903f;            // log(BASE) 
-const float LN_INNERDEC_BASE = 9.2103f;    // log(INNERDEC_BASE)
-const float LN_INNEROCT_BASE = 10.3972f;   // log(INNEROCT_BASE)
+const float LN_POWERDEC_BASE = 9.2103f;    // log(POWERDEC_BASE)
+const float LN_POWEROCT_BASE = 10.3972f;   // log(POWEROCT_BASE)
 
 #elif UNITBITS == 32
-const int INNERDEC_BASE_DIGITS = 9;
-const int INNEROCT_BASE_DIGITS = 10;
-const unit_t INNERDEC_BASE = 1000000000;
-const unit_t INNEROCT_BASE = 010000000000;
+const int POWERDEC_BASE_DIGITS = 9;
+const int POWEROCT_BASE_DIGITS = 10;
+const unit_t POWERDEC_BASE = 1000000000;
+const unit_t POWEROCT_BASE = 010000000000;
 const float LN_BASE = 22.1807f;
-const float LN_INNERDEC_BASE = 20.7233f;
-const float LN_INNEROCT_BASE = 20.7944f;
+const float LN_POWERDEC_BASE = 20.7233f;
+const float LN_POWEROCT_BASE = 20.7944f;
 
 #endif
 
@@ -96,22 +96,22 @@ int max_base()
 struct _radix_t
 {
     unit_t base;
-    unit_t inner_base_digits;
-    unit_t inner_base;
+    unit_t power_base_digits;
+    unit_t power_base;
     float ln_base;
-    float ln_inner_base;
+    float ln_power_base;
 
-    _radix_t(int n): base(n), inner_base_digits(1), inner_base(n)
+    _radix_t(int n): base(n), power_base_digits(1), power_base(n)
     {
         assert(n > 2 && n <= __max_base());
 
-        while ((dunit_t)inner_base * base < (dunit_t)MASK)
+        while ((dunit_t)power_base * base < (dunit_t)MASK)
         {
-            inner_base_digits++;
-            inner_base *= base;
+            power_base_digits++;
+            power_base *= base;
         }
         ln_base = log((float)base);
-        ln_inner_base = log((float)inner_base);
+        ln_power_base = log((float)power_base);
     }
 };
 
@@ -149,6 +149,7 @@ static __always_inline(unit_t*) __move_units(unit_t* d, const unit_t* s, slen_t 
 static __always_inline(int) __char_digit(char c);
 static __always_inline(bool) __char_digit_valid(char c, int base);
 static __always_inline(slen_t) __vbits_count(unit_t x);
+static __always_inline(slen_t) __tzbits_count(unit_t x);
 static __always_inline(dunit_t) __mul_dunit_high(dunit_t x, dunit_t y);
 static __always_inline(dunit_t) __mul_add_dunit(dunit_t x, dunit_t y, dunit_t z, dunit_t* low);
 static __always_inline(dunit_t) __qunit_mod_by_dunit(dunit_t h, dunit_t l, dunit_t d);
@@ -191,7 +192,7 @@ number_t::number_t(const char* s)
         slen_t l = (slen_t)strlen(s);
         if (l > 0)
         {
-            __construct_from_xbase_string(s, l, 10, LN_10, INNERDEC_BASE, INNERDEC_BASE_DIGITS);
+            __construct_from_xbase_string(s, l, 10, LN_10, POWERDEC_BASE, POWERDEC_BASE_DIGITS);
         }
     }
 }
@@ -435,7 +436,7 @@ number_t& number_t::assign(const char* s)
         slen_t l = (slen_t)strlen(s);
         if (l > 0)
         {
-            __construct_from_xbase_string(s, l, 10, LN_10, INNERDEC_BASE, INNERDEC_BASE_DIGITS);
+            __construct_from_xbase_string(s, l, 10, LN_10, POWERDEC_BASE, POWERDEC_BASE_DIGITS);
         }
     }
     return *this;
@@ -522,23 +523,23 @@ string_t& number_t::to_bin_string(string_t& res) const
 string_t number_t::to_oct_string() const
 {
     string_t res;
-    return __to_xbase_string(res, 8, INNEROCT_BASE, INNEROCT_BASE_DIGITS, LN_INNEROCT_BASE);
+    return __to_xbase_string(res, 8, POWEROCT_BASE, POWEROCT_BASE_DIGITS, LN_POWEROCT_BASE);
 }
 
 string_t& number_t::to_oct_string(string_t& res) const
 {
-    return __to_xbase_string(res, 8, INNEROCT_BASE, INNEROCT_BASE_DIGITS, LN_INNEROCT_BASE);
+    return __to_xbase_string(res, 8, POWEROCT_BASE, POWEROCT_BASE_DIGITS, LN_POWEROCT_BASE);
 }
 
 string_t number_t::to_dec_string() const
 {
     string_t res;
-    return __to_xbase_string(res, 10, INNERDEC_BASE, INNERDEC_BASE_DIGITS, LN_INNERDEC_BASE);
+    return __to_xbase_string(res, 10, POWERDEC_BASE, POWERDEC_BASE_DIGITS, LN_POWERDEC_BASE);
 }
 
 string_t& number_t::to_dec_string(string_t& res) const
 {
-    return __to_xbase_string(res, 10, INNERDEC_BASE, INNERDEC_BASE_DIGITS, LN_INNERDEC_BASE);
+    return __to_xbase_string(res, 10, POWERDEC_BASE, POWERDEC_BASE_DIGITS, LN_POWERDEC_BASE);
 }
 
 string_t number_t::to_hex_string() const
@@ -563,13 +564,13 @@ string_t& number_t::to_string(string_t& res, int base) const
     if (base > 1) switch (base)
     {
         case  2: return __to_bin_string(res);
-        case  8: return __to_xbase_string(res, 8,  INNEROCT_BASE, INNEROCT_BASE_DIGITS, LN_INNEROCT_BASE);
-        case 10: return __to_xbase_string(res, 10, INNERDEC_BASE, INNERDEC_BASE_DIGITS, LN_INNERDEC_BASE);
+        case  8: return __to_xbase_string(res, 8,  POWEROCT_BASE, POWEROCT_BASE_DIGITS, LN_POWEROCT_BASE);
+        case 10: return __to_xbase_string(res, 10, POWERDEC_BASE, POWERDEC_BASE_DIGITS, LN_POWERDEC_BASE);
         case 16: return __to_hex_string(res);
         default: if (base <= __max_base())
         {
             _radix_t r(base);
-            return __to_xbase_string(res, base, r.inner_base, r.inner_base_digits, r.ln_inner_base);
+            return __to_xbase_string(res, base, r.power_base, r.power_base_digits, r.ln_power_base);
         }
     }
     res.release();
@@ -1367,6 +1368,21 @@ size_t number_t::bits_count() const
     return len? __vbits_count(): 0;
 }
 
+size_t number_t::tzbits_count() const
+{
+    if (len)
+    {
+        slen_t l = __abs(len);
+        unit_t* p = dat, *e = p + l;
+        while (p != e && !*p)
+        {
+            p++;
+        }
+        return __tzbits_count(*p) + (p - dat) * UNITBITS;
+    }
+    return 0;
+}
+
 bool number_t::is_po2() const
 {
     if (!this->is_zero() && len > 0)
@@ -2073,7 +2089,7 @@ static __always_inline(unit_t) __str_to_unit(const char* p, int base, int l)
     return x;
 }
 
-void number_t::__construct_from_xbase_string(const char* s, slen_t l, int base, float ln_base, unit_t inner_base, unit_t inner_base_digits)
+void number_t::__construct_from_xbase_string(const char* s, slen_t l, int base, float ln_base, unit_t power_base, unit_t power_base_digits)
 {
     assert(len == 0 && l >= 0 && base <= __max_base());
 
@@ -2092,11 +2108,11 @@ void number_t::__construct_from_xbase_string(const char* s, slen_t l, int base, 
         s++;
         l--;
     }
-    for (; i < l - l % inner_base_digits; i += inner_base_digits)
+    for (; i < l - l % power_base_digits; i += power_base_digits)
     {
-        if ((u = __str_to_unit(s + i, base, inner_base_digits)) < inner_base)
+        if ((u = __str_to_unit(s + i, base, power_base_digits)) < power_base)
         {
-            __mul(inner_base);
+            __mul(power_base);
             __add(u);
         }
     }
@@ -2122,10 +2138,10 @@ void number_t::__construct_from_string(const char* s, slen_t l, int base)
             __construct_from_bin_string(s, l);
             break;
         case 8:
-            __construct_from_xbase_string(s, l, 8,  LN_8, INNEROCT_BASE, INNEROCT_BASE_DIGITS);
+            __construct_from_xbase_string(s, l, 8,  LN_8, POWEROCT_BASE, POWEROCT_BASE_DIGITS);
             break;
         case 10:
-            __construct_from_xbase_string(s, l, 10, LN_10, INNERDEC_BASE, INNERDEC_BASE_DIGITS);
+            __construct_from_xbase_string(s, l, 10, LN_10, POWERDEC_BASE, POWERDEC_BASE_DIGITS);
             break;
         case 16:
             __construct_from_hex_string(s, l);
@@ -2133,7 +2149,7 @@ void number_t::__construct_from_string(const char* s, slen_t l, int base)
         default:
         {
             _radix_t r(base);
-            __construct_from_xbase_string(s, l, r.base, r.ln_base, r.inner_base, r.inner_base_digits);
+            __construct_from_xbase_string(s, l, r.base, r.ln_base, r.power_base, r.power_base_digits);
             break;
         }
     }
@@ -2286,7 +2302,7 @@ static __always_inline(void) __unit_to_str(unit_t x, char* str, int base, int wi
     }
 }
 
-string_t& number_t::__to_xbase_string(string_t& res, unit_t base, unit_t inner_base, unit_t inner_base_digits, float ln_inner_base) const
+string_t& number_t::__to_xbase_string(string_t& res, unit_t base, unit_t power_base, unit_t power_base_digits, float ln_power_base) const
 {
     slen_t l = __abs(len);
     if (l)
@@ -2294,20 +2310,20 @@ string_t& number_t::__to_xbase_string(string_t& res, unit_t base, unit_t inner_b
         slen_t size = 0;
         char* str = NULL, *ps = NULL;
 
-        unit_t* tmp = __allocate_units(slen_t(LN_BASE * l / ln_inner_base + 1));
+        unit_t* tmp = __allocate_units(slen_t(LN_BASE * l / ln_power_base + 1));
         for (slen_t i = l - 1; i >= 0; i--)
         {
             unit_t unit = dat[i];
             for (slen_t j = 0; j < size; j++)
             {
                 dunit_t dunit = __make_dunit(tmp[j], unit);
-                tmp[j] = unit_t(dunit % inner_base);
-                unit = unit_t(dunit / inner_base);
+                tmp[j] = unit_t(dunit % power_base);
+                unit = unit_t(dunit / power_base);
             }
             while (unit)
             {
-                tmp[size++] = unit % inner_base;
-                unit /= inner_base;
+                tmp[size++] = unit % power_base;
+                unit /= power_base;
             }
         }
         if (size)
@@ -2316,8 +2332,8 @@ string_t& number_t::__to_xbase_string(string_t& res, unit_t base, unit_t inner_b
             unit_t* p = tmp + size - 1;
             unit_t* e = tmp - 1;
 
-            __unit_to_str(*p--, buf, base, inner_base_digits);
-            size_t chars = size * inner_base_digits + (len < 0);
+            __unit_to_str(*p--, buf, base, power_base_digits);
+            size_t chars = size * power_base_digits + (len < 0);
             if (res.cap >= chars)
             {
                 ps = str = res.dat;
@@ -2335,14 +2351,14 @@ string_t& number_t::__to_xbase_string(string_t& res, unit_t base, unit_t inner_b
             {
                 i++;
             }
-            for (; i < inner_base_digits; i++)
+            for (; i < power_base_digits; i++)
             {
                 *ps++ = buf[i];
             }
             while (p != e)
             {
-                __unit_to_str(*p--, ps, base, inner_base_digits);
-                ps += inner_base_digits;
+                __unit_to_str(*p--, ps, base, power_base_digits);
+                ps += power_base_digits;
             }
         }
         __deallocate_units(tmp);
@@ -5191,6 +5207,13 @@ slen_t __vbits_count(unit_t x)
     return 32 - __builtin_clz(x);
 }
 
+slen_t __tzbits_count(unit_t x)
+{
+    assert(x != 0);
+
+    return __builtin_ctz(x);
+}
+
 #if UNITBITS == 16
 typedef unsigned long long __qunit_t;
 #elif UNITBITS == 32
@@ -5231,6 +5254,7 @@ dunit_t __qunit_mod_by_dunit(dunit_t h, dunit_t l, dunit_t d)
 #elif defined(_MSC_VER) && !defined(NO_INTRINSIC)
 
 #pragma intrinsic(_BitScanReverse)
+#pragma intrinsic(_BitScanForward)
 
 slen_t __vbits_count(unit_t x)
 {
@@ -5239,6 +5263,15 @@ slen_t __vbits_count(unit_t x)
     unsigned long b;
     _BitScanReverse(&b, x);
     return b + 1;
+}
+
+slen_t __tzbits_count(unit_t x)
+{
+    assert(x != 0);
+
+    unsigned long b;
+    _BitScanForward(&b, x);
+    return b;
 }
 
 #if UNITBITS == 16
@@ -5352,6 +5385,13 @@ slen_t __vbits_count(unit_t x)
     assert(x != 0);
 
     return __bsr32(x) + 1;
+}
+
+slen_t __tzbits_count(unit_t x)
+{
+    assert(x != 0);
+
+    return 0;  // TODO
 }
 
 dunit_t __mul_dunit_high(dunit_t x, dunit_t y)

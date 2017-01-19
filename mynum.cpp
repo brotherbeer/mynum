@@ -2116,7 +2116,7 @@ void number_t::__construct_from_xbase_string(const char* s, slen_t l, int base, 
             __add(u);
         }
     }
-    for (; i != l; i++)
+    for (; i != l; i++)   // Can be optimized
     {
         if ((d = __char_digit(s[i])) < base)
         {
@@ -2883,9 +2883,26 @@ bool string_t::has(char c) const
 {
     if (dat)
     {
-        return strchr(dat, c) != NULL;
+        char* p = dat, *e = dat + len;
+        while (p != e)
+        {
+            if (*p++ == c) return true;
+        }
     }
     return false;
+}
+
+void string_t::cut(size_t l)
+{
+    if (len < l)
+    {
+        l = len;
+    }
+    if (dat)
+    {
+        len -= l;
+        dat[len] = '\0';
+    }
 }
 
 string_t& string_t::operator = (const string_t& another)
@@ -3239,9 +3256,9 @@ _leadings_t::_leadings_t()
 {
     size_t size = __max_base() + 1;
     strs = (string_t*)mem::allocate(size, sizeof(string_t));
-    refs = (reference_t*)mem::allocate(size, sizeof(reference_t));
+    refs = (_leadref_t*)mem::allocate(size, sizeof(_leadref_t));
     memset(strs, 0, size * sizeof(string_t));
-    memset(refs, 0, size * sizeof(reference_t));
+    memset(refs, 0, size * sizeof(_leadref_t));
     strs[2].assign("0b");
     strs[8].assign("0");
     strs[16].assign("0x");
@@ -3263,24 +3280,23 @@ _leadings_t::~_leadings_t()
     mem::deallocate(refs);
 }
 
-void set_leading(int base, const char* chars)
+const string_t& _leadings_t::get(int base) const
+{
+    return base >= 2 && base <= __max_base()? strs[base]: NO_LEADING;
+}
+
+void _leadings_t::set(int base, const char* leading)
 {
     if (base >= 2 && base <= __max_base())
     {
-        size_t l = chars? strlen(chars): 0;
-        _leadings_t& leadings = format_t::leadings;
-        _leadings_t::reference_t* refs = leadings.refs;
-        if (l)
+        int l, i;
+        string_t& str = strs[base];
+        if ((l = leading? strlen(leading): 0))
         {
-            string_t& str = leadings.strs[base].assign(chars, l);
-            for (int i = 0; i <= __max_base(); i++)
+            str.assign(leading, l);
+            for (i = 0; i <= __max_base(); i++)
             {
-                if (refs[i].base == base)
-                {
-                    refs[i].pstr = &str;
-                    break;
-                }
-                else if (refs[i].base == 0)
+                if (refs[i].base == base || refs[i].base == 0)
                 {
                     refs[i].pstr = &str;
                     refs[i].base = base;
@@ -3290,22 +3306,17 @@ void set_leading(int base, const char* chars)
         }
         else
         {
-            int i = 0;
-            leadings.strs[base].release();
-            for (; i <= __max_base() - 2; i++)
+            str.release();
+            for (i = 0; i <= __max_base(); i++)
             {
-                if (refs[i].base == base)
+                if (!refs[i].base && refs[i].base == base)
                 {
                     break;
                 }
             }
-            for (; i <= __max_base() - 1; i++)
+            for (; i <= __max_base() && refs[i].base; i++)
             {
                 refs[i] = refs[i + 1];
-                if (!refs[i].base)
-                {
-                    break;
-                }
             }
         }
     }
@@ -3322,57 +3333,58 @@ void reset_leading()
     set_leading(16, "0x");
 }
 
-const char* get_leading(int base)
-{
-    if (base >= 2 && base <= __max_base())
-    {
-        return format_t::leadings.strs[base].c_str();
-    }
-    return NULL;
-}
-
 void format_t::set(format_flags_t ff)
 {
     if (ff & ZERO_POS && ff & ZERO_NEG)
     {
         ff &= ~ZERO_POS & ~ZERO_NEG;
-        flags &= ~ZERO_POS & ~ZERO_NEG;
+        _flags &= ~ZERO_POS & ~ZERO_NEG;
     }
     else if (ff & ZERO_POS)
     {
         ff &= ~ZERO_NEG;
-        flags &= ~ZERO_NEG;
+        _flags &= ~ZERO_NEG;
     }
     else if (ff & ZERO_NEG)
     {
         ff &= ~ZERO_POS;
-        flags &= ~ZERO_POS;
+        _flags &= ~ZERO_POS;
     }
-    flags |= ff;
+    _flags |= ff;
 }
 
-string_t format_t::dump(const number_t& a) const
+void format_t::set_line_group_count(size_t cnt)
 {
-    string_t str;
-    return dump(a, str);
+    _groupinline = cnt;
+    if (_linesep.empty())
+    {
+        _linesep.assign('\n');
+    }
 }
 
-string_t& format_t::dump(const number_t& a, string_t& str) const
+void format_t::set_line_separator(const char* p)
 {
-    return dump(a, base, str);
+    _linesep.assign(p);
+}
+
+const string_t* format_t::__append_group(string_t& str, const char* p, size_t l, size_t n) const
+{
+    str.append(p, l);
+    const string_t* sep = _groupinline && !(n % _groupinline)? &_linesep: &_groupsep;
+    str.append(*sep);
+    return sep;
 }
 
 string_t& format_t::dump(const number_t& a, int b, string_t& str) const
 {
     string_t tmp, sign(16), leading(16);
     a.to_string(tmp, b);
-    const char* p = tmp.dat;
-    size_t l = tmp.len, r, space;
+    const char* p = tmp.dat, *e = p + tmp.len;
+    size_t l = tmp.len, r, space, g;
 
     if (*p == '-')
     {
-        p++;
-        l--;
+        p++; l--;
         sign.assign('-');
     }
     else if (a.is_zero() && has(ZERO_NEG))
@@ -3385,15 +3397,20 @@ string_t& format_t::dump(const number_t& a, int b, string_t& str) const
     }
 
     str.clear();
-    space = tmp.len + group + 16;
-    if (group)
+    space = tmp.len + 16;
+    if (_group)
     {
-        str.reserve((l / group + 1) * separator.len + space);
+        g = l / _group + 1;
+        if (_groupinline)
+        {
+            space += (g - g / _groupinline) * _groupsep.len + g / _groupinline * _linesep.len;
+        }
+        else
+        {
+            space += g * _groupsep.len;
+        }
     }
-    else
-    {
-        str.reserve(space);
-    }
+    str.reserve(space);
     if (has(SHOW_LEADING) && !(a.is_zero() && has(ZERO_NO_LEADING)))
     {
         leading.assign(get_leading(b));
@@ -3412,26 +3429,41 @@ string_t& format_t::dump(const number_t& a, int b, string_t& str) const
     {
         str.append(sign);
     }
-    r = group? l % group: 0;
-    if (group && has(GROUP_COMPELTE) && r)
+    if (_group)
     {
-        str.append(filler, group - r);
-    }
-    if (group && l > group)
-    {
-        if (r)
+        const string_t* sep;
+        r = l % _group; g = 0;
+        if (has(GROUP_FROM_MSB))
         {
-            str.append(p, r);
-            str.append(separator);
-            p += r;
+            e -= r;
+            while (p != e)
+            {
+                sep = __append_group(str, p, _group, ++g);
+                p += _group;
+            }
+            if (r)
+            {
+                sep = __append_group(str, p, r, ++g);
+            }
         }
-        for (size_t i = 0; i < l / group - 1; i++)
+        else
         {
-            str.append(p, group);
-            str.append(separator);
-            p += group;
+            if (r)
+            {
+                if (has(GROUP_COMPELTE))
+                {
+                    str.append(_filler, _group - r);
+                }
+                sep = __append_group(str, p, r, ++g);
+                p += r;
+            }
+            while (p != e)
+            {
+                sep = __append_group(str, p, _group, ++g);
+                p += _group;
+            }
         }
-        str.append(p, group);
+        str.cut(sep->len);
     }
     else
     {
@@ -3446,52 +3478,48 @@ string_t& format_t::dump(const number_t& a, int b, string_t& str) const
 
 int load(number_t& a, const char* str, int base, const format_t* fmt)
 {
-    if (str)
-    {
-        return load(a, str, strlen(str), base, fmt);
-    }
-    return 0;
+    return load(a, str, str? strlen(str): 0, base, fmt);
+}
+
+size_t __sign_count(const char* b, const char* e, size_t* nn, size_t* np)
+{
+    const char* p = b;
+    for (; p != e && (*p == '-' || *p == '+'); p++) if (*p == '-') (*nn)++; else (*np)++;
+    return p - b;
 }
 
 int load(number_t& a, const char* str, size_t len, int base, const format_t* fmt)
 {
+    bool emptyerror = fmt && fmt->has(EMPTY_AS_ERROR);
+    bool mulsignerror = fmt && fmt->has(MULTISIGN_AS_ERROR);
+
+    if (!(str && len))
+    {
+        if (emptyerror)
+        {
+            return 0;
+        }
+        a.set_zero();
+        return 1;
+    }
     string_t tmp(len);
-    size_t i = 0, j = 0;
-    size_t negn = 0;
-
-    for (; i < len; i++)
+    size_t i = 0, nn = 0, np = 0, matchmax = 0;
+    char* q = tmp.dat;
+    for (const char* p = str, *e = str + len; p != e; p++)
     {
-        if (strchr(" \t\n\r\f\v", str[i]) || (fmt && fmt->separator.has(str[i])))
+        if (*p != ' ' && (*p < '\t' || *p > '\r') && !(fmt && fmt->group_separator().has(*p)))
         {
-            continue;
-        }
-        tmp[j++] = str[i];
-    }
-
-    tmp.len = j;
-    if (tmp.dat) tmp.dat[j] = '\0';
-
-    for (i = 0; i < tmp.len; i++)
-    {
-        if (tmp[i] == '-')
-        {
-            negn++;
-        }
-        else if (tmp[i] == '+')
-        {
-            continue;
-        }
-        else
-        {
-            break;
+            *q++ = *p;
         }
     }
+    tmp.len = q - tmp.dat;
+    tmp.dat[tmp.len] = '\0';
+
+    i = __sign_count(tmp.dat, tmp.dat + tmp.len, &nn, &np);
     if (base <= 1 || base > __max_base())
     {
-        size_t matchmax = 0;
-        _leadings_t::reference_t* ref;
-        ref = format_t::leadings.refs;
-        for (; ref->pstr != NULL; ref++)  // 还是不对
+        _leadref_t* ref = format_t::leadings.refs;
+        for (; ref->pstr != NULL; ref++)
         {
             const string_t& leading = *ref->pstr;
             if (tmp.starts_with(i, leading) && matchmax < leading.len)
@@ -3501,59 +3529,40 @@ int load(number_t& a, const char* str, size_t len, int base, const format_t* fmt
             }
         }
         i += matchmax;
-        if (!matchmax && fmt)
-        {
-            base = fmt->base;
-        }
-        if (base <= 1 || base > __max_base())
-        {
-            base = 10;
-        }
+        base = base <= 1 || base > __max_base()? 10: base;
     }
     else
     {
-        string_t leading = get_leading(base);
+        const string_t& leading = get_leading(base);
         if (tmp.starts_with(i, leading))
         {
             i += leading.len;
         }
     }
-    for (; i < tmp.len; i++)
+    i += __sign_count(tmp.dat + i, tmp.dat + tmp.len, &nn, &np);
+    if (mulsignerror && (nn > 1 || np > 1))
     {
-        if (tmp[i] == '-')
-        {
-            negn++;
-        }
-        else if (tmp[i] == '+')
-        {
-            continue;
-        }
-        else
-        {
-            break;
-        }
+        return 0;
     }
-    for (j = i; j < tmp.len; j++)
+    else if (i < tmp.len && check(tmp, i, tmp.len, base))
     {
-        if (!__char_digit_valid(tmp[j], base))
+        a.assign(tmp, i, tmp.len, base);
+        if (nn & 1)
+        {
+            a.set_neg();
+        }
+        return 1;
+    }
+    else if (i == tmp.len)
+    {
+        if (emptyerror)
         {
             return 0;
         }
+        a.set_zero();
+        return 1;
     }
-
-    if (fmt && fmt->has(EMPTY_AS_ERROR))
-    {
-        if (i == tmp.len)
-        {
-            return 0;
-        }
-    }
-    a.assign(tmp, i, tmp.len, base);
-    if (negn & 1)
-    {
-        a.set_neg();
-    }
-    return 1;
+    return 0;
 }
 
 int load(number_t& a, const string_t& str, int base, const format_t* fmt)
@@ -3637,9 +3646,10 @@ int check(const char* p, int base)
     return int(p - q);
 }
 
-int check(const char* p, const char* e, int base)
+int check(const char* p, size_t l, int base)
 {
     const char* q = p;
+    const char* e = p + l;
     while (p != e)
     {
         if (__char_digit_valid(*p, base))
@@ -3652,6 +3662,20 @@ int check(const char* p, const char* e, int base)
         }
     }
     return int(p - q);
+}
+
+int check(const string_t& str, int base)
+{
+    return check(str.c_str(), base);
+}
+
+int check(const string_t& str, size_t bpos, size_t epos, int base)
+{
+    if (bpos < epos && epos <= str.len)
+    {
+        return check(str.c_str() + bpos, epos - bpos, base);
+    }
+    return 0;
 }
 
 /** algorithms implementation */

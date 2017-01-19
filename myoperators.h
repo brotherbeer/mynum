@@ -413,16 +413,16 @@ inline std::ostream& operator << (std::ostream& os, const number_t& a)
 {
     string_t s;
     format_t fmt;
-    fmt.base = 10;
+    int base = 10;
 
     std::ostream::fmtflags ff = os.flags();
     if (ff & std::ostream::oct)
     {
-        fmt.base = 8;
+        base = 8;
     }
     else if (ff & std::ostream::hex)
     {
-        fmt.base = 16;
+        base = 16;
     }
     if (ff & std::ostream::showbase)
     {
@@ -436,7 +436,7 @@ inline std::ostream& operator << (std::ostream& os, const number_t& a)
     {
         fmt.set(SHOW_POS);
     }
-    return os << fmt.dump(a, s).c_str();
+    return os << fmt.dump(a, base, s).c_str();
 }
 
 inline std::istream& operator >> (std::istream& is, number_t& a)

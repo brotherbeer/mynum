@@ -795,6 +795,7 @@ struct string_t
     bool ends_with(const string_t&) const;
 
     bool has(char c) const;
+    void cut(size_t l);
 
     string_t& operator = (const char*);
     string_t& operator = (const string_t&);
@@ -808,71 +809,86 @@ int cmp(const string_t& a, const string_t& b);
 int cmp(const string_t& a, const char* b);
 int cmp(const char* a, const string_t& b);
 int check(const char* p, int base);
-int check(const char* p, const char* e, int base);
+int check(const char* p, size_t l, int base);
+int check(const string_t& str, int base);
+int check(const string_t& str, size_t bpos, size_t epos, int base);
 
 typedef unsigned int format_flags_t;
-const format_flags_t UPPER_CASE = 1;
-const format_flags_t SHOW_POS = 2;
-const format_flags_t SHOW_LEADING = 4;
-const format_flags_t SIGN_RIGHT_LEADING = 8;
-const format_flags_t GROUP_COMPELTE = 16;
-const format_flags_t ZERO_NO_LEADING = 32;
-const format_flags_t ZERO_POS = 64;
-const format_flags_t ZERO_NEG = 128;
-const format_flags_t EMPTY_AS_ERROR = 0x80000000;
+const format_flags_t UPPER_CASE = 1 << 0;
+const format_flags_t SHOW_POS = 1 << 1;
+const format_flags_t SHOW_LEADING = 1 << 2;
+const format_flags_t SIGN_RIGHT_LEADING = 1 << 3;
+const format_flags_t GROUP_COMPELTE = 1 << 4;
+const format_flags_t GROUP_FROM_MSB = 1 << 5;
+const format_flags_t ZERO_NO_LEADING = 1 << 6;
+const format_flags_t ZERO_POS = 1 << 7;
+const format_flags_t ZERO_NEG = 1 << 8;
+const format_flags_t EMPTY_AS_ERROR = 1 << 16;
+const format_flags_t MULTISIGN_AS_ERROR = 1 << 17;
+
+struct _leadref_t
+{
+    const string_t* pstr;
+    int base;
+};
 
 struct _leadings_t
 {
-    struct reference_t
-    {
-        const string_t* pstr;
-        int base;
-    };
-
     string_t* strs;
-    reference_t* refs;
+    _leadref_t* refs;
 
     _leadings_t();
     ~_leadings_t();
-};
 
-void reset_leading();
-const char* get_leading(int base);
-void set_leading(int base, const char* leading);
+    const string_t& get(int base) const;
+    void set(int base, const char* leading);
+};
 
 struct format_t
 {
     static _leadings_t leadings;
-    format_flags_t flags;
-    int base;
-    size_t group;
-    string_t separator;
-    char filler;
- 
-    format_t():
-        flags(0), base(10), group(0), filler('0')
-    {}
-    format_t(format_flags_t ff):
-        flags(ff), base(10), group(0), filler('0')
-    {}
-    format_t(format_flags_t ff, int b):
-        flags(ff), base(b), group(0), filler('0')
-    {}
-    format_t(format_flags_t f, int b, size_t g, string_t s, char gs = '0'):
-        flags(f), base(b), group(g), separator(s), filler(gs)
+
+    format_t(format_flags_t ff = 0):
+        _flags(ff), _group(0), _groupinline(0), _filler('0')
     {}
 
     void set(format_flags_t ff);
-    void clear(format_flags_t ff) { flags &= ~ff; }
-    void clear_all() { flags = 0; }
+    void clear(format_flags_t ff) { _flags &= ~ff; }
+    void clear_all() { _flags = 0; }
 
-    bool has(format_flags_t ff) const { return (flags & ff) > 0; }
-    format_flags_t get() const { return flags; }
+    bool has(format_flags_t ff) const { return (_flags & ff) > 0; }
+    format_flags_t flags() const { return _flags; }
 
-    string_t  dump(const number_t& a) const;
-    string_t& dump(const number_t& a, string_t& str) const;
-    string_t& dump(const number_t& a, int base, string_t& str) const;
+    size_t group_size() const { return _group; }
+    size_t line_group_count() const { return _groupinline; }
+    const string_t& group_separator() const { return _groupsep; }
+    const string_t& line_separator() const { return _linesep; }
+    char filler() const { return _filler; }
+
+    void set_group_separator(const char* p) { _groupsep.assign(p); }
+    void set_group_filler(char c) { _filler = c; }
+    void set_group_size(size_t size) { _group = size; }
+
+    void set_line_group_count(size_t cnt);
+    void set_line_separator(const char* p);
+
+    string_t& dump(const number_t& a, int _base, string_t& str) const;
+
+protected:
+    format_flags_t _flags;
+    size_t _group;
+    size_t _groupinline;
+    string_t _groupsep;
+    string_t _linesep;
+    char _filler;
+
+    const string_t* __append_group(string_t& str, const char* p, size_t len, size_t n) const;
 };
+
+const string_t NO_LEADING;
+void reset_leading();
+inline void set_leading(int base, const char* chars) { format_t::leadings.set(base, chars); }
+inline const string_t& get_leading(int base) { return format_t::leadings.get(base); }
 
 int load(number_t& a, const char* p, int base, const format_t* format = NULL);
 int load(number_t& a, const char* p, size_t l, int base, const format_t* format = NULL);

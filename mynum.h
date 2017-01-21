@@ -32,12 +32,6 @@ typedef dunit_t word_t;
 typedef sdunit_t sword_t;
 typedef unsigned char byte_t;
 
-#define __pad_word(dat, len) \
-{ \
-    slen_t l = __abs(len); \
-    if ((l) & 1) *((dat) + l) = 0; \
-}
-
 #define __trim_leading_zeros(dat, len) \
 {\
     assert(len >= 0); \
@@ -403,8 +397,6 @@ struct number_t: public _base_number_t
     bitref_t operator [] (size_t);
 
     void __reserve(slen_t units);
-    void __add(unit_t);  // rename
-    void __mul(unit_t);
     slen_t __abs_add_unit(unit_t);
     slen_t __abs_sub_unit(unit_t);
     slen_t __abs_add_word(word_t);
@@ -412,6 +404,8 @@ struct number_t: public _base_number_t
     slen_t __bits_reserve(slen_t);
     slen_t __vbits_count() const;
     void __copy(const number_t&);
+    void __construct_add(unit_t);
+    void __construct_mul(unit_t);
     void __construct_from_bin_string(const char*, slen_t);
     void __construct_from_hex_string(const char*, slen_t);
     void __construct_from_xbase_string(const char*, slen_t l, int base, float ln_base, unit_t power_base, unit_t power_base_digits);

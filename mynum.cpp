@@ -95,15 +95,14 @@ int max_base()
 
 struct _radix_t
 {
-    unit_t base;
     unit_t power_base_digits;
     unit_t power_base;
     float ln_base;
     float ln_power_base;
 
-    _radix_t(int n): base(n), power_base_digits(1), power_base(n)
+    _radix_t(int base): power_base_digits(1), power_base(base)
     {
-        assert(n > 2 && n <= __max_base());
+        assert(base > 2 && base <= __max_base());
 
         while ((dunit_t)power_base * base < (dunit_t)MASK)
         {
@@ -589,20 +588,17 @@ number_t number_t::neg() const
 
 number_t& number_t::set_abs()
 {
-    mynum::set_abs(*this);
-    return *this;
+    return mynum::set_abs(*this);
 }
 
 number_t& number_t::set_neg()
 {
-    mynum::set_neg(*this);
-    return *this;
+    return mynum::set_neg(*this);
 }
 
 number_t& number_t::set_sign(int sign)
 {
-    mynum::set_sign(*this, sign);
-    return *this;
+    return mynum::set_sign(*this, sign);
 }
 
 number_t& number_t::add(const number_t& x)
@@ -924,8 +920,6 @@ void number_t::bit_xor_unit(unit_t x)
 
 number_t& number_t::add_ui(word_t x)
 {
-    __pad_word(dat, len);
-
     if (len > 0)
     {
         len = __abs_add_word(x);
@@ -944,6 +938,7 @@ number_t& number_t::add_ui(word_t x)
     }
     else
     {
+        if (-len & 1) dat[-len] = 0;
         if (*(word_t*)dat >= x || len < -2)
         {
             len = 0 - __abs_sub_word(x);
@@ -959,10 +954,9 @@ number_t& number_t::add_ui(word_t x)
 
 number_t& number_t::sub_ui(word_t x)
 {
-    __pad_word(dat, len);
-
     if (len > 0)
     {
+        if (len & 1) dat[len] = 0;
         if (*(word_t*)dat >= x || len > 2)
         {
             len = __abs_sub_word(x);
@@ -994,47 +988,35 @@ number_t& number_t::sub_ui(word_t x)
 
 number_t& number_t::mul_ui(word_t x)
 {
-    if (len)
+    word_t *p, *e, carry = 0;
+    slen_t l = __abs(len), m = (l + (l & 1)) / 2;
+    if (l & 1) dat[l] = 0;
+
+    for (p = (word_t*)dat, e = p + m; p != e; p++)
     {
-        __pad_word(dat, len);
-
-        word_t *p, *e, carry = 0;
-        slen_t l = __abs(len), m = (l + (l & 1)) / 2;
-
-        p = (word_t*)dat;
-        e = p + m;
-        for (; p != e; p++)
+        // multiply *p and x, and add carry to the result
+        // see issue #9
+        carry = __mul_add_dunit(*p, x, carry, p);
+    }
+    if (carry)
+    {
+        if (cap / 2 > m)
         {
-            // multiply *p and x, and add carry to the result
-            // see issue #9
-            carry = __mul_add_dunit(*p, x, carry, p);
-        }
-        if (!carry)
-        {
-            if (p == e && *((unit_t*)p - 1))
-            {
-                l = (unit_t*)p - dat;
-            }
+            *e = carry;
         }
         else
         {
-            if (cap / 2 > m)
-            {
-                *e = carry;
-            }
-            else
-            {
-                unit_t* tmp = __allocate_units((cap = m * 4));
-                __copy_units(tmp, dat, m * 2);
-                *((word_t*)tmp + m) = carry;
-                __deallocate_units(dat);
-                dat = tmp;
-            }
-            l += 2;
+            unit_t* tmp = __allocate_units((cap = m * 4));
+            __copy_units(tmp, dat, m * 2);
+            *((word_t*)tmp + m) = carry;
+            __deallocate_units(dat);
+            dat = tmp;
         }
-        __trim_leading_zeros(dat, l);
-        len = l * __sign(len);
+        m++;
     }
+    l = m * 2;
+    __trim_leading_zeros(dat, l);
+    len = l * __sign(len);
     return *this;
 }
 
@@ -1042,11 +1024,9 @@ number_t& number_t::div_ui(word_t x)
 {
     if (len && x)
     {
-        __pad_word(dat, len);
-
         word_t *q, *e, rem = 0;
-        slen_t l = __abs(len), m = (l + (l & 1)) / 2;       
-
+        slen_t l = __abs(len), m = (l + (l & 1)) / 2;
+        if (l & 1) dat[l] = 0;
         e = (word_t*)dat;
         q = e + m;
         while (--q >= e)
@@ -1063,11 +1043,9 @@ number_t& number_t::mod_ui(word_t x)
 {
     if (len && x)
     {
-        __pad_word(dat, len);
-
         word_t *q, *e, rem = 0;
-        slen_t l = __abs(len), m = (l + (l & 1)) / 2;       
-
+        slen_t l = __abs(len), m = (l + (l & 1)) / 2;
+        if (l & 1) dat[l] = 0;
         e = (word_t*)dat;
         q = e + m;
         while (--q >= e)
@@ -1077,9 +1055,7 @@ number_t& number_t::mod_ui(word_t x)
         if (rem)
         {
             *(word_t*)dat = rem;
-            l = 2;
-            __trim_leading_zeros(dat, l);
-            len = l * __sign(len);
+            len = (rem >= BASE? 2: 1) * __sign(len);
         }
         else
         {
@@ -1812,26 +1788,20 @@ slen_t number_t::__vbits_count() const
     return mynum::__vbits_count(dat[len - 1]) + (len - 1) * SHIFT;
 }
 
-/**
- *  Only can be used in the process of constructing object
- */
-void number_t::__add(unit_t x)
+void number_t::__construct_add(unit_t x)
 {
     if (len)
     {
-        dunit_t carry = 0;
-        carry = (dunit_t)dat[0] + x;
-        dat[0] = carry & MASK;
-        carry >>= SHIFT;
-        for (slen_t i = 1; i < len && carry != 0; i++)
+        unit_t* p = dat;
+        unit_t *e = dat + len;
+        *p += x;
+        while (*p < x && ++p != e)
         {
-            carry += dat[i];
-            dat[i] = carry & MASK;
-            carry >>= SHIFT;
+            x = (*p)++;
         }
-        if (carry)
+        if (p == e && *(p - 1) < x)
         {
-            dat[len++] = carry & MASK;
+            *p = 1; len++;
         }
     }
     else
@@ -1840,10 +1810,7 @@ void number_t::__add(unit_t x)
     }
 }
 
-/**
- *  Only can be used in the process of constructing object
- */
-void number_t::__mul(unit_t x)
+void number_t::__construct_mul(unit_t x)
 {
     unit_t* p = dat;
     dunit_t carry = 0;
@@ -1856,8 +1823,8 @@ void number_t::__mul(unit_t x)
     if (carry)
     {
         *p++ = carry & MASK;
+        len++;
     }
-    len = slen_t(p - dat);
 }
 
 slen_t number_t::__abs_add_unit(unit_t x)
@@ -1865,30 +1832,24 @@ slen_t number_t::__abs_add_unit(unit_t x)
     assert(len != 0);
 
     slen_t l = __abs(len);
-    dunit_t carry = 0;
     unit_t* p = dat;
     unit_t* e = dat + l;
-
-    carry = (dunit_t)*p + x;
-    *p = carry & MASK;
-    carry >>= SHIFT;
-    while (++p != e && carry)
+    *p += x;
+    while (*p < x && ++p != e)
     {
-        carry += *p;
-        *p = carry & MASK;
-        carry >>= SHIFT;
+        x = (*p)++;
     }
-    if (carry)
+    if (p == e && *(p - 1) < x)
     {
         if (cap > l)
         {
-            *e = carry & MASK;
+            *e = 1;
         }
         else
         {
             unit_t* tmp = __allocate_units((cap = l * 2));
             __copy_units(tmp, dat, l);
-            tmp[l] = carry & MASK;
+            tmp[l] = 1;
             __deallocate_units(dat);
             dat = tmp;
         }
@@ -1901,27 +1862,17 @@ slen_t number_t::__abs_add_word(word_t x)
 {
     assert(len != 0);
 
-    word_t *p, *e, tmp;
-    slen_t l = __abs(len), m = (l + (l & 1)) / 2;
- 
-    p = (dunit_t*)dat;
-    e = p + m;
+    slen_t l = __abs(len);
+    slen_t m = (l + (l & 1)) / 2;
+    word_t* p = (word_t*)dat;
+    word_t* e = p + m;
+    if (l & 1) dat[l] = 0;
     *p += x;
-    bool carry = *p < x;
-    while (++p != e && carry)
+    while (*p < x && ++p != e)
     {
-        tmp = *p;
-        (*p)++;
-        carry = *p < tmp;
+        x = (*p)++;
     }
-    if (!carry)
-    {
-        if (p == e && *((unit_t*)p - 1))
-        {
-            l = (unit_t*)p - dat;
-        }
-    }
-    else
+    if (p == e && *(p - 1) < x)
     {
         if (cap / 2 > m)
         {
@@ -1935,8 +1886,10 @@ slen_t number_t::__abs_add_word(word_t x)
             __deallocate_units(dat);
             dat = tmp;
         }
-        l = 2 * m + 1;
+        m++;
     }
+    l = m * 2;
+    __trim_leading_zeros(dat, l);
     return l;
 }
 
@@ -1944,20 +1897,12 @@ slen_t number_t::__abs_sub_unit(unit_t x)
 {
     assert(len != 0);
 
-    dunit_t borrow = 0;
     unit_t* p = dat;
-    unit_t* e = dat + __abs(len);
-
-    borrow = (dunit_t)*p - x;
-    *p = borrow & MASK;
-    borrow >>= SHIFT;
-    borrow &= 1;
-    while (++p != e && borrow)
+    unit_t* e = p + __abs(len), t = *p;
+    *p -= x;
+    while (*p > t && ++p != e)
     {
-        borrow = (dunit_t)*p - borrow;
-        *p = borrow & MASK;
-        borrow >>= SHIFT;
-        borrow &= 1;
+        t = (*p)--;
     }
     while (e != dat && !*(e - 1))
     {
@@ -1970,17 +1915,15 @@ slen_t number_t::__abs_sub_word(word_t x)
 {
     assert(len != 0);
 
-    word_t *p, *e;
-    slen_t l = __abs(len), m = (l + (l & 1)) / 2;
-
-    p = (word_t*)dat;
-    e = p + m;
-    bool borrow = *p < x;
+    slen_t l = __abs(len);
+    slen_t m = (l + (l & 1)) / 2;
+    word_t* p = (word_t*)dat;
+    word_t* e = p + m, t = *p;
+    if (l & 1) dat[l] = 0;
     *p -= x;
-    while (++p != e && borrow)
+    while (*p > t && ++p != e)
     {
-        borrow = *p < 1;
-        (*p)--;
+        t = (*p)--;
     }
     __trim_leading_zeros(dat, l);
     return l;
@@ -2005,16 +1948,14 @@ void number_t::__construct_from_bin_string(const char* s, slen_t l)
     assert(len == 0);
 
     int sign = 1;
-    if (*s == '-' || *s == '+')
+    if (*s == '-')
     {
-        sign = *s == '-'? -1: 1;
         s++;
         l--;
+        sign = -1;
     }
-
     const char *p0 = s + l - UNITBITS;
     const char *p1 = s + l % UNITBITS;
-
     slen_t n = (l + UNITBITS - 1) / UNITBITS;
     if (n > cap)
     {
@@ -2049,17 +1990,15 @@ void number_t::__construct_from_hex_string(const char* s, slen_t l)
     assert(len == 0);
 
     int sign = 1;
-    if (*s == '-' || *s == '+')
+    if (*s == '-')
     {
-        sign = *s == '-'? -1: 1;
         s++;
         l--;
+        sign = -1;
     }
-
     const int k = sizeof(unit_t) << 1;
     const char *p0 = s + l - k;
     const char *p1 = s + l % k;
-
     slen_t n = (l + k - 1) / k;
     if (n > cap)
     {
@@ -2091,38 +2030,38 @@ static __always_inline(unit_t) __str_to_unit(const char* p, int base, int l)
 
 void number_t::__construct_from_xbase_string(const char* s, slen_t l, int base, float ln_base, unit_t power_base, unit_t power_base_digits)
 {
-    assert(len == 0 && l >= 0 && base <= __max_base());
+    assert(len == 0 && l > 0 && base <= __max_base());
 
-    unit_t u;
-    int i = 0, sign = 1, d;
-
-    slen_t n = slen_t(ln_base * l / LN_BASE + 1);
-    if (n > cap)
+    unit_t u, rbase;
+    slen_t n, i = 0, sign = 1, k, r;
+    if ((n = slen_t(ln_base * l / LN_BASE + 1)) > cap)
     {
         __deallocate_units(dat);
         __reserve(n);
     }
-    if (*s == '-' || *s == '+')
+    if (*s == '-')
     {
-        sign = *s == '-'? -1: 1;
         s++;
         l--;
+        sign = -1;
     }
-    for (; i < l - l % power_base_digits; i += power_base_digits)
+    r = l % power_base_digits;
+    for (k = l - r; i < k; i += power_base_digits)
     {
         if ((u = __str_to_unit(s + i, base, power_base_digits)) < power_base)
         {
-            __mul(power_base);
-            __add(u);
+            __construct_mul(power_base);
+            __construct_add(u);
         }
     }
-    for (; i != l; i++)   // Can be optimized
+    if (r && (u = __str_to_unit(s + i, base, r)) < power_base)
     {
-        if ((d = __char_digit(s[i])) < base)
+        for (rbase = 1; r--;)
         {
-            __mul(base);
-            __add(d);
+            rbase *= base;
         }
+        __construct_mul(rbase);
+        __construct_add(u);
     }
     __trim_leading_zeros(dat, len);
     len *= sign;
@@ -2130,7 +2069,7 @@ void number_t::__construct_from_xbase_string(const char* s, slen_t l, int base, 
 
 void number_t::__construct_from_string(const char* s, slen_t l, int base)
 {
-    assert(len == 0 && l >= 0 && base <= __max_base());
+    assert(len == 0 && l > 0 && base <= __max_base());
 
     switch (base)
     {
@@ -2149,7 +2088,7 @@ void number_t::__construct_from_string(const char* s, slen_t l, int base)
         default:
         {
             _radix_t r(base);
-            __construct_from_xbase_string(s, l, r.base, r.ln_base, r.power_base, r.power_base_digits);
+            __construct_from_xbase_string(s, l, base, r.ln_base, r.power_base, r.power_base_digits);
             break;
         }
     }

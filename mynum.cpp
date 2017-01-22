@@ -890,7 +890,14 @@ void number_t::bit_and_unit(unit_t x)
 {
     if (len)
     {
-        dat[0] &= x;
+        if ((dat[0] &= x))
+        {
+            len = __sign(len);
+        }
+        else
+        {
+            len = 0;
+        }
     }
 }
 

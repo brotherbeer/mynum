@@ -33,7 +33,9 @@ opers = [
     '&s32', '&u32', '&s64', '&u64',
     '|s32', '|u32', '|s64', '|u64',
     '^s32', '^u32', '^s64', '^u64',
-    '<<', '>>', 
+    '<<', '>>',
+    '+u16', '-u16', '*u16', '/u16', '%u16', '&u16', '|u16', '^u16',
+    '+u16', '-u16', '*u16', '/u16', '%u16', '&u16', '|u16', '^u16',
 ]
 
 signs = ['-', '', ]
@@ -44,6 +46,7 @@ UINT_MAX = 0xffffffff
 LLONG_MAX = 9223372036854775807
 LLONG_MIN = (-9223372036854775807 - 1)
 ULLONG_MAX = 0xffffffffffffffff
+USHORT_MAX = 0xffff
 
 def randNumStr(dmax):
     b = randint(2, 36)
@@ -206,8 +209,7 @@ def genTestData(args):
             res = mydiv(va, vb)
 
         elif oper == '/u32':
-            vb = randint(0, UINT_MAX)
-            if not vb: continue
+            vb = randint(1, UINT_MAX)
             b, b1 = str(vb), 10
             res = mydiv(va, vb)
 
@@ -218,8 +220,7 @@ def genTestData(args):
             res = mydiv(va, vb)
 
         elif oper == '/u64':
-            vb = randint(0, ULLONG_MAX)
-            if not vb: continue
+            vb = randint(1, ULLONG_MAX)
             b, b1 = str(vb), 10
             res = mydiv(va, vb)
 
@@ -230,8 +231,7 @@ def genTestData(args):
             res = mymod(va, vb)
 
         elif oper == '%u32':
-            vb = randint(0, UINT_MAX)
-            if not vb: continue
+            vb = randint(1, UINT_MAX)
             b, b1 = str(vb), 10
             res = mymod(va, vb)
 
@@ -242,8 +242,7 @@ def genTestData(args):
             res = mymod(va, vb)
 
         elif oper == '%u64':
-            vb = randint(0, ULLONG_MAX)
-            if not vb: continue
+            vb = randint(1, ULLONG_MAX)
             b, b1 = str(vb), 10
             res = mymod(va, vb)
 
@@ -336,6 +335,46 @@ def genTestData(args):
             b1 = 10
             res = va**vb
 
+        elif oper == '+u16':
+            vb = randint(0, USHORT_MAX)
+            b, b1 = str(vb), 10
+            res = va + vb  
+
+        elif oper == '-u16':
+            vb = randint(0, USHORT_MAX)
+            b, b1 = str(vb), 10
+            res = va - vb
+
+        elif oper == '*u16':
+            vb = randint(0, USHORT_MAX)
+            b, b1 = str(vb), 10
+            res = va * vb
+
+        elif oper == '/u16':
+            vb = randint(1, USHORT_MAX)
+            b, b1 = str(vb), 10
+            res = mydiv(va, vb)
+
+        elif oper == '%u16':
+            vb = randint(1, USHORT_MAX)
+            b, b1 = str(vb), 10
+            res = mymod(va, vb)
+
+        elif oper == '&u16':
+            vb = randint(0, USHORT_MAX)
+            b, b1 = str(vb), 10
+            res = myand(va, vb)
+
+        elif oper == '|u16':
+            vb = randint(0, USHORT_MAX)
+            b, b1 = str(vb), 10
+            res = myor(va, vb)
+
+        elif oper == '^u16':
+            vb = randint(0, USHORT_MAX)
+            b, b1 = str(vb), 10
+            res = myxor(va, vb)
+
         print '%s %s %s %s %s %s' % (oper, a, b0, b, b1, res)
 
 def parseArgs():
@@ -344,6 +383,8 @@ def parseArgs():
     parser.add_argument('-i', '--items-count', type = int, help = 'How many items should be generated', default = 32)
     parser.add_argument('-p', '--with-power', help = 'With operations about power', action = 'store_true')
     args = parser.parse_args()
+    if args.max_digits_count == 0:
+        args.max_digits_count = 1
     return args
  
 if __name__ == '__main__':

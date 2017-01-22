@@ -35,7 +35,8 @@ static void __check(const number_t& res, const number_t& exp)
         abort(); \
     } \
     number_t aa(a), r; \
-    __check(aa.fun(b.to_basic_fun()), c); \
+    aa.fun(b.to_basic_fun());\
+    __check(aa, c); \
     mynum::fun(a, b.to_basic_fun(), r); \
     __check(r, c); \
 } while(0)
@@ -51,7 +52,7 @@ size_t __random_test()
 
     size_t n = 0;
     number_t a, b, c;
-    number_t aa, bb, res;
+    number_t aa, bb, cc, res;
     while (in.good() && !in.eof())
     {
         n++;
@@ -99,6 +100,9 @@ size_t __random_test()
             bb.assign(b);
 
             mul(a, b, res);
+            __check(res, c);
+
+            kmul(a, b, res);
             __check(res, c);
 
             aa.mul(b);
@@ -234,6 +238,11 @@ size_t __random_test()
         {
             sqr(a, res);
             __check(res, c);
+            ksqr(a, res);
+            __check(res, c);
+            aa.assign(a);
+            aa.ksqr();
+            __check(aa, c);
             a.sqr();
             __check(a, c);
         }
@@ -299,41 +308,63 @@ size_t __random_test()
         {
             check_basic(add, in_range_uint, to_uint);
             if (sizeof(long) == sizeof(int)) check_basic(add, in_range_ulong, to_ulong);
+            if (sizeof(word_t) == 8) check_basic(add_unit, in_range_uint, to_uint);
         }
         else if (oper == "-u32")
         {
             check_basic(sub, in_range_uint, to_uint);
             if (sizeof(long) == sizeof(int)) check_basic(sub, in_range_ulong, to_ulong);
+            if (sizeof(word_t) == 8) check_basic(sub_unit, in_range_uint, to_uint);
         }
         else if (oper == "*u32")
         {
             check_basic(mul, in_range_uint, to_uint);
             if (sizeof(long) == sizeof(int)) check_basic(mul, in_range_ulong, to_ulong);
+            if (sizeof(word_t) == 8) check_basic(mul_unit, in_range_uint, to_uint);
         }
         else if (oper == "/u32")
         {
             check_basic(div, in_range_uint, to_uint);
             if (sizeof(long) == sizeof(int)) check_basic(div, in_range_ulong, to_ulong);
+            if (sizeof(word_t) == 8)
+            {
+                check_basic(div_unit, in_range_uint, to_uint);
+                aa.assign(a);
+                UDM udm(b.to_uint());
+                aa.div_unit(udm); __check(aa, c);
+                div_unit(a, udm, cc); __check(cc, c);
+            }
         }
         else if (oper == "%u32")
         {
             check_basic(mod, in_range_uint, to_uint);
             if (sizeof(long) == sizeof(int)) check_basic(mod, in_range_ulong, to_ulong);
+            if (sizeof(word_t) == 8)
+            {
+                check_basic(mod_unit, in_range_uint, to_uint);
+                aa.assign(a);
+                UDM udm(b.to_uint());
+                aa.mod_unit(udm); __check(aa, c);
+                mod_unit(a, udm, cc); __check(cc, c);
+            }
         }
         else if (oper == "&u32")
         {
             check_basic(bit_and, in_range_uint, to_uint);
             if (sizeof(long) == sizeof(int)) check_basic(bit_and, in_range_ulong, to_ulong);
+            if (sizeof(word_t) == 8) check_basic(bit_and_unit, in_range_uint, to_uint);
         }
         else if (oper == "|u32")
         {
             check_basic(bit_or, in_range_uint, to_uint);
             if (sizeof(long) == sizeof(int)) check_basic(bit_or, in_range_ulong, to_ulong);
+            if (sizeof(word_t) == 8) check_basic(bit_or_unit, in_range_uint, to_uint);
         }
         else if (oper == "^u32")
         {
             check_basic(bit_xor, in_range_uint, to_uint);
             if (sizeof(long) == sizeof(int)) check_basic(bit_xor, in_range_ulong, to_ulong);
+            if (sizeof(word_t) == 8) check_basic(bit_xor_unit, in_range_uint, to_uint);
         }
         else if (oper == "+s64")
         {
@@ -422,6 +453,48 @@ size_t __random_test()
             a.pow(b.to_int());
             __check(a, c);
         }
+        else if (oper == "+u16")
+        {
+            check_basic(add_unit, in_range_ushort, to_ushort);
+        }
+        else if (oper == "-u16")
+        {
+            check_basic(sub_unit, in_range_ushort, to_ushort);
+        }
+        else if (oper == "*u16")
+        {
+            check_basic(mul_unit, in_range_ushort, to_ushort);
+        }
+        else if (oper == "/u16")
+        {
+            check_basic(div_unit, in_range_ushort, to_ushort);
+
+            aa.assign(a);
+            UDM udm(b.to_ushort());
+            aa.div_unit(udm); __check(aa, c);
+            div_unit(a, udm, cc); __check(cc, c);
+        }
+        else if (oper == "%u16")
+        {
+            check_basic(mod_unit, in_range_ushort, to_ushort);
+
+            aa.assign(a);
+            UDM udm(b.to_ushort());
+            aa.mod_unit(udm); __check(aa, c);
+            mod_unit(a, udm, cc); __check(cc, c);
+        }
+        else if (oper == "&u16")
+        {
+            check_basic(bit_and_unit, in_range_ushort, to_ushort);
+        }
+        else if (oper == "|u16")
+        {
+            check_basic(bit_or_unit, in_range_ushort, to_ushort);
+        }
+        else if (oper == "^u16")
+        {
+            check_basic(bit_xor_unit, in_range_ushort, to_ushort);
+        }
     }
     in.close();
     return n;
@@ -508,7 +581,7 @@ void __test_sqr_and_mul_performace()
     clock_t t0 = clock(); \
     fun(); \
     cout << "OK!" << endl; \
-    cout << "time: " << double(clock() - t0) / CLOCKS_PER_SEC << endl; \
+    cout << "time: " << clock() - t0 << endl; \
 } while (0)
 
 void test_performance()

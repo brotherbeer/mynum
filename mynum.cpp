@@ -9,9 +9,10 @@
  * NOTICE!! This library is only available on the LITTLE-ENDIAN machines now.
  */
 
-#include <cstdlib>
-#include <cstring>
 #include <cmath>
+#include <cstdlib>
+#include <cctype>
+#include <cstring>
 #include "mynum.h"
 
 
@@ -2732,49 +2733,49 @@ string_t& string_t::strip()
     return strip(" \t\r\n\f\v");
 }
 
-bool string_t::starts_with(size_t pos, const char* p, size_t l) const
+bool string_t::starts_with(size_t pos, const char* p, size_t l, bool ic) const
 {
-    bool ret = false;
+    const char* e = p + l, *q = dat + pos;
     if (dat && p && pos < len && l)
     {
-        const char* q = dat + pos;
-        if ((ret = len >= l))
+        if (len >= l)
         {
-            for (size_t i = 0; i != l; i++) if (p[i] != q[i])
+            if (ic)
             {
-                ret = false;
-                break;
+                for (; p != e && tolower(*p) == tolower(*q); p++, q++);
+            }
+            else
+            {
+                for (; p != e && *p == *q; p++, q++);
             }
         }
     }
-    return ret;
+    return p == e && l != 0;
 }
 
-bool string_t::starts_with(size_t pos, const char* p) const
+bool string_t::starts_with(size_t pos, const char* p, bool ic) const
 {
-    size_t l = p? strlen(p): 0;
-    return starts_with(pos, p, l);
+    return starts_with(pos, p, p? strlen(p): 0, ic);
 }
 
-bool string_t::starts_with(size_t pos, const string_t& another) const
+bool string_t::starts_with(size_t pos, const string_t& another, bool ic) const
 {
-    return starts_with(pos, another.dat, another.len);
+    return starts_with(pos, another.dat, another.len, ic);
 }
 
-bool string_t::starts_with(const char* p) const
+bool string_t::starts_with(const char* p, bool ic) const
 {
-    size_t l = p? strlen(p): 0;
-    return starts_with(0, p, l);
+    return starts_with(0, p, p? strlen(p): 0, ic);
 }
 
-bool string_t::starts_with(const char* p, size_t l) const
+bool string_t::starts_with(const char* p, size_t l, bool ic) const
 {
-    return starts_with(0, p, l);
+    return starts_with(0, p, l, ic);
 }
 
-bool string_t::starts_with(const string_t& another) const
+bool string_t::starts_with(const string_t& another, bool ic) const
 {
-    return starts_with(0, another.dat, another.len);
+    return starts_with(0, another.dat, another.len, ic);
 }
 
 bool string_t::ends_with(size_t pos, const char* p, size_t l) const
@@ -3156,18 +3157,12 @@ int string_t::cmp(const string_t& another) const
 
 __always_inline(void) __to_lower(char* p, char* e)
 {
-    for (; p != e; p++) if (*p >= 'A' && *p <= 'Z')
-    {
-        *p += 32;
-    }
+    while (p != e) *p++ = tolower(*p);
 }
 
 __always_inline(void) __to_upper(char* p, char* e)
 {
-    for (; p != e; p++) if (*p >= 'a' && *p <= 'z')
-    {
-        *p -= 32;
-    }
+    while (p != e) *p++ = toupper(*p);
 }
 
 string_t& string_t::to_lower()
@@ -3178,7 +3173,7 @@ string_t& string_t::to_lower()
 
 string_t& string_t::to_lower(string_t& res) const
 {
-    res = *this;
+    res.assign(*this);
     __to_lower(res.dat, res.dat + res.len);
     return res;
 }
@@ -3191,7 +3186,7 @@ string_t& string_t::to_upper()
 
 string_t& string_t::to_upper(string_t& res) const
 {
-    res = *this;
+    res.assign(*this);
     __to_upper(res.dat, res.dat + res.len);
     return res;
 }
@@ -3341,7 +3336,10 @@ string_t& format_t::dump(const number_t& a, int b, string_t& str) const
     {
         sign.assign('+');
     }
-
+    if (has(UPPER_CASE))
+    {
+        tmp.to_upper();
+    }
     str.clear();
     space = tmp.len + 16;
     if (_group)
@@ -3360,6 +3358,10 @@ string_t& format_t::dump(const number_t& a, int b, string_t& str) const
     if (has(SHOW_LEADING) && !(a.is_zero() && has(ZERO_NO_LEADING)))
     {
         leading.assign(get_leading(b));
+        if (has(UPPER_LEADING))
+        {
+            leading.to_upper();
+        }
         if (has(SIGN_RIGHT_LEADING))
         {
             str.append(leading);
@@ -3396,7 +3398,7 @@ string_t& format_t::dump(const number_t& a, int b, string_t& str) const
         {
             if (r)
             {
-                if (has(GROUP_COMPELTE))
+                if (has(GROUP_COMPLETE))
                 {
                     str.append(_filler, _group - r);
                 }
@@ -3414,10 +3416,6 @@ string_t& format_t::dump(const number_t& a, int b, string_t& str) const
     else
     {
         str.append(p, l);
-    }
-    if (has(UPPER_CASE))
-    {
-        str.to_upper();
     }
     return str;
 }
@@ -3448,6 +3446,10 @@ int load(number_t& a, const char* str, size_t len, int base, const format_t* fmt
         a.set_zero();
         return 1;
     }
+    if (base > __max_base())
+    {
+        return 0;
+    }
     string_t tmp(len);
     size_t i = 0, nn = 0, np = 0, matchmax = 0;
     char* q = tmp.dat;
@@ -3462,25 +3464,25 @@ int load(number_t& a, const char* str, size_t len, int base, const format_t* fmt
     tmp.dat[tmp.len] = '\0';
 
     i = __sign_count(tmp.dat, tmp.dat + tmp.len, &nn, &np);
-    if (base <= 1 || base > __max_base())
+    if (base <= 1)
     {
         _leadref_t* ref = format_t::leadings.refs;
         for (; ref->pstr != NULL; ref++)
         {
             const string_t& leading = *ref->pstr;
-            if (tmp.starts_with(i, leading) && matchmax < leading.len)
+            if (tmp.starts_with(i, leading, true) && matchmax < leading.len)
             {
                 base = ref->base;
                 matchmax = leading.len;
             }
         }
         i += matchmax;
-        base = base <= 1 || base > __max_base()? 10: base;
+        base = base <= 1? 10: base;
     }
     else
     {
         const string_t& leading = get_leading(base);
-        if (tmp.starts_with(i, leading))
+        if (tmp.starts_with(i, leading, true))
         {
             i += leading.len;
         }
@@ -5306,7 +5308,6 @@ dunit_t __qunit_mod_by_dunit(dunit_t h, dunit_t l, dunit_t d)
 {
 	dunit_t r;
     __original_div_4by2(h, l, d, &r);
-    assert(r < d);
     return r;
 }
 
@@ -5361,7 +5362,10 @@ slen_t __tzbits_count(unit_t x)
 {
     assert(x != 0);
 
-    return 0;  // TODO
+    int result = 0;
+    for (; !(x & 0xf); result += 4, x >>= 4);
+    for (; !(x & 1); result++, x >>= 1);
+    return result;
 }
 
 dunit_t __mul_dunit_high(dunit_t x, dunit_t y)
@@ -5383,8 +5387,7 @@ dunit_t __mul_add_dunit(dunit_t x, dunit_t y, dunit_t z, dunit_t* l)
     h = __mul_dunit_high(x, y);
     t = *l = x * y;
     *l += z;
-    h += *l < t;
-    return h;
+    return h + (*l < t);
 }
 
 dunit_t __qunit_div_by_dunit(dunit_t h, dunit_t l, dunit_t d, dunit_t* r)

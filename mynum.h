@@ -774,12 +774,12 @@ struct string_t
     string_t& strip(const char*);
     string_t& strip(const string_t&);
 
-    bool starts_with(size_t pos, const char*) const;
-    bool starts_with(size_t pos, const char*, size_t) const;
-    bool starts_with(size_t pos, const string_t&) const;
-    bool starts_with(const char*) const;
-    bool starts_with(const char*, size_t) const;
-    bool starts_with(const string_t&) const;
+    bool starts_with(size_t pos, const char*, bool ignorecase = false) const;
+    bool starts_with(size_t pos, const char*, size_t, bool ignorecase = false) const;
+    bool starts_with(size_t pos, const string_t&, bool ignorecase = false) const;
+    bool starts_with(const char*, bool ignorecase = false) const;
+    bool starts_with(const char*, size_t, bool ignorecase = false) const;
+    bool starts_with(const string_t&, bool ignorecase = false) const;
 
     bool ends_with(size_t pos, const char*) const;
     bool ends_with(size_t pos, const char*, size_t) const;
@@ -808,15 +808,17 @@ int check(const string_t& str, int base);
 int check(const string_t& str, size_t bpos, size_t epos, int base);
 
 typedef unsigned int format_flags_t;
+const format_flags_t NO_FLAG = 0;
 const format_flags_t UPPER_CASE = 1 << 0;
-const format_flags_t SHOW_POS = 1 << 1;
-const format_flags_t SHOW_LEADING = 1 << 2;
-const format_flags_t SIGN_RIGHT_LEADING = 1 << 3;
-const format_flags_t GROUP_COMPELTE = 1 << 4;
-const format_flags_t GROUP_FROM_MSB = 1 << 5;
-const format_flags_t ZERO_NO_LEADING = 1 << 6;
-const format_flags_t ZERO_POS = 1 << 7;
-const format_flags_t ZERO_NEG = 1 << 8;
+const format_flags_t UPPER_LEADING = 1 << 1;
+const format_flags_t SHOW_POS = 1 << 2;
+const format_flags_t SHOW_LEADING = 1 << 3;
+const format_flags_t SIGN_RIGHT_LEADING = 1 << 4;
+const format_flags_t GROUP_COMPLETE = 1 << 5;
+const format_flags_t GROUP_FROM_MSB = 1 << 6;
+const format_flags_t ZERO_NO_LEADING = 1 << 7;
+const format_flags_t ZERO_POS = 1 << 8;
+const format_flags_t ZERO_NEG = 1 << 9;
 const format_flags_t EMPTY_AS_ERROR = 1 << 16;
 const format_flags_t MULTISIGN_AS_ERROR = 1 << 17;
 
@@ -857,7 +859,7 @@ struct format_t
     size_t line_group_count() const { return _groupinline; }
     const string_t& group_separator() const { return _groupsep; }
     const string_t& line_separator() const { return _linesep; }
-    char filler() const { return _filler; }
+    char group_filler() const { return _filler; }
 
     void set_group_separator(const char* p) { _groupsep.assign(p); }
     void set_group_filler(char c) { _filler = c; }
@@ -884,9 +886,9 @@ void reset_leading();
 inline void set_leading(int base, const char* chars) { format_t::leadings.set(base, chars); }
 inline const string_t& get_leading(int base) { return format_t::leadings.get(base); }
 
-int load(number_t& a, const char* p, int base, const format_t* format = NULL);
-int load(number_t& a, const char* p, size_t l, int base, const format_t* format = NULL);
-int load(number_t& a, const string_t& str, int base, const format_t* format = NULL);
+int load(number_t& a, const char* p, int base = 0, const format_t* format = NULL);
+int load(number_t& a, const char* p, size_t l, int base = 0, const format_t* format = NULL);
+int load(number_t& a, const string_t& str, int base = 0, const format_t* format = NULL);
 
 struct bitref_t
 {

@@ -42,9 +42,9 @@ namespace mynum {
 
 const float LN_8 = 2.0794f;   // log(8)
 const float LN_10 = 2.3026f;  // log(10)
-const unit_t  SHIFT = sizeof(unit_t) << 3;
+const unit_t SHIFT = sizeof(unit_t) << 3;
 const dunit_t BASE = (dunit_t)1 << SHIFT;
-const unit_t  MASK = ~unit_t(0);
+const unit_t MASK = ~unit_t(0);
 const dunit_t DMASK = ~dunit_t(0);
 const int KMUL_THRESHOLD = 80;
 const int KSQR_THRESHOLD = 120;
@@ -88,11 +88,7 @@ private:
 };
 
 __always_inline(int) __max_base();
-
-int max_base()
-{
-    return __max_base();
-}
+int __is_valid(int b);
 
 struct _radix_t
 {
@@ -103,7 +99,7 @@ struct _radix_t
 
     _radix_t(int base): power_base_digits(1), power_base(base)
     {
-        assert(base > 2 && base <= __max_base());
+        assert(__is_valid(base));
 
         while ((dunit_t)power_base * base < (dunit_t)MASK)
         {
@@ -189,29 +185,21 @@ number_t::number_t(const char* s)
 {
     if (s)
     {
-        slen_t l = (slen_t)strlen(s);
-        if (l > 0)
-        {
-            __construct_from_xbase_string(s, l, 10, LN_10, POWERDEC_BASE, POWERDEC_BASE_DIGITS);
-        }
+        __construct_from_xbase_string(s, (slen_t)strlen(s), 10, LN_10, POWERDEC_BASE, POWERDEC_BASE_DIGITS);
     }
 }
 
 number_t::number_t(const char* s, int base)
 {
-    if (s && base <= __max_base())
+    if (s && __is_valid(base))
     {
-        slen_t l = (slen_t)strlen(s);
-        if (l > 0)
-        {
-            __construct_from_string(s, l, base);
-        }
+        __construct_from_string(s, (slen_t)strlen(s), base);
     }
 }
 
 number_t::number_t(const char* s, size_t l, int base)
 {
-    if (s && slen_t(l) > 0 && base <= __max_base())
+    if (s && __is_valid(base))
     {
         __construct_from_string(s, l, base);
     }
@@ -219,17 +207,33 @@ number_t::number_t(const char* s, size_t l, int base)
 
 number_t::number_t(const string_t& s)
 {
-    number_t(s.dat);
+    if (s.dat)
+    {
+        __construct_from_string(s.dat, s.len, 10);
+    }
 }
 
 number_t::number_t(const string_t& s, int base)
 {
-    number_t(s.dat, base);
+    if (s.dat && __is_valid(base))
+    {
+        __construct_from_string(s.dat, s.len, base);
+    }
 }
 
-number_t::number_t(const string_t& s, size_t length, int base)
+number_t::number_t(const string_t& s, size_t bpos, size_t epos, int base)
 {
-    number_t(s.dat, length, base);
+    if (s.dat && __is_valid(base))
+    {
+        if (epos > s.len)
+        {
+            epos = s.len;
+        }
+        if (bpos <= epos)
+        {
+            __construct_from_string(s.dat + bpos, epos - bpos, base);
+        }
+    }
 }
 
 number_t::number_t(const number_t& another)
@@ -242,11 +246,10 @@ number_t::number_t(int x)
     slen_t sign = 1;
     if (x < 0)
     {
-        sign = -1;
         x = -x;
+        sign = -1;
     }
-    len = sizeof(int) / sizeof(unit_t);
-    __reserve(len);
+    __reserve(len = sizeof(int) / sizeof(unit_t));
     *(int*)dat = x;
     __trim_leading_zeros(dat, len);
     len *= sign;
@@ -257,11 +260,10 @@ number_t::number_t(long x)
     slen_t sign = 1;
     if (x < 0)
     {
-        sign = -1;
         x = -x;
+        sign = -1;
     }
-    len = sizeof(long) / sizeof(unit_t);
-    __reserve(len);
+    __reserve(len = sizeof(long) / sizeof(unit_t));
     *(long*)dat = x;
     __trim_leading_zeros(dat, len);
     len *= sign;
@@ -272,11 +274,10 @@ number_t::number_t(long long x)
     slen_t sign = 1;
     if (x < 0)
     {
-        sign = -1;
         x = -x;
+        sign = -1;
     }
-    len = sizeof(long long) / sizeof(unit_t);
-    __reserve(len);
+    __reserve(len = sizeof(long long) / sizeof(unit_t));
     *(long long*)dat = x;
     __trim_leading_zeros(dat, len);
     len *= sign;
@@ -284,24 +285,21 @@ number_t::number_t(long long x)
 
 number_t::number_t(unsigned int x)
 {
-    len = sizeof(unsigned int) / sizeof(unit_t);
-    __reserve(len);
+    __reserve(len = sizeof(unsigned int) / sizeof(unit_t));
     *(unsigned int*)dat = x;
     __trim_leading_zeros(dat, len);
 }
 
 number_t::number_t(unsigned long x)
 {
-    len = sizeof(unsigned long) / sizeof(unit_t);
-    __reserve(len);
+    __reserve(len = sizeof(unsigned long) / sizeof(unit_t));
     *(unsigned long*)dat = x;
     __trim_leading_zeros(dat, len);
 }
 
 number_t::number_t(unsigned long long x)
 {
-    len = sizeof(unsigned long long) / sizeof(unit_t);
-    __reserve(len);
+    __reserve(len = sizeof(unsigned long long) / sizeof(unit_t));
     *(unsigned long long*)dat = x;
     __trim_leading_zeros(dat, len);
 }
@@ -337,8 +335,8 @@ number_t& number_t::assign(int x)
     }
     else
     {
-        *(int*)dat = -x;
         s = -1;
+        *(int*)dat = -x;
     }
     __trim_leading_zeros(dat, len);
     len *= s;
@@ -360,8 +358,8 @@ number_t& number_t::assign(long x)
     }
     else
     {
-        *(long*)dat = -x;
         s = -1;
+        *(long*)dat = -x;
     }
     __trim_leading_zeros(dat, len);
     len *= s;
@@ -376,12 +374,11 @@ number_t& number_t::assign(long long x)
         __deallocate_units(dat);
         __reserve(len);
     }
-
     int sign = 1;
     if (x < 0)
     {
-        sign = -1;
         x = -x;
+        sign = -1;
     }
     *(long long*)dat = x;
     __trim_leading_zeros(dat, len);
@@ -430,36 +427,28 @@ number_t& number_t::assign(unsigned long long x)
 
 number_t& number_t::assign(const char* s)
 {
-    len = 0;
+    set_zero();
     if (s)
     {
-        slen_t l = (slen_t)strlen(s);
-        if (l > 0)
-        {
-            __construct_from_xbase_string(s, l, 10, LN_10, POWERDEC_BASE, POWERDEC_BASE_DIGITS);
-        }
+        __construct_from_xbase_string(s, (slen_t)strlen(s), 10, LN_10, POWERDEC_BASE, POWERDEC_BASE_DIGITS);
     }
     return *this;
 }
 
 number_t& number_t::assign(const char* s, int base)
 {
-    len = 0;
-    if (s && base <= __max_base())
+    set_zero();
+    if (s && __is_valid(base))
     {
-        slen_t l = (slen_t)strlen(s);
-        if (l > 0)
-        {
-            __construct_from_string(s, l, base);
-        }
+        __construct_from_string(s, (slen_t)strlen(s), base);
     }
     return *this;
 }
 
 number_t& number_t::assign(const char* s, size_t l, int base)
 {
-    len = 0;
-    if (s && slen_t(l) > 0 && base <= __max_base())
+    set_zero();
+    if (s && __is_valid(base))
     {
         __construct_from_string(s, l, base);
     }
@@ -468,12 +457,12 @@ number_t& number_t::assign(const char* s, size_t l, int base)
 
 number_t& number_t::assign(const string_t& s)
 {
-    return assign(s.dat);
+    return assign(s.dat, s.len, 10);
 }
 
 number_t& number_t::assign(const string_t& s, int base)
 {
-    return assign(s.dat, base);
+    return assign(s.dat, s.len, base);
 }
 
 number_t& number_t::assign(const string_t& s, size_t bpos, size_t epos, int base)
@@ -499,9 +488,8 @@ void number_t::bits_reserve(size_t n)
     n = (n + (sizeof(unit_t) * 8) - 1) / (sizeof(unit_t) * 8);
     if ((slen_t)n > cap)
     {
-        slen_t l, newcap;
+        slen_t l = __abs(len), newcap;
         unit_t* tmp = __allocate_units(n, &newcap);
-        l = __abs(len);
         __copy_units(tmp, dat, l);
         __deallocate_units(dat);
         dat = tmp;
@@ -561,13 +549,13 @@ string_t number_t::to_string(int base) const
 
 string_t& number_t::to_string(string_t& res, int base) const
 {
-    if (base > 1) switch (base)
+    if (__is_valid(base)) switch (base)
     {
         case  2: return __to_bin_string(res);
         case  8: return __to_xbase_string(res, 8,  POWEROCT_BASE, POWEROCT_BASE_DIGITS, LN_POWEROCT_BASE);
         case 10: return __to_xbase_string(res, 10, POWERDEC_BASE, POWERDEC_BASE_DIGITS, LN_POWERDEC_BASE);
         case 16: return __to_hex_string(res);
-        default: if (base <= __max_base())
+        default:
         {
             _radix_t r(base);
             return __to_xbase_string(res, base, r.power_base, r.power_base_digits, r.ln_power_base);
@@ -1373,7 +1361,6 @@ bool number_t::is_po2() const
     {
         const unit_t* p = dat;
         const unit_t* e = dat + len - 1;
-
         while (p != e)
         {
             if (*p++ != 0)
@@ -1404,8 +1391,7 @@ void number_t::clear()
 {
     __deallocate_units(dat);
     dat = NULL;
-    len = 0;
-    cap = 0;
+    len = cap = 0;
 }
 
 void number_t::copy(const number_t& another)
@@ -1441,8 +1427,7 @@ void number_t::set_one()
     {
         __reserve(1);
     }
-    *dat = 1;
-    len = 1;
+    len = *dat = 1;
 }
 
 string_t number_t::operator () (int base) const
@@ -1958,8 +1943,7 @@ void number_t::__construct_from_bin_string(const char* s, slen_t l)
     int sign = 1;
     if (*s == '-')
     {
-        s++;
-        l--;
+        s++; l--;
         sign = -1;
     }
     const char *p0 = s + l - UNITBITS;
@@ -2000,8 +1984,7 @@ void number_t::__construct_from_hex_string(const char* s, slen_t l)
     int sign = 1;
     if (*s == '-')
     {
-        s++;
-        l--;
+        s++; l--;
         sign = -1;
     }
     const int k = sizeof(unit_t) << 1;
@@ -2038,7 +2021,7 @@ static __always_inline(unit_t) __str_to_unit(const char* p, int base, int l)
 
 void number_t::__construct_from_xbase_string(const char* s, slen_t l, int base, float ln_base, unit_t power_base, unit_t power_base_digits)
 {
-    assert(len == 0 && l > 0 && base <= __max_base());
+    assert(len == 0);
 
     unit_t u, rbase;
     slen_t n, i = 0, sign = 1, k, r;
@@ -2049,8 +2032,7 @@ void number_t::__construct_from_xbase_string(const char* s, slen_t l, int base, 
     }
     if (*s == '-')
     {
-        s++;
-        l--;
+        s++; l--;
         sign = -1;
     }
     r = l % power_base_digits;
@@ -2077,7 +2059,7 @@ void number_t::__construct_from_xbase_string(const char* s, slen_t l, int base, 
 
 void number_t::__construct_from_string(const char* s, slen_t l, int base)
 {
-    assert(len == 0 && l > 0 && base <= __max_base());
+    assert(len == 0 && __is_valid(base));
 
     switch (base)
     {
@@ -2110,8 +2092,8 @@ static const char* __B[16] =
 
 string_t& number_t::__to_bin_string(string_t& res) const
 {
-    slen_t l = __abs(len);
-    if (l)
+    slen_t l;
+    if ((l = __abs(len)))
     {
         char* str, *ps;
         byte_t* p = (byte_t*)(dat + l - 1) + sizeof(unit_t) - 1;
@@ -2164,8 +2146,7 @@ string_t& number_t::__to_bin_string(string_t& res) const
         }
         return res;
     }
-    res.assign("0", 1);
-    return res;
+    return res.assign('0');
 }
 
 char __DIGIT_CHAR[36] = 
@@ -2181,10 +2162,15 @@ int __max_base()
     return sizeof(__DIGIT_CHAR);
 }
 
+int __is_valid(int b)
+{
+    return b >= 2 && b <= __max_base();
+}
+
 string_t& number_t::__to_hex_string(string_t& res) const
 {
-    slen_t l = __abs(len);
-    if (l)
+    slen_t l;
+    if ((l = __abs(len)))
     {
         char* str, *ps;
         byte_t* p = (byte_t*)(dat + l - 1) + sizeof(unit_t) - 1;
@@ -2229,13 +2215,12 @@ string_t& number_t::__to_hex_string(string_t& res) const
         }
         return res;
     }
-    res.assign("0", 1);
-    return res;
+    return res.assign('0');
 }
 
 static __always_inline(void) __unit_to_str(unit_t x, char* str, int base, int width)
 {
-    assert(base > 0 && base <= __max_base());
+    assert(__valid(base));
 
     char* p = str + width - 1;
     while (x)
@@ -2251,13 +2236,13 @@ static __always_inline(void) __unit_to_str(unit_t x, char* str, int base, int wi
 
 string_t& number_t::__to_xbase_string(string_t& res, unit_t base, unit_t power_base, unit_t power_base_digits, float ln_power_base) const
 {
-    slen_t l = __abs(len);
-    if (l)
+    slen_t l;
+    if ((l = __abs(len)))
     {
         slen_t size = 0;
         char* str = NULL, *ps = NULL;
-
         unit_t* tmp = __allocate_units(slen_t(LN_BASE * l / ln_power_base + 1));
+
         for (slen_t i = l - 1; i >= 0; i--)
         {
             unit_t unit = dat[i];
@@ -2323,8 +2308,7 @@ string_t& number_t::__to_xbase_string(string_t& res, unit_t base, unit_t power_b
             return res;
         }
     }
-    res.assign("0", 1);
-    return res;
+    return res.assign('0');
 }
 
 /** class UDM implementation */
@@ -2352,14 +2336,12 @@ UDM::UDM(unit_t d): divisor(d), shift(0), notpo2((d & (d - 1)) != 0), nooverflow
 
 void add_unit(const number_t& a, unit_t x, number_t& res)
 {
-    res.assign(a);
-    res.add_unit(x);
+    res.assign(a).add_unit(x);
 }
 
 void sub_unit(const number_t& a, unit_t x, number_t& res)
 {
-    res.assign(a);
-    res.sub_unit(x);
+    res.assign(a).sub_unit(x);
 }
 
 void mul_unit(const number_t& a, unit_t x, number_t& res)
@@ -2450,14 +2432,12 @@ void bit_and_unit(const number_t& a, unit_t x, number_t& res)
 
 void bit_or_unit(const number_t& a, unit_t x, number_t& res)
 {
-    res.assign(a);
-    res.bit_or_unit(x);
+    res.assign(a).bit_or_unit(x);
 }
 
 void bit_xor_unit(const number_t& a, unit_t x, number_t& res)
 {
-    res.assign(a);
-    res.bit_xor_unit(x);
+    res.assign(a).bit_xor_unit(x);
 }
 
 /** class string_t implementation */
@@ -2465,7 +2445,7 @@ void bit_xor_unit(const number_t& a, unit_t x, number_t& res)
 string_t::string_t(char c): cap(sizeof(dunit_t))
 {
     dat = (char*)mem::allocate(cap + 1, sizeof(char));
-    *dat = c;
+    dat[0] = c;
     dat[len = 1] = '\0';
 }
 
@@ -2473,8 +2453,7 @@ string_t::string_t(const char* p): dat(NULL), len(0), cap(0)
 {
     if (p)
     {
-        len = strlen(p);
-        cap = len;
+        cap = len = strlen(p);
         dat = (char*)mem::allocate(cap + 1, sizeof(char));
         memcpy(dat, p, len);
         dat[len] = '\0';
@@ -2508,16 +2487,13 @@ string_t::string_t(const string_t& another): dat(NULL), len(0), cap(0)
 
 string_t::string_t(const string_t& another, size_t bpos, size_t epos): dat(NULL), len(0), cap(0)
 {
-    if (another.dat)
+    if (epos > another.len)
     {
-        if (epos > another.len)
-        {
-            epos = another.len;
-        }
-        if (bpos < epos)
-        {
-            assign(another.dat + bpos, epos - bpos);
-        }
+        epos = another.len;
+    }
+    if (another.dat && bpos < epos)
+    {
+        assign(another.dat + bpos, epos - bpos);
     }
 }
 
@@ -2531,15 +2507,12 @@ string_t& string_t::assign(const char* p, size_t l)
     len = 0;
     if (p && l)
     {
-        assert(l <= strlen(p));
-
         if (l > cap)
         {
             mem::deallocate(dat);
             dat = (char*)mem::allocate((cap = l) + 1, sizeof(char));
         }
-        memcpy(dat, p, l);
-        len = l;
+        memcpy(dat, p, len = l);
     }
     if (dat)
     {
@@ -2555,53 +2528,19 @@ string_t& string_t::assign(char c)
         cap = sizeof(word_t);
         dat = (char*)mem::allocate(cap + 1, sizeof(char));
     }
-    *dat = c;
+    dat[0] = c;
     dat[len = 1] = '\0';
     return *this;
 }
 
 string_t& string_t::assign(const char* p)
 {
-    if (dat != p)
-    {
-        len = 0;
-        if (p)
-        {
-            size_t l = strlen(p);
-            if (l > cap)
-            {
-                mem::deallocate(dat);
-                dat = (char*)mem::allocate((cap = l) + 1, sizeof(char));
-            }
-            memcpy(dat, p, l);
-            len = l;
-        }
-        if (dat)
-        {
-            dat[len] = '\0';
-        }
-    }
-    return *this;
+    return assign(p, p? strlen(p): 0);
 }
 
 string_t& string_t::assign(const string_t& another)
 {
-    if (this != &another)
-    {
-        if (another.len > cap)
-        {
-            mem::deallocate(dat);
-            dat = (char*)mem::allocate(another.len + 1, sizeof(char));
-            cap = another.len;
-        }
-        memcpy(dat, another.dat, another.len);
-        len = another.len;
-        if (dat)
-        {
-            dat[len] = '\0';
-        }
-    }
-    return *this;
+    return assign(another.dat, another.len);
 }
 
 string_t& string_t::assign(const string_t& another, size_t bpos, size_t epos)
@@ -2610,7 +2549,7 @@ string_t& string_t::assign(const string_t& another, size_t bpos, size_t epos)
     {
         epos = another.len;
     }
-    if (bpos <= epos && another.dat)
+    if (bpos < epos && another.dat)
     {
         return assign(another.dat + bpos, epos - bpos);
     }
@@ -2625,9 +2564,12 @@ size_t string_t::pos_not_chars(size_t pos, const char* chars) const
 {
     if (dat && chars && pos < len)
     {
-        for (char* p = dat + pos; *p != '\0'; p++) if (!strchr(chars, *p))
+        for (char* p = dat + pos; *p != '\0'; p++)
         {
-            return p - dat;
+            if (!strchr(chars, *p))
+            {
+                return p - dat;
+            }
         }
     }
     return npos;    
@@ -2657,10 +2599,12 @@ size_t string_t::rpos_not_chars(size_t pos, const char* chars) const
 {
     if (dat && chars && pos < len)
     {
-        const char* p = dat + pos;
-        for (; p != dat - 1; p--) if (!strchr(chars, *p))
+        for (const char* p = dat + pos; p != dat - 1; p--)
         {
-            return p - dat;
+            if (!strchr(chars, *p))
+            {
+                return p - dat;
+            }
         }
     }
     return npos;
@@ -2778,65 +2722,54 @@ bool string_t::starts_with(const string_t& another, bool ic) const
     return starts_with(0, another.dat, another.len, ic);
 }
 
-bool string_t::ends_with(size_t pos, const char* p, size_t l) const
+bool string_t::ends_with(size_t pos, const char* p, size_t l, bool ic) const
 {
-    bool ret = false;
-    if (dat && p && pos < len && l)
+    const char* q;
+    if (dat && p && pos < len && l && len >= l)
     {
-        if ((ret = len >= l))
+        p = p + l - 1;
+        q = dat + pos;
+        if (ic)
         {
-            const char* e, *E, *b;
-            b = p - 1;
-            e = b + l;
-            E = dat + pos;
-            for (; e != b; e--, E--) if (*e != *E)
-            {
-                ret = false;
-                break;
-            }
+            for (; tolower(*p) == tolower(*q) && l; p--, q--, l--);
         }
+        else
+        {
+            for (; *p == *q && l; p--, q--, l--);
+        }
+        return l == 0;
     }
-    return ret;
+    return false;
 }
 
-bool string_t::ends_with(size_t pos, const char* p) const
+bool string_t::ends_with(size_t pos, const char* p, bool ic) const
 {
-    size_t l = p? strlen(p): 0;
-    return ends_with(pos, p, l);
+    return ends_with(pos, p, p? strlen(p): 0, ic);
 }
 
-bool string_t::ends_with(size_t pos, const string_t& another) const
+bool string_t::ends_with(size_t pos, const string_t& another, bool ic) const
 {
-    return ends_with(pos, another.dat, another.len);
+    return ends_with(pos, another.dat, another.len, ic);
 }
 
-bool string_t::ends_with(const char* p) const
+bool string_t::ends_with(const char* p, bool ic) const
 {
-    size_t l = p? strlen(p): 0;
-    return ends_with(len - 1, p, l);
+    return ends_with(len - 1, p, p? strlen(p): 0, ic);
 }
 
-bool string_t::ends_with(const char* p, size_t l) const
+bool string_t::ends_with(const char* p, size_t l, bool ic) const
 {
-    return ends_with(len - 1, p, l);
+    return ends_with(len - 1, p, l, ic);
 }
 
-bool string_t::ends_with(const string_t& another) const
+bool string_t::ends_with(const string_t& another, bool ic) const
 {
-    return ends_with(len - 1, another.dat, another.len);
+    return ends_with(len - 1, another.dat, another.len, ic);
 }
 
 bool string_t::has(char c) const
 {
-    if (dat)
-    {
-        char* p = dat, *e = dat + len;
-        while (p != e)
-        {
-            if (*p++ == c) return true;
-        }
-    }
-    return false;
+    return dat? strchr(dat, c) != NULL: false;
 }
 
 void string_t::cut(size_t l)
@@ -2847,8 +2780,7 @@ void string_t::cut(size_t l)
     }
     if (dat)
     {
-        len -= l;
-        dat[len] = '\0';
+        dat[len -= l] = '\0';
     }
 }
 
@@ -2902,33 +2834,18 @@ string_t& string_t::append(char c, size_t n)
     {
         *(dat + len + i) = c;
     }
-    len += n;
-    dat[len] = '\0';
+    dat[len += n] = '\0';
     return *this;
 }
 
 string_t& string_t::append(const char* p)
 {
-    if (p)
-    {
-        size_t l = strlen(p);
-        if (len + l > cap)
-        {
-            reserve(len + l);
-        }
-        if (dat)
-        {
-            memcpy(dat + len, p, l);
-            len += l;
-            dat[len] = '\0';
-        }
-    }
-    return *this;
+    return append(p, p? strlen(p): 0);
 }
 
 bool string_t::overlap(const char* p, size_t l)
 {
-    return p >= dat && p <= dat + len;
+    return p >= dat && p <= dat + len || p + l >= dat && p + l <= dat + len;
 }
 
 string_t& string_t::append(const char* p, size_t l)
@@ -2948,8 +2865,7 @@ string_t& string_t::append(const char* p, size_t l)
         if (dat)
         {
             memcpy(dat + len, p, l);
-            len += l;
-            dat[len] = '\0';
+            dat[len += l] = '\0';
         }
     }
     return *this;
@@ -3000,48 +2916,23 @@ string_t& string_t::prepend(const string_t& another, size_t bpos, size_t epos)
 
 string_t& string_t::insert(size_t pos, char c, size_t n)
 {
-    if (pos > len)
-    {
-        pos = len;
-    }
     if (len + n > cap)
     {
         reserve(len + n);
     }
+    pos = pos > len? len: pos;
     memmove(dat + pos + n, dat + pos, len - pos);
-    char* p = dat + pos;
-    char* e = p + n;
-    for (; p != e; p++)
+    for (char* p = dat + pos, *e = p + n; p != e; p++)
     {
         *p = c;
     }
-    len += n;
-    dat[len] = '\0';
+    dat[len += n] = '\0';
     return *this;
 }
 
 string_t& string_t::insert(size_t pos, const char* p)
 {
-    if (p)
-    {
-        if (pos > len)
-        {
-            pos = len;
-        }
-        size_t l = strlen(p);
-        if (len + l > cap)
-        {
-            reserve(len + l);
-        }
-        if (dat)
-        {
-            memmove(dat + pos + l, dat + pos, len - pos);
-            memmove(dat + pos, p, l);
-            len += l;
-            dat[len] = '\0';
-        }
-    }
-    return *this;
+    return insert(pos, p, p? strlen(p): 0);
 }
 
 string_t& string_t::insert(size_t pos, const char* p, size_t l)
@@ -3054,20 +2945,16 @@ string_t& string_t::insert(size_t pos, const char* p, size_t l)
             tmp.assign(p, l);
             p = tmp.dat;
         }
-        if (pos > len)
-        {
-            pos = len;
-        }
         if (len + l > cap)
         {
             reserve(len + l);
         }
         if (dat)
         {
+            pos = pos > len? len: pos;
             memmove(dat + pos + l, dat + pos, len - pos);
             memmove(dat + pos, p, l);
-            len += l;
-            dat[len] = '\0';
+            dat[len += l] = '\0';
         }
     }
     return *this;
@@ -3135,8 +3022,7 @@ string_t& string_t::remove_to_end(size_t pos)
 {
     if (dat && pos < len)
     {
-        len = pos;
-        dat[len] = '\0';
+        dat[len = pos] = '\0';
     }
     return *this;
 }
@@ -3157,12 +3043,18 @@ int string_t::cmp(const string_t& another) const
 
 __always_inline(void) __to_lower(char* p, char* e)
 {
-    while (p != e) *p++ = tolower(*p);
+    while (p != e)
+    {
+        *p++ = tolower(*p);
+    }
 }
 
 __always_inline(void) __to_upper(char* p, char* e)
 {
-    while (p != e) *p++ = toupper(*p);
+    while (p != e)
+    {
+        *p++ = toupper(*p);
+    }
 }
 
 string_t& string_t::to_lower()
@@ -3223,12 +3115,12 @@ _leadings_t::~_leadings_t()
 
 const string_t& _leadings_t::get(int base) const
 {
-    return base >= 2 && base <= __max_base()? strs[base]: NO_LEADING;
+    return __is_valid(base)? strs[base]: NO_LEADING;
 }
 
 void _leadings_t::set(int base, const char* leading)
 {
-    if (base >= 2 && base <= __max_base())
+    if (__is_valid(base))
     {
         int l, i;
         string_t& str = strs[base];
@@ -3276,22 +3168,14 @@ void reset_leading()
 
 void format_t::set(format_flags_t ff)
 {
-    if (ff & ZERO_POS && ff & ZERO_NEG)
+    if (ff != NO_FLAGS)
     {
-        ff &= ~ZERO_POS & ~ZERO_NEG;
-        _flags &= ~ZERO_POS & ~ZERO_NEG;
+        _flags |= ff;
     }
-    else if (ff & ZERO_POS)
+    else
     {
-        ff &= ~ZERO_NEG;
-        _flags &= ~ZERO_NEG;
+        _flags = NO_FLAGS;
     }
-    else if (ff & ZERO_NEG)
-    {
-        ff &= ~ZERO_POS;
-        _flags &= ~ZERO_POS;
-    }
-    _flags |= ff;
 }
 
 void format_t::set_line_group_count(size_t cnt)
@@ -3310,9 +3194,8 @@ void format_t::set_line_separator(const char* p)
 
 const string_t* format_t::__append_group(string_t& str, const char* p, size_t l, size_t n) const
 {
-    str.append(p, l);
     const string_t* sep = _groupinline && !(n % _groupinline)? &_linesep: &_groupsep;
-    str.append(*sep);
+    str.append(p, l).append(*sep);
     return sep;
 }
 
@@ -3428,7 +3311,17 @@ int load(number_t& a, const char* str, int base, const format_t* fmt)
 size_t __sign_count(const char* b, const char* e, size_t* nn, size_t* np)
 {
     const char* p = b;
-    for (; p != e && (*p == '-' || *p == '+'); p++) if (*p == '-') (*nn)++; else (*np)++;
+    for (; p != e && (*p == '-' || *p == '+'); p++)
+    {
+        if (*p == '-')
+        {
+            (*nn)++;
+        }
+        else
+        {
+            (*np)++;
+        }
+    }
     return p - b;
 }
 
@@ -3518,69 +3411,46 @@ int load(number_t& a, const string_t& str, int base, const format_t* fmt)
     return load(a, str.dat, str.len, base, fmt);
 }
 
-int cmp(const string_t& a, const string_t& b)
+int __cmp(const char* a, const char* b)
 {
-    size_t l = a.len > b.len? b.len: a.len;
-    for (size_t i = 0; i != l; i++)
+    if (a && b)
     {
-        if (a.dat[i] > b.dat[i])
-        {
-            return 1;
-        }
-        else if (a.dat[i] < b.dat[i])
-        {
-            return -1;
-        }
+        return strcmp(a, b);
     }
-    if (a.len > b.len)
+    else if (a && *a)
     {
         return 1;
     }
-    else if (a.len < b.len)
+    else if (b && *b)
     {
         return -1;
     }
     return 0;
+}
+
+int cmp(const string_t& a, const string_t& b)
+{
+    return __cmp(a.dat, b.dat);
 }
 
 int cmp(const string_t& a, const char* b)
 {
-    if (a.dat && b)
-    {
-        return strcmp(a.dat, b);
-    }
-    else if (a.dat && a.dat[0])
-    {
-        return 1;
-    }
-    else if (b && b[0])
-    {
-        return -1;
-    }
-    return 0;
+    return __cmp(a.dat, b);
 }
 
 int cmp(const char* a, const string_t& b)
 {
-    if (a && b.dat)
-    {
-        return strcmp(a, b.dat);
-    }
-    else if (a && a[0])
-    {
-        return 1;
-    }
-    else if (b.dat && b.dat[0])
-    {
-        return -1;
-    }
-    return 0;
+    return __cmp(a, b.dat);
 }
 
 int check(const char* p, int base)
 {
     const char* q = p;
-    while (*p != '\0')
+    if (*p == '-')
+    {
+        p++;
+    }
+    while (*p)
     {
         if (__char_digit_valid(*p, base))
         {
@@ -3596,8 +3466,11 @@ int check(const char* p, int base)
 
 int check(const char* p, size_t l, int base)
 {
-    const char* q = p;
     const char* e = p + l;
+    if (*p == '-')
+    {
+        p++;
+    }
     while (p != e)
     {
         if (__char_digit_valid(*p, base))
@@ -3609,12 +3482,12 @@ int check(const char* p, size_t l, int base)
             return 0;
         }
     }
-    return int(p - q);
+    return l;
 }
 
 int check(const string_t& str, int base)
 {
-    return check(str.c_str(), base);
+    return check(str.dat, str.len, base);
 }
 
 int check(const string_t& str, size_t bpos, size_t epos, int base)
@@ -3627,6 +3500,11 @@ int check(const string_t& str, size_t bpos, size_t epos, int base)
 }
 
 /** algorithms implementation */
+
+int max_base()
+{
+    return __max_base();
+}
 
 int cmp(const number_t& a, const number_t& b)
 {

@@ -116,7 +116,7 @@ struct number_t: public _base_number_t
     number_t(const char*, size_t length, int base);
     number_t(const string_t&);
     number_t(const string_t&, int base);
-    number_t(const string_t&, size_t length, int base);
+    number_t(const string_t&, size_t bpos, size_t epos, int base);
     number_t(const number_t&);
 
     ~number_t();
@@ -316,8 +316,8 @@ struct number_t: public _base_number_t
     number_t  operator + () const                { return *this; }
     number_t  operator - () const                { return neg(); }
     number_t  operator ~ () const                { number_t x(*this); return x.bit_not(); }
-    number_t& operator ++ ()                     { return operator ++ (0); }
-    number_t& operator -- ()                     { return operator -- (0); }
+    number_t& operator ++ ()                     { add_unit(1); return *this; }
+    number_t& operator -- ()                     { sub_unit(1); return *this; }
     number_t& operator ++ (int)                  { add_unit(1); return *this; }
     number_t& operator -- (int)                  { sub_unit(1); return *this; }
     number_t& operator += (const number_t& x)    { return add(x); }
@@ -781,12 +781,12 @@ struct string_t
     bool starts_with(const char*, size_t, bool ignorecase = false) const;
     bool starts_with(const string_t&, bool ignorecase = false) const;
 
-    bool ends_with(size_t pos, const char*) const;
-    bool ends_with(size_t pos, const char*, size_t) const;
-    bool ends_with(size_t pos, const string_t&) const;
-    bool ends_with(const char*) const;
-    bool ends_with(const char*, size_t) const;
-    bool ends_with(const string_t&) const;
+    bool ends_with(size_t pos, const char*, bool ignorecase = false) const;
+    bool ends_with(size_t pos, const char*, size_t, bool ignorecase = false) const;
+    bool ends_with(size_t pos, const string_t&, bool ignorecase = false) const;
+    bool ends_with(const char*, bool ignorecase = false) const;
+    bool ends_with(const char*, size_t, bool ignorecase = false) const;
+    bool ends_with(const string_t&, bool ignorecase = false) const;
 
     bool has(char c) const;
     void cut(size_t l);
@@ -808,7 +808,7 @@ int check(const string_t& str, int base);
 int check(const string_t& str, size_t bpos, size_t epos, int base);
 
 typedef unsigned int format_flags_t;
-const format_flags_t NO_FLAG = 0;
+const format_flags_t NO_FLAGS = 0;
 const format_flags_t UPPER_CASE = 1 << 0;
 const format_flags_t UPPER_LEADING = 1 << 1;
 const format_flags_t SHOW_POS = 1 << 2;
@@ -850,7 +850,6 @@ struct format_t
 
     void set(format_flags_t ff);
     void clear(format_flags_t ff) { _flags &= ~ff; }
-    void clear_all() { _flags = 0; }
 
     bool has(format_flags_t ff) const { return (_flags & ff) > 0; }
     format_flags_t flags() const { return _flags; }

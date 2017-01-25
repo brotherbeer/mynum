@@ -88,7 +88,7 @@ private:
 };
 
 __always_inline(int) __max_base();
-int __is_valid(int b);
+__always_inline(int) __is_valid(int b);
 
 struct _radix_t
 {
@@ -2220,7 +2220,7 @@ string_t& number_t::__to_hex_string(string_t& res) const
 
 static __always_inline(void) __unit_to_str(unit_t x, char* str, int base, int width)
 {
-    assert(__valid(base));
+    assert(__is_valid(base));
 
     char* p = str + width - 1;
     while (x)
@@ -2845,7 +2845,7 @@ string_t& string_t::append(const char* p)
 
 bool string_t::overlap(const char* p, size_t l)
 {
-    return p >= dat && p <= dat + len || p + l >= dat && p + l <= dat + len;
+    return (p >= dat && p <= dat + len) || (p + l >= dat && p + l <= dat + len);
 }
 
 string_t& string_t::append(const char* p, size_t l)
@@ -3043,17 +3043,17 @@ int string_t::cmp(const string_t& another) const
 
 __always_inline(void) __to_lower(char* p, char* e)
 {
-    while (p != e)
+    for (; p != e; p++)
     {
-        *p++ = tolower(*p);
+        *p = tolower(*p);
     }
 }
 
 __always_inline(void) __to_upper(char* p, char* e)
 {
-    while (p != e)
+    for (; p != e; p++)
     {
-        *p++ = toupper(*p);
+        *p = toupper(*p);
     }
 }
 

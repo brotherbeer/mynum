@@ -3,29 +3,39 @@
 
 #include <cstddef>
 #include <climits>
-#include <cassert>
 
 
 namespace mynum {
 
-#if SIZE_MAX == 4294967295UL
+#ifndef UNITBITS
+#if defined(_MSC_VER)
+#define WORDMAX SIZE_MAX
+#else
+#define WORDMAX ULONG_MAX
+#endif
+#if WORDMAX == 4294967295UL
 #define UNITBITS 16
+#elif WORDMAX == 18446744073709551615ULL
+#define UNITBITS 32
+#else
+#error WORDMAX unknown
+#endif
+#endif
+
+#if UNITBITS == 16
 typedef short sunit_t;
 typedef unsigned short unit_t;
 typedef int sdunit_t;
 typedef unsigned int dunit_t;
 typedef int slen_t;
-
-#elif SIZE_MAX == 18446744073709551615ULL
-#define UNITBITS 32
+#elif UNITBITS == 32
 typedef int sunit_t;
 typedef unsigned int unit_t;
 typedef long long sdunit_t;
 typedef unsigned long long dunit_t;
 typedef long long slen_t;
-
 #else
-#error SIZE_MAX unknown
+#error UNITBITS error
 #endif
 
 typedef dunit_t word_t;
@@ -34,7 +44,6 @@ typedef unsigned char byte_t;
 
 #define __trim_leading_zeros(dat, len) \
 {\
-    assert(len >= 0); \
     const unit_t *e = dat - 1, *p = e + len; \
     while (p != e && !*p) {p--;} \
     len = slen_t(p - e); \
@@ -65,13 +74,13 @@ template <class T> struct _stype_ref_t: public _base_number_t
         int s;
         if (x >= 0)
         {
-            value = x;
             s = 1;
+            value = x;
         }
         else
         {
-            value = -x;
             s = -1;
+            value = -x;
         }
         __trim_leading_zeros(dat, len);
         len *= s;

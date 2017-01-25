@@ -13,15 +13,16 @@
 #include <cstdlib>
 #include <cctype>
 #include <cstring>
+#include <cassert>
 #include "mynum.h"
 
 
-#ifdef __GNUC__
-#define __always_inline(x)  __attribute__((always_inline)) x
-#elif defined(_MSC_VER)
-#define __always_inline(x)  __forceinline x
+#if defined(_MSC_VER)
+#define __always_inline(x) __forceinline x
+#elif defined(__GNUC__)
+#define __always_inline(x) __attribute__((always_inline)) inline x
 #else
-#define __always_inline(x)  inline x
+#define __always_inline(x) inline x
 #endif
 
 #if defined(_MSC_VER) && !defined(NO_INTRINSIC)

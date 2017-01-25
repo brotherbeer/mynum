@@ -3,6 +3,7 @@
 #include <ctime>
 #include <iomanip>
 #include <sstream>
+#include <cassert>
 
 
 using namespace mynum;
@@ -95,13 +96,24 @@ int main(int argc, char* argv[])
 
     if (argc > 1)
     {
-        int times = atoi(argv[1]);
+        int times;
+        char confirm;
+        std::stringstream ss(argv[1]);
+        ss >> times;
         if (times > 0)
         {
-            puts("ready?[y/n]");
-            if (getchar() == 'y') for (int i = 0; i < times; i++)
+            std::cout << ("ready?[y/n]");
+            std::cin >> confirm;
+            if (confirm == 'y')
             {
-                test_detail();
+                for (int i = 0; i < times; i++)
+                {
+                    test_detail();
+                }
+            }
+            else
+            {
+                return 1;
             }
         }
         else
@@ -113,9 +125,8 @@ int main(int argc, char* argv[])
     {
         test_detail();
     }
-
     std::cout << "common test OK!" << std::endl;
-    return 1;
+    return 0;
 }
 
 typedef number_t NN;

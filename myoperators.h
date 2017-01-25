@@ -350,8 +350,8 @@ inline number_t operator << (const number_t& a, unsigned int b) { number_t c; sh
 inline number_t operator >> (const number_t& a, unsigned int b) { number_t c; shr(a, b, c); return c; }
 inline number_t operator << (const number_t& a, unsigned long b) { number_t c; shl(a, b, c); return c; }
 inline number_t operator >> (const number_t& a, unsigned long b) { number_t c; shr(a, b, c); return c; }
-inline number_t operator << (const number_t& a, const number_t& b) { number_t c; if (b >= 0) shl(a, (intptr_t)b, c); else shr(a, -(intptr_t)b, c); return c; }
-inline number_t operator >> (const number_t& a, const number_t& b) { number_t c; if (b >= 0) shr(a, (intptr_t)b, c); else shl(a, -(intptr_t)b, c); return c; }
+inline number_t operator << (const number_t& a, const number_t& b) { number_t c; if (b >= 0) shl(a, b.to_ulong(), c); else shr(a, b.to_ulong(), c); return c; }
+inline number_t operator >> (const number_t& a, const number_t& b) { number_t c; if (b >= 0) shr(a, b.to_ulong(), c); else shl(a, b.to_ulong(), c); return c; }
 #if UNITBITS == 32
 inline number_t operator << (const number_t& a, long long b) { number_t c; if (b >= 0) shl(a, b, c); else shr(a, -b, c); return c; }
 inline number_t operator >> (const number_t& a, long long b) { number_t c; if (b >= 0) shr(a, b, c); else shl(a, -b, c); return c; }

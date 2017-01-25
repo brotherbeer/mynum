@@ -18,11 +18,11 @@
 
 
 #if defined(_MSC_VER)
-#define __always_inline(x) __forceinline x
+#define __force_inline(x) __forceinline x
 #elif defined(__GNUC__)
-#define __always_inline(x) __attribute__((always_inline)) inline x
+#define __force_inline(x) __attribute__((always_inline)) inline x
 #else
-#define __always_inline(x) inline x
+#define __force_inline(x) inline x
 #endif
 
 #if defined(_MSC_VER) && !defined(NO_INTRINSIC)
@@ -72,12 +72,12 @@ const float LN_POWEROCT_BASE = 20.7944f;
 
 struct mem
 {
-    static __always_inline(void*) allocate(size_t s, size_t u)
+    static __force_inline(void*) allocate(size_t s, size_t u)
     {
         return malloc(s * u);
     }
 
-    static __always_inline(void) deallocate(void* p)
+    static __force_inline(void) deallocate(void* p)
     {
         free(p);
     }
@@ -88,8 +88,8 @@ private:
     ~mem() {}
 };
 
-__always_inline(int) __max_base();
-__always_inline(int) __is_valid(int b);
+__force_inline(int) __max_base();
+__force_inline(int) __is_valid(int b);
 
 struct _radix_t
 {
@@ -112,70 +112,70 @@ struct _radix_t
     }
 };
 
-static __always_inline(unit_t*) __allocate_units(slen_t s)
+static __force_inline(unit_t*) __allocate_units(slen_t s)
 {
     return (unit_t*)mem::allocate(s + (s & 1), sizeof(unit_t));
 }
 
-static __always_inline(unit_t*) __allocate_units(slen_t units, slen_t* pcap)
+static __force_inline(unit_t*) __allocate_units(slen_t units, slen_t* pcap)
 {
     *pcap = units + (units & 1);
     return (unit_t*)mem::allocate(*pcap, sizeof(unit_t));
 }
 
-static __always_inline(void) __deallocate_units(unit_t* p)
+static __force_inline(void) __deallocate_units(unit_t* p)
 {
     return mem::deallocate(p);
 }
 
-static __always_inline(unit_t*) __set_units_zero(unit_t* p, slen_t l)
+static __force_inline(unit_t*) __set_units_zero(unit_t* p, slen_t l)
 {
     return (unit_t*)memset(p, 0, l * sizeof(unit_t));
 }
 
-static __always_inline(unit_t*) __copy_units(unit_t* d, const unit_t* s, slen_t l)
+static __force_inline(unit_t*) __copy_units(unit_t* d, const unit_t* s, slen_t l)
 {
     return (unit_t*)memcpy(d, s, l * sizeof(unit_t));
 }
 
-static __always_inline(unit_t*) __move_units(unit_t* d, const unit_t* s, slen_t l)
+static __force_inline(unit_t*) __move_units(unit_t* d, const unit_t* s, slen_t l)
 {
     return (unit_t*)memmove(d, s, l * sizeof(unit_t));
 }
 
-static __always_inline(int) __char_digit(char c);
-static __always_inline(bool) __char_digit_valid(char c, int base);
-static __always_inline(slen_t) __vbits_count(unit_t x);
-static __always_inline(slen_t) __tzbits_count(unit_t x);
-static __always_inline(dunit_t) __mul_dunit_high(dunit_t x, dunit_t y);
-static __always_inline(dunit_t) __mul_add_dunit(dunit_t x, dunit_t y, dunit_t z, dunit_t* low);
-static __always_inline(dunit_t) __qunit_mod_by_dunit(dunit_t h, dunit_t l, dunit_t d);
-static __always_inline(dunit_t) __qunit_div_by_dunit(dunit_t h, dunit_t l, dunit_t d, dunit_t* r);
+static __force_inline(int) __char_digit(char c);
+static __force_inline(bool) __char_digit_valid(char c, int base);
+static __force_inline(slen_t) __vbits_count(unit_t x);
+static __force_inline(slen_t) __tzbits_count(unit_t x);
+static __force_inline(dunit_t) __mul_dunit_high(dunit_t x, dunit_t y);
+static __force_inline(dunit_t) __mul_add_dunit(dunit_t x, dunit_t y, dunit_t z, dunit_t* low);
+static __force_inline(dunit_t) __qunit_mod_by_dunit(dunit_t h, dunit_t l, dunit_t d);
+static __force_inline(dunit_t) __qunit_div_by_dunit(dunit_t h, dunit_t l, dunit_t d, dunit_t* r);
 
 #define __sign_shift(x) ((x) >> ((sizeof(slen_t) << 3) - 1))
 
-static __always_inline(slen_t) __abs(slen_t x)
+static __force_inline(slen_t) __abs(slen_t x)
 {
     slen_t y = __sign_shift(x);
     return (x + y) ^ y;
 }
 
-static __always_inline(int) __sign(slen_t x)
+static __force_inline(int) __sign(slen_t x)
 {
     return __sign_shift(x) | 1;
 }
 
-static __always_inline(int) __sign(slen_t x, slen_t y)
+static __force_inline(int) __sign(slen_t x, slen_t y)
 {
     return __sign_shift(x ^ y) | 1;
 }
 
-static __always_inline(dunit_t) __make_dunit(unit_t high, unit_t low)
+static __force_inline(dunit_t) __make_dunit(unit_t high, unit_t low)
 {
     return (dunit_t)high << SHIFT | low;
 }
 
-static __always_inline(dunit_t) __make_dunit(dunit_t high, unit_t low)
+static __force_inline(dunit_t) __make_dunit(dunit_t high, unit_t low)
 {
     return high << SHIFT | low;
 }
@@ -1923,7 +1923,7 @@ slen_t number_t::__abs_sub_word(word_t x)
     return l;
 }
 
-static __always_inline(unit_t) __strbin_to_unit(const char* p, int l)
+static __force_inline(unit_t) __strbin_to_unit(const char* p, int l)
 {
     unit_t x = 0;
     const unit_t A = 1 << (UNITBITS - 1);
@@ -1967,7 +1967,7 @@ void number_t::__construct_from_bin_string(const char* s, slen_t l)
     len *= sign;
 }
 
-static __always_inline(unit_t) __strhex_to_unit(const char* p, int l)
+static __force_inline(unit_t) __strhex_to_unit(const char* p, int l)
 {
     unit_t x = 0;
     while (l--)
@@ -2009,7 +2009,7 @@ void number_t::__construct_from_hex_string(const char* s, slen_t l)
     len *= sign;
 }
 
-static __always_inline(unit_t) __str_to_unit(const char* p, int base, int l)
+static __force_inline(unit_t) __str_to_unit(const char* p, int base, int l)
 {
     unit_t x = 0;
     while (l--)
@@ -2219,7 +2219,7 @@ string_t& number_t::__to_hex_string(string_t& res) const
     return res.assign('0');
 }
 
-static __always_inline(void) __unit_to_str(unit_t x, char* str, int base, int width)
+static __force_inline(void) __unit_to_str(unit_t x, char* str, int base, int width)
 {
     assert(__is_valid(base));
 
@@ -3042,7 +3042,7 @@ int string_t::cmp(const string_t& another) const
     return mynum::cmp(*this, another);
 }
 
-__always_inline(void) __to_lower(char* p, char* e)
+__force_inline(void) __to_lower(char* p, char* e)
 {
     for (; p != e; p++)
     {
@@ -3050,7 +3050,7 @@ __always_inline(void) __to_lower(char* p, char* e)
     }
 }
 
-__always_inline(void) __to_upper(char* p, char* e)
+__force_inline(void) __to_upper(char* p, char* e)
 {
     for (; p != e; p++)
     {
@@ -4477,7 +4477,7 @@ bool __neq_core(const unit_t* x, const unit_t* y, slen_t l)
     return false;
 }
 
-__always_inline(int) __cmp_same_len_core(const unit_t* x, const unit_t* y, slen_t l)
+__force_inline(int) __cmp_same_len_core(const unit_t* x, const unit_t* y, slen_t l)
 {
     assert(l >= 0);
 
@@ -4969,7 +4969,7 @@ bool __char_digit_valid(char c, int base)
  * Compute h * BASE * BASE + l by d
  * Return the quotient, and r points to the remainder
  */
-__always_inline(dunit_t) __original_div_4by2(dunit_t h, dunit_t l, dunit_t d, dunit_t* r)
+__force_inline(dunit_t) __original_div_4by2(dunit_t h, dunit_t l, dunit_t d, dunit_t* r)
 {
     assert(h < d && d != 0);
 
@@ -5214,7 +5214,7 @@ static const char __msb_256_table[256] =
     7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7,
 };
 
-static __always_inline(int) __bsr32(unsigned int bb)
+static __force_inline(int) __bsr32(unsigned int bb)
 {
     int result = 0;
     if (bb > 0xFFFF)

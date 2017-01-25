@@ -1,6 +1,7 @@
 #include "mynum.h"
 #include "myoperators.h"
 #include <ctime>
+#include <cstdlib>
 #include <iomanip>
 #include <sstream>
 #include <cassert>

@@ -5,7 +5,7 @@
  * No restrictions on the dissemination and modification of the source code.
  * The author hopes mynum will be useful, but dose not make any warranty.
  * If you have any questions, please contact <brotherbeer@163.com>
- *
+ * 
  * NOTICE!! This library is only available on the LITTLE-ENDIAN machines now.
  */
 
@@ -481,21 +481,12 @@ number_t& number_t::assign(const string_t& s, size_t bpos, size_t epos, int base
 
 number_t::~number_t()
 {
-    clear();
+    release();
 }
 
 void number_t::bits_reserve(size_t n)
 {
-    n = (n + (sizeof(unit_t) * 8) - 1) / (sizeof(unit_t) * 8);
-    if ((slen_t)n > cap)
-    {
-        slen_t l = __abs(len), newcap;
-        unit_t* tmp = __allocate_units(n, &newcap);
-        __copy_units(tmp, dat, l);
-        __deallocate_units(dat);
-        dat = tmp;
-        cap = newcap;
-    }
+    reserve((n + (sizeof(unit_t) * 8) - 1) / (sizeof(unit_t) * 8));
 }
 
 string_t number_t::to_bin_string() const
@@ -1264,22 +1255,22 @@ number_t& number_t::bit_xor(long long x)           { return bit_xor_si(x); }
 number_t& number_t::bit_xor(unsigned long long x)  { return bit_xor_ui(x); }
 
 #else
-number_t& number_t::add(long long x)               { _stype_ref_t<long long> r(x);           return add((const number_t&)r); }
-number_t& number_t::add(unsigned long long x)      { _utype_ref_t<unsigned long long> r(x);  return add((const number_t&)r); }
-number_t& number_t::sub(long long x)               { _stype_ref_t<long long> r(x);           return sub((const number_t&)r); }
-number_t& number_t::sub(unsigned long long x)      { _utype_ref_t<unsigned long long> r(x);  return sub((const number_t&)r); }
-number_t& number_t::mul(long long x)               { _stype_ref_t<long long> r(x);           return mul((const number_t&)r); }
-number_t& number_t::mul(unsigned long long x)      { _utype_ref_t<unsigned long long> r(x);  return mul((const number_t&)r); }
-number_t& number_t::div(long long x)               { _stype_ref_t<long long> r(x);           return div((const number_t&)r); }
-number_t& number_t::div(unsigned long long x)      { _utype_ref_t<unsigned long long> r(x);  return div((const number_t&)r); }
-number_t& number_t::mod(long long x)               { _stype_ref_t<long long> r(x);           return mod((const number_t&)r); }
-number_t& number_t::mod(unsigned long long x)      { _utype_ref_t<unsigned long long> r(x);  return mod((const number_t&)r); }
-number_t& number_t::bit_and(long long x)           { _stype_ref_t<long long> r(x);           return bit_and((const number_t&)r); }
-number_t& number_t::bit_and(unsigned long long x)  { _utype_ref_t<unsigned long long> r(x);  return bit_and((const number_t&)r); }
-number_t& number_t::bit_or(long long x)            { _stype_ref_t<long long> r(x);           return bit_or((const number_t&)r); }
-number_t& number_t::bit_or(unsigned long long x)   { _utype_ref_t<unsigned long long> r(x);  return bit_or((const number_t&)r); }
-number_t& number_t::bit_xor(long long x)           { _stype_ref_t<long long> r(x);           return bit_xor((const number_t&)r); }
-number_t& number_t::bit_xor(unsigned long long x)  { _utype_ref_t<unsigned long long> r(x);  return bit_xor((const number_t&)r); }
+number_t& number_t::add(long long x)               { _stype_ref_t<long long> r(x);           return add(r); }
+number_t& number_t::add(unsigned long long x)      { _utype_ref_t<unsigned long long> r(x);  return add(r); }
+number_t& number_t::sub(long long x)               { _stype_ref_t<long long> r(x);           return sub(r); }
+number_t& number_t::sub(unsigned long long x)      { _utype_ref_t<unsigned long long> r(x);  return sub(r); }
+number_t& number_t::mul(long long x)               { _stype_ref_t<long long> r(x);           return mul(r); }
+number_t& number_t::mul(unsigned long long x)      { _utype_ref_t<unsigned long long> r(x);  return mul(r); }
+number_t& number_t::div(long long x)               { _stype_ref_t<long long> r(x);           return div(r); }
+number_t& number_t::div(unsigned long long x)      { _utype_ref_t<unsigned long long> r(x);  return div(r); }
+number_t& number_t::mod(long long x)               { _stype_ref_t<long long> r(x);           return mod(r); }
+number_t& number_t::mod(unsigned long long x)      { _utype_ref_t<unsigned long long> r(x);  return mod(r); }
+number_t& number_t::bit_and(long long x)           { _stype_ref_t<long long> r(x);           return bit_and(r); }
+number_t& number_t::bit_and(unsigned long long x)  { _utype_ref_t<unsigned long long> r(x);  return bit_and(r); }
+number_t& number_t::bit_or(long long x)            { _stype_ref_t<long long> r(x);           return bit_or(r); }
+number_t& number_t::bit_or(unsigned long long x)   { _utype_ref_t<unsigned long long> r(x);  return bit_or(r); }
+number_t& number_t::bit_xor(long long x)           { _stype_ref_t<long long> r(x);           return bit_xor(r); }
+number_t& number_t::bit_xor(unsigned long long x)  { _utype_ref_t<unsigned long long> r(x);  return bit_xor(r); }
 #endif
 
 bool number_t::bit_at(size_t x) const
@@ -1390,9 +1381,33 @@ bool number_t::is_even() const
 
 void number_t::clear()
 {
+    set_zero();
+}
+
+void number_t::release()
+{
     __deallocate_units(dat);
     dat = NULL;
     len = cap = 0;
+}
+
+void number_t::reserve(size_t units)
+{
+    if (units > (size_t)cap)
+    {
+        slen_t l = __abs(len), newcap;
+        unit_t* tmp = __allocate_units(units, &newcap);
+        __copy_units(tmp, dat, l);
+        __deallocate_units(dat);
+        dat = tmp;
+        cap = newcap;
+    }
+}
+
+void number_t::clear_and_reserve(size_t units)
+{
+    release();
+    __reserve(units);
 }
 
 void number_t::copy(const number_t& another)
@@ -1491,7 +1506,7 @@ bool number_t::in_range_short() const
 
 #define __judge_unsigned_range(type) \
 { \
-    return len == 0 || (len > 0 && len <= sizeof(type) / sizeof(unit_t)); \
+    return len == 0 || (len > 0 && len <= slen_t(sizeof(type) / sizeof(unit_t))); \
 }
 
 bool number_t::in_range_int() const
@@ -1768,7 +1783,7 @@ void number_t::__copy(const number_t& another)
     }
     else
     {
-        clear();
+        release();
     }
 }
 
@@ -2087,8 +2102,9 @@ void number_t::__construct_from_string(const char* s, slen_t l, int base)
 
 static const char* __B[16] =
 {
-    "0000", "0001", "0010", "0011", "0100", "0101", "0110", "0111",
-    "1000", "1001", "1010", "1011", "1100", "1101", "1110", "1111",
+    "0000", "0001", "0010", "0011", "0100", "0101",
+    "0110", "0111", "1000", "1001", "1010", "1011",
+    "1100", "1101", "1110", "1111",
 };
 
 string_t& number_t::__to_bin_string(string_t& res) const
@@ -2352,8 +2368,7 @@ void mul_unit(const number_t& a, unit_t x, number_t& res)
 
     if (res.cap < la + 1)
     {
-        res.clear();
-        res.__reserve(la + 1);
+        res.clear_and_reserve(la + 1);
     }
     if ((carry = __mul_unit_core(a.dat, la, x, res.dat)))
     {
@@ -2370,8 +2385,7 @@ unit_t div_unit(const number_t& a, unit_t x, number_t& res)
         slen_t la = __abs(a.len), lr;
         if (res.cap < la)
         {
-            res.clear();
-            res.__reserve(la);
+            res.clear_and_reserve(la);
         }
         unit_t r = __div_unit_core(a.dat, la, x, res.dat, &lr);
         res.len = lr * __sign(a.len);
@@ -2387,8 +2401,7 @@ unit_t div_unit(const number_t& a, const UDM& udm, number_t& q)
         slen_t la = __abs(a.len), lq;
         if (q.cap < la)
         {
-            q.clear();
-            q.__reserve(la);
+            q.clear_and_reserve(la);
         }
         unit_t r = __div_unit_core(a.dat, la, udm, q.dat, &lq);
         q.len = lq * __sign(a.len);
@@ -4937,22 +4950,28 @@ slen_t __bit_not_core(const unit_t* x, slen_t lx, unit_t* res)
 
 unsigned char __CHAR_DIGIT[256] =
 {
-    -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
-    -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
-    -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
-     0,  1,  2,  3,  4,  5,  6,  7,  8,  9, -1, -1, -1, -1, -1, -1,
-    -1, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24,
-    25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 44, 45, 46, -1, -1,
-    -1, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24,
-    25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, -1, -1, -1, -1, -1,
-    -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
-    -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
-    -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
-    -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
-    -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
-    -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
-    -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
-    -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+    255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+    255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+    255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+    255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+      0,   1,   2,   3,   4,   5,   6,   7,   8,   9, 255, 255,
+    255, 255, 255, 255, 255,  10,  11,  12,  13,  14,  15,  16,
+     17,  18,  19,  20,  21,  22,  23,  24,  25,  26,  27,  28,
+     29,  30,  31,  32,  33,  34,  35,  44,  45,  46, 255, 255,
+    255,  10,  11,  12,  13,  14,  15,  16,  17,  18,  19,  20,
+     21,  22,  23,  24,  25,  26,  27,  28,  29,  30,  31,  32,
+     33,  34,  35, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+    255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+    255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+    255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+    255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+    255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+    255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+    255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+    255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+    255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+    255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+    255, 255, 255, 255,
 };
 
 int __char_digit(char c)

@@ -7,6 +7,11 @@
 #include <cassert>
 
 
+#ifdef __GNUC__
+#pragma GCC diagnostic ignored "-Wsign-compare"
+#pragma GCC diagnostic ignored "-Wconversion-null"
+#endif
+
 using namespace mynum;
 
 void test_construct();

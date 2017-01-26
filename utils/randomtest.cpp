@@ -1,11 +1,12 @@
 #include "myoperators.h"
 
+#include <ctime>
+#include <cstdlib>
 #include <string>
-#include <iostream>
 #include <fstream>
 #include <sstream>
-#include <cstdlib>
-#include <ctime>
+#include <iostream>
+
 
 using namespace std;
 using namespace mynum;
@@ -611,7 +612,7 @@ void test_performance()
         fac.mul_ui(i);
     }
     t1 = clock();
-    cout << "The factorial of 100000, time: " << double(t1 - t0) / CLOCKS_PER_SEC << " " << fac.bits_count() << "bits" <<endl;
+    cout << "The factorial of 100000, time: " << double(t1 - t0) / CLOCKS_PER_SEC << " " << fac.bits_count() << "bits" << endl;
     /* 100000! has 1516688 bits, 1000000! has 18488865 bits */
 
     __test_sqr_and_mul_performace();

@@ -165,10 +165,8 @@ void test_construct()
     }{
         NN a("123456789"), b(123456789); assert(eq(a, b));
     }{
-        NN a("10ff0023457ABCD", 16), b("76543610947349453");
-        NN c("-10ff0023457ABCD", 16), d("-76543610947349453");
-        assert(eq(a, b));
-        assert(eq(c, d));
+        NN a("10ff0023457ABCD", 16), b("76543610947349453"); assert(eq(a, b));
+        NN c("-10ff0023457ABCD", 16), d("-76543610947349453"); assert(eq(c, d));
     }{
         NN a("", 16);         assert(a.is_zero());
         NN b(NULL, 16);       assert(b.is_zero());
@@ -214,8 +212,8 @@ void test_construct()
         NN a("ffffabcdabcdeeee", 16), b(0xffffabcdabcdeeeeULL);
         assert(eq(a, b));
     }{
-        NN a("1234567890"); a.clear(); assert(a.is_zero());
-        NN b; b.clear(); assert(b.is_zero());
+        NN a("1234567890"); a.release(); assert(a.is_zero());
+        NN b; b.release(); assert(b.is_zero());
     }{
         NN a("2132314432123432323234", 5);  assert(eq(a, NN("1116483718636069")));
         NN b("2132314432123432323234", 6);  assert(eq(b, NN("49617098196310822")));
@@ -335,7 +333,7 @@ void test_assign()
         slen_t cap1 = c.cap;
         assert(c == a);
         assert(cap0 == cap1);
-        b.clear();
+        b.release();
         a.assign(b);
         assert(a == 0);
     }{
@@ -393,11 +391,9 @@ void test_copy()
         a.copy(a);
         assert(b.is_zero());
         assert(eq(a, NN("742354345232453423678231459849423")));
-        b.copy(a);
-        assert(eq(b, a));
-        a.copy(b);
-        assert(eq(b, a));
-        b.clear();
+        b.copy(a); assert(eq(b, a));
+        a.copy(b); assert(eq(b, a));
+        b.release();
         a.copy(b);
         assert(eq(b, a));
         assert(a.is_zero());
@@ -1660,6 +1656,7 @@ void test_bits()
         //++a[8]++;
         //--a[8]--;
         x = a[1] + a[2] - a[3] * a[4];
+        assert(x == 1);
     }{
         NN a(0x123FFabcdefULL); //100100011 1111111110101011 1100110111101111
         const NN& ref = a;
@@ -1775,12 +1772,12 @@ void test_operators()
     }
     {
         NN a("abcdccccdddddeeeeef123456", 16), b = 0xff0000, c = short(8888), d("222222222222222222222222111111111111111111111111");
-        NN res = (((a | b ^ c) << 100) >> 9) & d; 
+        NN res = ((((a | b) ^ c) << 100) >> 9) & d; 
         assert(res == NN("222222222210923702491943018864797904674232467456"));
         ++a++;
         b--;
         b -= 1234;
-        res = a + b - c % d ^ a & b | c; 
+        res = (a + b - c % d) ^ ((a & b) | c);
         assert(res == NN("850731737829703704754446876413"));
     }
     {
@@ -2321,7 +2318,7 @@ void test_string_dump()
         b.sub(9).div(16);
         fmt.dump(b, 16, res); assert(res == "1\n2\n3\n4\n5\n6\n7\n8");
         b.set_zero(); fmt.dump(b, 16, res); assert(res == "0");
-        b.clear(); fmt.dump(b, 16, res); assert(res == "0");
+        b.release(); fmt.dump(b, 16, res); assert(res == "0");
     }{
         NN a("1234567890abcdef1234567890abcdef1234", 16);
         string_t res;
@@ -2355,7 +2352,7 @@ void test_string_dump()
         fmt.set_group_size(35); fmt.dump(a, 16, res); assert(res == "1234567890abcdef1234567890abcdef123");
         fmt.set_group_size(34); fmt.dump(a, 16, res); assert(res == "1234567890abcdef1234567890abcdef12 3");
         a.set_zero(); fmt.dump(a, 16, res); assert(res == "0");
-        a.clear(); fmt.dump(a, 16, res); assert(res == "0");
+        a.release(); fmt.dump(a, 16, res); assert(res == "0");
     }{
         reset_leading();
         set_leading(35, NULL);
@@ -2478,7 +2475,7 @@ void test_add_small()
         add_unit(a, 123, a); assert(a == 123);
         add_unit(a, 123, a); assert(a == 246);
 
-        a.clear();
+        a.release();
         a.bits_reserve(1111);
         a.add_unit(32452); a.add_unit(5648); a.add_unit(57); a.add_unit(4);
         a.add_unit(56756); a.add_unit(332); a.add_unit(8976); a.add_unit(993);
@@ -2728,9 +2725,9 @@ void test_mul_small()
         mul_unit(a, 123, b); assert(b == 0);
         mul_unit(a, 123, a); assert(a == 0);
         a.assign(1111); mul_unit(a, 0, a); assert(a == 0);
-        a.clear();
+        a.release();
         mul_unit(a, 0, a); assert(a == 0);
-        a.clear();
+        a.release();
         a.mul_unit(123); assert(a == 0);
         a.mul_unit(0); assert(a == 0);
         a.assign(1111); a.mul_unit(0); assert(a == 0);
@@ -2782,7 +2779,7 @@ void test_div_small()
         a.set_zero();
         assert(a.absrem_unit(12) == 0);
         assert(a.absrem_unit(12345) == 0);
-        a.clear();
+        a.release();
         assert(a.absrem_unit(12) == 0);
         assert(a.absrem_unit(12345) == 0);
         assert(a.absrem_unit(UDM(12)) == 0);

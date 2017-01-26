@@ -10,6 +10,8 @@
 #ifdef __GNUC__
 #pragma GCC diagnostic ignored "-Wsign-compare"
 #pragma GCC diagnostic ignored "-Wconversion-null"
+#pragma GCC diagnostic ignored "-Wunused-variable"
+#pragma GCC diagnostic ignored "-Wunused-but-set-variable"
 #endif
 
 using namespace mynum;

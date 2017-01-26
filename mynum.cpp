@@ -4280,7 +4280,7 @@ void __div(const unit_t* a, slen_t la, const unit_t* b, slen_t lb, number_t& q, 
     if (lb > 1)
     {
         unit_t *x, *y = r.dat, *tmp = q.dat;
-        slen_t n = 0, lx, ly, lr, qnewcap, rnewcap;
+        slen_t n = 0, lx, ly, lr, qnewcap = 0, rnewcap = 0;
 
         lx = la;
         ly = lb;
@@ -4312,7 +4312,7 @@ void __div(const unit_t* a, slen_t la, const unit_t* b, slen_t lb, number_t& q, 
             tmp = __allocate_units(lx - ly, &qnewcap);
         }
         lr = __div_core(x, lx, y, ly, tmp);
-        if (tmp != q.dat)
+        if (qnewcap)
         {
             __deallocate_units(q.dat);
             q.dat = tmp;
@@ -4325,7 +4325,7 @@ void __div(const unit_t* a, slen_t la, const unit_t* b, slen_t lb, number_t& q, 
             __shr_core(x, ly, n);
         }
         __copy_units(y, x, ly);
-        if (y != r.dat)
+        if (rnewcap)
         {
             __deallocate_units(r.dat);
             r.dat = y;

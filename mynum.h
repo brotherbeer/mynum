@@ -96,7 +96,6 @@ struct number_t: public _base_number_t
 
     ~number_t();
 
-    number_t& assign(const number_t&);
     number_t& assign(int);
     number_t& assign(long);
     number_t& assign(long long);
@@ -109,6 +108,7 @@ struct number_t: public _base_number_t
     number_t& assign(const string_t&);
     number_t& assign(const string_t&, int base);
     number_t& assign(const string_t&, size_t bpos, size_t epos, int base);
+    number_t& assign(const number_t&);
 
     void copy(const number_t&);
 
@@ -821,6 +821,7 @@ struct string_t
 int cmp(const string_t& a, const string_t& b);
 int cmp(const string_t& a, const char* b);
 int cmp(const char* a, const string_t& b);
+
 int check(const char* p, int base);
 int check(const char* p, size_t l, int base);
 int check(const string_t& str, int base);

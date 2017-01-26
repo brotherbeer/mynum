@@ -3389,7 +3389,7 @@ int load(number_t& a, const char* str, size_t len, int base, const format_t* fmt
         }
     }
     i += __sign_count(tmp.dat + i, tmp.dat + tmp.len, &nn, &np);
-    if (mulsignerror && (nn > 1 || np > 1))
+    if (mulsignerror && (nn + np > 1))
     {
         return 0;
     }
@@ -3500,7 +3500,11 @@ int check(const string_t& str, int base)
 
 int check(const string_t& str, size_t bpos, size_t epos, int base)
 {
-    if (bpos < epos && epos <= str.len)
+    if (epos > str.len)
+    {
+        epos = str.len;
+    }
+    if (bpos < epos)
     {
         return check(str.c_str() + bpos, epos - bpos, base);
     }

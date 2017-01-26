@@ -263,6 +263,12 @@ void test_construct()
         s = "";
         NN k(s, 10), l(s, 12), m(s, 39);
         assert(k == 0); assert(l == 0); assert(m == 0);
+    }{
+        NN a("-", 2); assert(a == 0);
+        NN b("-", 16); assert(b == 0);
+        NN c("-", 10); assert(c == 0);
+        NN d("-", 11); assert(d == 0);
+        NN e("-", 36); assert(e == 0);
     }
 }
 
@@ -387,6 +393,13 @@ void test_assign()
         g.assign(s1, 100, s1.len, 12); assert(g == 0);
         h.assign(s1, 100, 1000, 12); assert(h == 0);
         i.assign(s1, 3, 1000, 12); assert(i == 171);
+    }{
+        NN a, b, c, d, e;
+        a.assign("-", 2); assert(a == 0);
+        b.assign("-", 16); assert(b == 0);
+        c.assign("-", 10); assert(c == 0);
+        d.assign("-", 11); assert(d == 0);
+        e.assign("-", 36); assert(e == 0);
     }
 }
 
@@ -1641,7 +1654,7 @@ void test_bits()
         a.bit_set_one(4); assert(eq(a, 31)); assert(const_a_ref[4] == 1);
         a.bit_set_one(16); assert(eq(a, 65567)); assert(const_a_ref[16] == 1);
 
-        assert(a[0] == 1); assert(1 == a[0]); assert(a[0] > 0); assert(0 < a[0]); assert(a[0] >= 0); assert(0 <= a[0]);
+        assert(a[0] == 1); assert(1 == a[0]);
         assert(!a[0] == 0); assert(~a[0] == 0);
         assert(a[0] == true); assert(true == a[0]); assert(a[0] != false); assert(false != a[0]);
 
@@ -2179,14 +2192,30 @@ void test_string_load()
     }{
         reset_leading();
         NN a;
+        assert(load(a, NULL, 0)); assert(a.is_zero());
         assert(load(a, "", 0)); assert(a.is_zero());
+        assert(load(a, "-", 0)); assert(a.is_zero());
+        assert(load(a, "+", 0)); assert(a.is_zero());
+        assert(load(a, "0x", 0)); assert(a.is_zero());
+        assert(load(a, "0", 0)); assert(a.is_zero());
+        assert(load(a, "0b", 0)); assert(a.is_zero());
         assert(load(a, "- 0x ", 0)); assert(a.is_zero());
         format_t f(EMPTY_AS_ERROR);
+        assert(!load(a, NULL, 0, &f));
         assert(!load(a, "", 0, &f));
+        assert(!load(a, "-", 0, &f));
+        assert(!load(a, "+", 0, &f));
+        assert(!load(a, "0x", 0, &f));
+        assert(!load(a, "0", 0, &f));
+        assert(!load(a, "0b", 0, &f));
         assert(!load(a, " - 0x", 0, &f));
         assert(load(a, " - -0x+-456", 0, &f)); assert(a == -0x456);
+        assert(load(a, "- -2", 0, &f)); assert(a == 2);
+        assert(load(a, "+-1", 0, &f)); assert(a == -1);
         f.set(MULTISIGN_AS_ERROR);
         assert(!load(a, " - -0x+-456", 0, &f));
+        assert(!load(a, "- -2", 0, &f));
+        assert(!load(a, "+-1", 0, &f));
     }{
         NN a;
         assert(load(a, " - 0 X123", 0)); assert(a == -291);
@@ -2419,7 +2448,34 @@ void test_string()
     assert("abcd" != string_t("abcde"));
     assert(string_t("abcde") != "abcd");
 
-    // TODO: add cases about 'check' function
+    {
+        assert(!check("", 2));
+        assert(!check("+", 10));
+        assert(check("-", 10) == 1);  // "-" indicates 0
+        assert(check("+123456", 10) == 0);
+        assert(check("-123456", 10) == 7);
+        assert(check("-123456", 3, 10) == 3);
+        assert(check("-123456", 11));
+        assert(check("-123456", 12) == 7);
+        assert(check("-123456", 0, 12) == 0);
+        assert(!check("-a12345", 8));
+        assert(!check("-a12345", 10));
+        assert(check("-a12345", 11));
+
+        assert(check(string_t("+123456"), 10) == 0);
+        assert(check(string_t("-123456"), 10) == 7);
+        assert(check(string_t("-123456"), 0, 3, 10) == 3);
+        assert(check(string_t("-123456"), 11));
+        assert(check(string_t("-123456"), 12) == 7);
+        assert(check(string_t("-123456"), 0, 0, 12) == 0);
+        assert(!check(string_t("-a12345"), 8));
+        assert(!check(string_t("-a12345"), 10));
+        assert(check(string_t("-a12345"), 11));
+
+        assert(!check(string_t("-a12345"), 100, 0, 11));
+        assert(!check(string_t("-a12345"), 100, 1000, 11));
+        assert(check(string_t("-a12345"), 3, 1000, 11) == 4);
+    }
 #ifndef NO_STL_SUPPORT
     {
         using namespace std;

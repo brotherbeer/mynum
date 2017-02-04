@@ -817,7 +817,7 @@ unit_t number_t::div_unit(const UDM& udm)
             r = __make_dunit(r, *p);
             h = __mul_dunit_high(r, udm.multiplier) >> shift;
             r -= h * udm.divisor;
-            *p = h;
+            *p = unit_t(h);
         }
         else while (--p >= dat)
         {
@@ -825,7 +825,7 @@ unit_t number_t::div_unit(const UDM& udm)
             h = __mul_dunit_high(r, udm.multiplier);
             h = (((r - h) >> 1) + h) >> shift;
             r -= h * udm.divisor;
-            *p = h;
+            *p = unit_t(h);
         }
     }
     else
@@ -2015,7 +2015,7 @@ void number_t::__construct_from_hex_string(const char* s, slen_t l)
     len *= sign;
 }
 
-static __force_inline(unit_t) __str_to_unit(const char* p, int base, int l)
+static __force_inline(unit_t) __str_to_unit(const char* p, int base, slen_t l)
 {
     unit_t x = 0;
     while (l--)
@@ -2327,10 +2327,10 @@ UDM::UDM(unit_t d): divisor(d), shift(0), notpo2((d & (d - 1)) != 0), nooverflow
     {
         dunit_t q, r, b, h;
         b = __vbits_count(d);
-        shift = b - 1;
+        shift = (unsigned char)(b - 1);
         if (notpo2)
         {
-            h = 1 << shift;
+            h = dunit_t(1) << shift;
             q = __qunit_div_by_dunit(h, 0, d, &r);
             multiplier = q + 1;
             if (d > r + h)
@@ -3129,7 +3129,7 @@ void _leadings_t::set(int base, const char* leading)
     {
         int l, i;
         string_t& str = strs[base];
-        if ((l = leading? strlen(leading): 0))
+        if ((l = leading? (int)strlen(leading): 0))
         {
             str.assign(leading, l);
             for (i = 0; i <= __max_base(); i++)
@@ -3490,7 +3490,7 @@ int check(const char* p, size_t l, int base)
             return 0;
         }
     }
-    return l;
+    return int(l);
 }
 
 int check(const string_t& str, int base)
@@ -4697,7 +4697,7 @@ unit_t __div_unit_core(const unit_t* x, slen_t lx, const UDM& udm, unit_t* q, sl
                 r = __make_dunit(r, *xt);
                 h = __mul_dunit_high(r, udm.multiplier) >> udm.shift;
                 r -= h * udm.divisor;
-                *--qt = h;
+                *--qt = unit_t(h);
             }
         }
         else
@@ -4708,7 +4708,7 @@ unit_t __div_unit_core(const unit_t* x, slen_t lx, const UDM& udm, unit_t* q, sl
                 h = __mul_dunit_high(r, udm.multiplier);
                 h = (((r - h) >> 1) + h) >> udm.shift;
                 r -= h * udm.divisor;
-                *--qt = h;
+                *--qt = unit_t(h);
             }
         }
     }

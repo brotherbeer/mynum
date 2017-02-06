@@ -8,6 +8,7 @@
 
 
 #ifdef __GNUC__
+#pragma GCC diagnostic ignored "-Wunknown-pragmas"
 #pragma GCC diagnostic ignored "-Wsign-compare"
 #pragma GCC diagnostic ignored "-Wconversion-null"
 #pragma GCC diagnostic ignored "-Wunused-variable"
@@ -1351,6 +1352,9 @@ void test_and()
         NN a(3276888), b(3276888), c; bit_and(a, b, c); assert(eq(c, 3276888));
     }{
         NN a(-1), b(-1234124), c; bit_and(a, b, c); assert(c == 0);
+    }{
+        NN a(0xabcdef11); a.bit_and_ui(~0xabcdef11); assert(a == 0);
+        NN b(0xef11); b.bit_and_ui(0xabcdef11); assert(b == 0xef11);
     }
 }
 
@@ -1385,6 +1389,9 @@ void test_or()
     }{
         NN a(-1), b(-1234124), c;
         bit_or(a, b, c); assert(c == 1234125);
+    }{
+        NN a; a.bit_or_ui(0xabcdef11); assert(a == 0xabcdef11);
+        NN b(0xef11); b.bit_or_ui(0xabcd0000); assert(b == 0xabcdef11);
     }
 }
 
@@ -1415,6 +1422,9 @@ void test_xor()
         NN a, b(1), c; bit_xor(a, b, c); assert(eq(c, 1));
     }{
         NN a(-1), b(-1234124), c; bit_xor(a, b, c); assert(c == 1234125);
+    }{
+        NN a(0xabcdef11); a.bit_xor_ui(0xabcdef11); assert(a == 0);
+        NN b(0xabcd0000); b.bit_xor_ui(0xabcdef11); assert(b == 0xef11);
     }
 }
 

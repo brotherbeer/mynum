@@ -926,16 +926,7 @@ number_t& number_t::add_ui(word_t x)
     }
     else
     {
-        if (-len & 1) dat[-len] = 0;
-        if (*(word_t*)dat >= x || len < -2)
-        {
-            len = 0 - __abs_sub_word(x);
-        }
-        else
-        {
-            *(word_t*)dat = x - *(word_t*)dat;
-            len = 1 + (dat[1] != 0);
-        }
+        len = 0 - __abs_sub_word(x);
     }
     return *this;
 }
@@ -944,16 +935,7 @@ number_t& number_t::sub_ui(word_t x)
 {
     if (len > 0)
     {
-        if (len & 1) dat[len] = 0;
-        if (*(word_t*)dat >= x || len > 2)
-        {
-            len = __abs_sub_word(x);
-        }
-        else
-        {
-            *(word_t*)dat = x - *(word_t*)dat;
-            len = -2 + (dat[1] == 0);
-        }
+        len = __abs_sub_word(x);
     }
     else if (len == 0)
     {
@@ -976,15 +958,17 @@ number_t& number_t::sub_ui(word_t x)
 
 number_t& number_t::mul_ui(word_t x)
 {
-    word_t *p, *e, carry = 0;
     slen_t l = __abs(len), m = (l + (l & 1)) / 2;
-    if (l & 1) dat[l] = 0;
-
-    for (p = (word_t*)dat, e = p + m; p != e; p++)
+    word_t *w = (word_t*)dat, *e = w + m, carry = 0;
+    if (l & 1)
     {
-        // multiply *p and x, and add carry to the result
+        *(e - 1) &= MASK;
+    }
+    for (; w != e; w++)
+    {
+        // multiply *w and x, and add carry to the result
         // see issue #9
-        carry = __mul_add_dunit(*p, x, carry, p);
+        carry = __mul_add_dunit(*w, x, carry, w);
     }
     if (carry)
     {
@@ -1012,11 +996,12 @@ number_t& number_t::div_ui(word_t x)
 {
     if (len && x)
     {
-        word_t *q, *e, rem = 0;
         slen_t l = __abs(len), m = (l + (l & 1)) / 2;
-        if (l & 1) dat[l] = 0;
-        e = (word_t*)dat;
-        q = e + m;
+        word_t *e = (word_t*)dat, *q = e + m, rem = 0;
+        if (l & 1)
+        {
+            *(q - 1) &= MASK;
+        }
         while (--q >= e)
         {
             *q = __qunit_div_by_dunit(rem, *q, x, &rem);
@@ -1031,18 +1016,19 @@ number_t& number_t::mod_ui(word_t x)
 {
     if (len && x)
     {
-        word_t *q, *e, rem = 0;
         slen_t l = __abs(len), m = (l + (l & 1)) / 2;
-        if (l & 1) dat[l] = 0;
-        e = (word_t*)dat;
-        q = e + m;
+        word_t *e = (word_t*)dat, *q = e + m, rem = 0;
+        if (l & 1)
+        {
+            *(q - 1) &= MASK;
+        }
         while (--q >= e)
         {
             rem = __qunit_mod_by_dunit(rem, *q, x);
         }
         if (rem)
         {
-            *(word_t*)dat = rem;
+            *e = rem;
             len = (rem >= BASE? 2: 1) * __sign(len);
         }
         else
@@ -1064,8 +1050,8 @@ number_t& number_t::bit_and_ui(word_t x)
         }
         else
         {
-            *(word_t*)dat &= x;
             l = 2;
+            *(word_t*)dat &= x;
         }
         __trim_leading_zeros(dat, l);
         len = l * __sign(len);
@@ -1077,19 +1063,19 @@ number_t& number_t::bit_or_ui(word_t x)
 {
     if (len)
     {
-        slen_t l = __abs(len);
-        if (l != 1)
+        word_t *w = (word_t*)dat;
+        slen_t l = __abs(len), m = (l + (l & 1)) / 2;
+        if (l & 1)
         {
-            *(word_t*)dat |= x;
+            *(w + m - 1) &= MASK;
         }
-        else
+        if (l == 1)
         {
-            *(dat + 1) = 0;
-            *(word_t*)dat |= x;
-            l = 2;
-            __trim_leading_zeros(dat, l);
-            len = l * __sign(len);
+            l++;
         }
+        *(word_t*)dat |= x;
+        __trim_leading_zeros(dat, l);
+        len = l * __sign(len);
     }
     else
     {
@@ -1102,19 +1088,19 @@ number_t& number_t::bit_xor_ui(word_t x)
 {
     if (len)
     {
-        slen_t l = __abs(len);
-        if (l != 1)
+        word_t *w = (word_t*)dat;
+        slen_t l = __abs(len), m = (l + (l & 1)) / 2;
+        if (l & 1)
         {
-            *(word_t*)dat ^= x;
+            *(w + m - 1) &= MASK;
         }
-        else
+        if (l == 1)
         {
-            *(dat + 1) = 0;
-            *(word_t*)dat ^= x;
-            l = 2;
-            __trim_leading_zeros(dat, l);
-            len = l * __sign(len);
+            l++;
         }
+        *w ^= x;           
+        __trim_leading_zeros(dat, l);
+        len = l * __sign(len);
     }
     else
     {
@@ -1864,15 +1850,17 @@ slen_t number_t::__abs_add_word(word_t x)
 
     slen_t l = __abs(len);
     slen_t m = (l + (l & 1)) / 2;
-    word_t* p = (word_t*)dat;
-    word_t* e = p + m;
-    if (l & 1) dat[l] = 0;
-    *p += x;
-    while (*p < x && ++p != e)
+    word_t* w = (word_t*)dat, *e = w + m;
+    if (l & 1)
     {
-        x = (*p)++;
+        *(e - 1) &= MASK;
     }
-    if (p == e && *(p - 1) < x)
+    *w += x;
+    while (*w < x && ++w != e)
+    {
+        x = (*w)++;
+    }
+    if (w == e && *(w - 1) < x)
     {
         if (cap / 2 > m)
         {
@@ -1915,18 +1903,30 @@ slen_t number_t::__abs_sub_word(word_t x)
 {
     assert(len != 0);
 
-    slen_t l = __abs(len);
+    slen_t l = __abs(len), s = 1;
     slen_t m = (l + (l & 1)) / 2;
-    word_t* p = (word_t*)dat;
-    word_t* e = p + m, t = *p;
-    if (l & 1) dat[l] = 0;
-    *p -= x;
-    while (*p > t && ++p != e)
+    word_t* w = (word_t*)dat, *e = w + m, t;
+    if (l & 1)
     {
-        t = (*p)--;
+        *(e - 1) &= MASK;
+    }
+    t = *w;
+    if (t >= x || l > 2)
+    {
+        *w -= x;
+        while (*w > t && ++w != e)
+        {
+            t = (*w)--;
+        }
+    }
+    else
+    {
+        l = 2;
+        s = -1;
+        *w = x - t;
     }
     __trim_leading_zeros(dat, l);
-    return l;
+    return l * s;
 }
 
 static __force_inline(unit_t) __strbin_to_unit(const char* p, int l)

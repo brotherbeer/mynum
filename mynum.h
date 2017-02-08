@@ -3,6 +3,7 @@
 
 #include <cstddef>
 #include <climits>
+#include <cstring>
 
 
 namespace mynum {
@@ -41,13 +42,6 @@ typedef long long slen_t;
 typedef dunit_t word_t;
 typedef sdunit_t sword_t;
 typedef unsigned char byte_t;
-
-#define __trim_leading_zeros(dat, len) \
-{\
-    const unit_t *e = dat - 1, *p = e + len; \
-    while (p != e && !*p) {p--;} \
-    len = slen_t(p - e); \
-}
 
 struct _base_number_t
 {
@@ -112,9 +106,9 @@ struct number_t: public _base_number_t
 
     void copy(const number_t&);
 
-    void clear();
     void release();
     void reserve(size_t units);
+    void clear() { set_zero(); }
     void clear_and_reserve(size_t units);
 
     void set_one();
@@ -158,23 +152,23 @@ struct number_t: public _base_number_t
     unit_t absrem_unit(unit_t) const;
     unit_t absrem_unit(const UDM&) const;
 
-    number_t& add_ui(word_t);
-    number_t& sub_ui(word_t);
-    number_t& mul_ui(word_t);
-    number_t& div_ui(word_t);
-    number_t& mod_ui(word_t);
-    number_t& bit_and_ui(word_t);
-    number_t& bit_or_ui(word_t);
-    number_t& bit_xor_ui(word_t);
+    void add_word(word_t);
+    void sub_word(word_t);
+    void mul_word(word_t);
+    void div_word(word_t);
+    void mod_word(word_t);
+    void bit_and_word(word_t);
+    void bit_or_word(word_t);
+    void bit_xor_word(word_t);
 
-    number_t& add_si(sword_t);
-    number_t& sub_si(sword_t);
-    number_t& mul_si(sword_t);
-    number_t& div_si(sword_t);
-    number_t& mod_si(sword_t);
-    number_t& bit_and_si(sword_t);
-    number_t& bit_or_si(sword_t);
-    number_t& bit_xor_si(sword_t);
+    void add_sword(sword_t);
+    void sub_sword(sword_t);
+    void mul_sword(sword_t);
+    void div_sword(sword_t);
+    void mod_sword(sword_t);
+    void bit_and_sword(sword_t);
+    void bit_or_sword(sword_t);
+    void bit_xor_sword(sword_t);
 
     number_t& add(int x);
     number_t& add(unsigned int x);
@@ -233,7 +227,7 @@ struct number_t: public _base_number_t
     size_t tzbits_count() const;
     void bits_reserve(size_t);
 
-    bool is_even() const;
+    bool is_even() const { return !is_odd(); }
     bool is_not(const number_t& another) const { return this != &another; }
     bool is_neg() const  { return len < 0; }
     bool is_neg_one() const  { return len == -1 && dat[0] == 1; }
@@ -247,7 +241,7 @@ struct number_t: public _base_number_t
     string_t& to_oct_string(string_t&) const;
     string_t& to_dec_string(string_t&) const;
     string_t& to_hex_string(string_t&) const;
-    string_t& to_string(string_t& res, int base = 10) const;
+    string_t& to_string(string_t&, int base = 10) const;
 
     string_t to_bin_string() const;
     string_t to_oct_string() const;
@@ -399,6 +393,13 @@ protected:
     string_t& __to_xbase_string(string_t& res, unit_t base, unit_t power_base, unit_t power_base_digits, float ln_power_base) const;
 };
 
+#define __trim_leading_zeros(dat, len) \
+{\
+    const unit_t *e = dat - 1, *p = e + len; \
+    while (p != e && !*p) { p--; } \
+    len = slen_t(p - e); \
+}
+
 #define REFCAP (sizeof(T) / sizeof(unit_t))
 template <class T> struct _stype_ref_t: public number_t
 {
@@ -437,6 +438,42 @@ template <class T> struct _utype_ref_t: public number_t
 
 int cmp(const number_t& a, const number_t& b);
 int cmp_abs(const number_t& a, const number_t& b);
+bool neq(const number_t& a, const number_t& b);
+void abs(const number_t& a, number_t& res);
+void neg(const number_t& a, number_t& res);
+void add(const number_t& a, const number_t& b, number_t& res);
+void sub(const number_t& a, const number_t& b, number_t& res);
+void mul(const number_t& a, const number_t& b, number_t& res);
+void sqr(const number_t& a, number_t& res);
+void ksqr(const number_t& a, number_t& res);
+void kmul(const number_t& a, const number_t& b, number_t& res);
+void shr(const number_t& a, size_t b, number_t& res);
+void shl(const number_t& a, size_t b, number_t& res);
+void pow(const number_t& a, size_t b, number_t& res);
+int  div(const number_t& a, const number_t& b, number_t& q, number_t& r);
+int  div(const number_t& a, const number_t& b, number_t& q);
+int  mod(const number_t& a, const number_t& b, number_t& r);
+int  pom(const number_t& a, const number_t& b, const number_t& c, number_t& res);
+void bit_and(const number_t& a, const number_t& b, number_t& res);
+void bit_or(const number_t& a, const number_t& b, number_t& res);
+void bit_xor(const number_t& a, const number_t& b, number_t& res);
+void bit_not(const number_t& a, number_t& res);
+void swap(number_t& a, number_t& b);
+
+void add_unit(const number_t& a, unit_t x, number_t& res);
+void sub_unit(const number_t& a, unit_t x, number_t& res);
+void mul_unit(const number_t& a, unit_t x, number_t& res);
+unit_t div_unit(const number_t& a, unit_t x, number_t& res);
+unit_t div_unit(const number_t& a, const UDM&, number_t& res);
+void mod_unit(const number_t& a, unit_t x, number_t& res);
+void mod_unit(const number_t& a, const UDM&, number_t& res);
+void bit_and_unit(const number_t& a, unit_t x, number_t& res);
+void bit_or_unit(const number_t& a, unit_t x, number_t& res);
+void bit_xor_unit(const number_t& a, unit_t x, number_t& res);
+
+int max_base();
+inline int min_base() { return 2; }
+
 inline int cmp(const number_t& a, int b)                 { _stype_ref_t<int> r(b); return cmp(a, r); }
 inline int cmp(const number_t& a, unsigned int b)        { _utype_ref_t<unsigned int> r(b); return cmp(a, r); }
 inline int cmp(const number_t& a, long b)                { _stype_ref_t<long> r(b); return cmp(a, r); }
@@ -449,7 +486,6 @@ inline int cmp(long a, const number_t& b)                { _stype_ref_t<long> r(
 inline int cmp(unsigned long a, const number_t& b)       { _utype_ref_t<unsigned long> r(a); return cmp(r, b); }
 inline int cmp(long long a, const number_t& b)           { _stype_ref_t<long long> r(a); return cmp(r, b); }
 inline int cmp(unsigned long long a, const number_t& b)  { _utype_ref_t<unsigned long long> r(a); return cmp(r, b); }
-bool neq(const number_t& a, const number_t& b);
 inline bool neq(const number_t& a, int b)                { _stype_ref_t<int> r(b); return neq(a, r); }
 inline bool neq(const number_t& a, unsigned int b)       { _utype_ref_t<unsigned int> r(b); return neq(a, r); }
 inline bool neq(const number_t& a, long b)               { _stype_ref_t<long> r(b); return neq(a, r); }
@@ -527,37 +563,6 @@ inline bool egt(long a, const number_t& b)               { return cmp(a, b) >= 0
 inline bool egt(unsigned long a, const number_t& b)      { return cmp(a, b) >= 0; }
 inline bool egt(long long a, const number_t& b)          { return cmp(a, b) >= 0; }
 inline bool egt(unsigned long long a, const number_t& b) { return cmp(a, b) >= 0; }
-
-void abs(const number_t& a, number_t& res);
-void neg(const number_t& a, number_t& res);
-void add(const number_t& a, const number_t& b, number_t& res);
-void sub(const number_t& a, const number_t& b, number_t& res);
-void mul(const number_t& a, const number_t& b, number_t& res);
-void sqr(const number_t& a, number_t& res);
-void ksqr(const number_t& a, number_t& res);
-void kmul(const number_t& a, const number_t& b, number_t& res);
-void shr(const number_t& a, size_t b, number_t& res);
-void shl(const number_t& a, size_t b, number_t& res);
-void pow(const number_t& a, size_t b, number_t& res);
-int  div(const number_t& a, const number_t& b, number_t& q, number_t& r);
-int  div(const number_t& a, const number_t& b, number_t& q);
-int  mod(const number_t& a, const number_t& b, number_t& r);
-int  pom(const number_t& a, const number_t& b, const number_t& c, number_t& res);
-void bit_and(const number_t& a, const number_t& b, number_t& res);
-void bit_or(const number_t& a, const number_t& b, number_t& res);
-void bit_xor(const number_t& a, const number_t& b, number_t& res);
-void bit_not(const number_t& a, number_t& res);
-
-void add_unit(const number_t& a, unit_t x, number_t& res);
-void sub_unit(const number_t& a, unit_t x, number_t& res);
-void mul_unit(const number_t& a, unit_t x, number_t& res);
-unit_t div_unit(const number_t& a, unit_t x, number_t& res);
-unit_t div_unit(const number_t& a, const UDM&, number_t& res);
-void mod_unit(const number_t& a, unit_t x, number_t& res);
-void mod_unit(const number_t& a, const UDM&, number_t& res);
-void bit_and_unit(const number_t& a, unit_t x, number_t& res);
-void bit_or_unit(const number_t& a, unit_t x, number_t& res);
-void bit_xor_unit(const number_t& a, unit_t x, number_t& res);
 
 inline void add(const number_t& a, int x, number_t& res)                 { _stype_ref_t<int> ref(x); add(a, ref, res);}
 inline void add(const number_t& a, unsigned int x, number_t& res)        { _utype_ref_t<unsigned int> ref(x); add(a, ref, res);}
@@ -679,6 +684,7 @@ inline number_t mod(const number_t& a, const number_t& b)      { number_t res, d
 inline number_t shr(const number_t& a, size_t b)               { number_t res; shr(a, b, res); return res; }
 inline number_t shl(const number_t& a, size_t b)               { number_t res; shl(a, b, res); return res; }
 inline number_t pow(const number_t& a, size_t b)               { number_t res; pow(a, b, res); return res; }
+inline number_t pom(const number_t& a, const number_t& b, const number_t& c) { number_t res; pom(a, b, c, res); return res; }
 inline number_t bit_and(const number_t& a, const number_t& b)  { number_t res; bit_and(a, b, res); return res; }
 inline number_t bit_or(const number_t& a, const number_t& b)   { number_t res; bit_or(a, b, res); return res; }
 inline number_t bit_xor(const number_t& a, const number_t& b)  { number_t res; bit_xor(a, b, res); return res; }
@@ -687,10 +693,99 @@ inline number_t bit_not(const number_t& a)                     { number_t res; b
 inline int sign(const number_t& a)                             { return (a.len >> (sizeof(slen_t) * 8 - 1)) | 1; }
 inline int sign(const number_t& a, const number_t& b)          { return ((a.len ^ b.len) >> (sizeof(slen_t) * 8 - 1)) | 1; }
 inline bool same_sign(const number_t& a, const number_t& b)    { return (a.len ^ b.len) >> (sizeof(slen_t) * 8 - 1) == 0; }
-inline number_t pom(const number_t& a, const number_t& b, const number_t& c) { number_t res; pom(a, b, c, res); return res; }
-void swap(number_t& a, number_t& b);
-inline int min_base() { return 2; }
-int max_base();
+
+inline number_t  number_t::abs() const                { return mynum::abs(*this); }
+inline number_t  number_t::neg() const                { return mynum::neg(*this); }
+inline number_t& number_t::set_abs()                  { return mynum::set_abs(*this); }
+inline number_t& number_t::set_neg()                  { return mynum::set_neg(*this); }
+inline number_t& number_t::set_sign(int sign)         { return mynum::set_sign(*this, sign); }
+inline number_t& number_t::add(const number_t& x)     { mynum::add(*this, x, *this); return *this; }
+inline number_t& number_t::sub(const number_t& x)     { mynum::sub(*this, x, *this); return *this; }
+inline number_t& number_t::mul(const number_t& x)     { mynum::mul(*this, x, *this); return *this; }
+inline number_t& number_t::kmul(const number_t& x)    { mynum::kmul(*this, x, *this); return *this; }
+inline number_t& number_t::div(const number_t& x)     { mynum::div(*this, x, *this); return *this; }
+inline number_t& number_t::div(const number_t& x, number_t& r) { mynum::div(*this, x, *this, r); return *this; }
+inline number_t& number_t::mod(const number_t& x)     { mynum::mod(*this, x, *this); return *this; }
+inline number_t& number_t::shr(size_t x)              { mynum::shr(*this, x, *this); return *this; }
+inline number_t& number_t::shl(size_t x)              { mynum::shl(*this, x, *this); return *this; }
+inline number_t& number_t::bit_or(const number_t& x)  { mynum::bit_or(*this, x, *this); return *this; }
+inline number_t& number_t::bit_and(const number_t& x) { mynum::bit_and(*this, x, *this); return *this; }
+inline number_t& number_t::bit_xor(const number_t& x) { mynum::bit_xor(*this, x, *this); return *this; }
+inline number_t& number_t::bit_not()                  { mynum::bit_not(*this, *this); return *this; }
+inline number_t& number_t::sqr()                      { mynum::sqr(*this, *this); return *this; }
+inline number_t& number_t::ksqr()                     { mynum::ksqr(*this, *this); return *this; }
+inline number_t& number_t::pow(size_t x)              { mynum::pow(*this, x, *this); return *this; }
+inline number_t& number_t::pom(const number_t& x, const number_t& y) { mynum::pom(*this, x, y, *this); return *this; }
+
+inline number_t& number_t::add(int x)                     { add_sword(x); return *this; }
+inline number_t& number_t::add(unsigned int x)            { add_word(x); return *this; }
+inline number_t& number_t::add(long x)                    { add_sword(x); return *this; }
+inline number_t& number_t::add(unsigned long x)           { add_word(x); return *this; }
+inline number_t& number_t::sub(int x)                     { sub_sword(x); return *this; }
+inline number_t& number_t::sub(unsigned int x)            { sub_word(x); return *this; }
+inline number_t& number_t::sub(long x)                    { sub_sword(x); return *this; }
+inline number_t& number_t::sub(unsigned long x)           { sub_word(x); return *this; }
+inline number_t& number_t::mul(int x)                     { mul_sword(x); return *this; }
+inline number_t& number_t::mul(unsigned int x)            { mul_word(x); return *this; }
+inline number_t& number_t::mul(long x)                    { mul_sword(x); return *this; }
+inline number_t& number_t::mul(unsigned long x)           { mul_word(x); return *this; }
+inline number_t& number_t::div(int x)                     { div_sword(x); return *this; }
+inline number_t& number_t::div(unsigned int x)            { div_word(x); return *this; }
+inline number_t& number_t::div(long x)                    { div_sword(x); return *this; }
+inline number_t& number_t::div(unsigned long x)           { div_word(x); return *this; }
+inline number_t& number_t::mod(int x)                     { mod_sword(x); return *this; }
+inline number_t& number_t::mod(unsigned int x)            { mod_word(x); return *this; }
+inline number_t& number_t::mod(long x)                    { mod_sword(x); return *this; }
+inline number_t& number_t::mod(unsigned long x)           { mod_word(x); return *this; }
+inline number_t& number_t::bit_and(int x)                 { bit_and_sword(x); return *this; }
+inline number_t& number_t::bit_and(unsigned int x)        { bit_and_word(x); return *this; }
+inline number_t& number_t::bit_and(long x)                { bit_and_sword(x); return *this; }
+inline number_t& number_t::bit_and(unsigned long x)       { bit_and_word(x); return *this; }
+inline number_t& number_t::bit_or(int x)                  { bit_or_sword(x); return *this; }
+inline number_t& number_t::bit_or(unsigned int x)         { bit_or_word(x); return *this; }
+inline number_t& number_t::bit_or(long x)                 { bit_or_sword(x); return *this; }
+inline number_t& number_t::bit_or(unsigned long x)        { bit_or_word(x); return *this; }
+inline number_t& number_t::bit_xor(int x)                 { bit_xor_sword(x); return *this; }
+inline number_t& number_t::bit_xor(unsigned int x)        { bit_xor_word(x); return *this; }
+inline number_t& number_t::bit_xor(long x)                { bit_xor_sword(x); return *this; }
+inline number_t& number_t::bit_xor(unsigned long x)       { bit_xor_word(x); return *this; }
+
+#if UNITBITS == 32
+inline number_t& number_t::add(long long x)               { add_sword(x); return *this; }
+inline number_t& number_t::add(unsigned long long x)      { add_word(x); return *this; }
+inline number_t& number_t::sub(long long x)               { sub_sword(x); return *this; }
+inline number_t& number_t::sub(unsigned long long x)      { sub_word(x); return *this; }
+inline number_t& number_t::mul(long long x)               { mul_sword(x); return *this; }
+inline number_t& number_t::mul(unsigned long long x)      { mul_word(x); return *this; }
+inline number_t& number_t::div(long long x)               { div_sword(x); return *this; }
+inline number_t& number_t::div(unsigned long long x)      { div_word(x); return *this; }
+inline number_t& number_t::mod(long long x)               { mod_sword(x); return *this; }
+inline number_t& number_t::mod(unsigned long long x)      { mod_word(x); return *this; }
+inline number_t& number_t::bit_and(long long x)           { bit_and_sword(x); return *this; }
+inline number_t& number_t::bit_and(unsigned long long x)  { bit_and_word(x); return *this; }
+inline number_t& number_t::bit_or(long long x)            { bit_or_sword(x); return *this; }
+inline number_t& number_t::bit_or(unsigned long long x)   { bit_or_word(x); return *this; }
+inline number_t& number_t::bit_xor(long long x)           { bit_xor_sword(x); return *this; }
+inline number_t& number_t::bit_xor(unsigned long long x)  { bit_xor_word(x); return *this; }
+
+#else
+inline number_t& number_t::add(long long x)               { _stype_ref_t<long long> r(x);           return add(r); }
+inline number_t& number_t::add(unsigned long long x)      { _utype_ref_t<unsigned long long> r(x);  return add(r); }
+inline number_t& number_t::sub(long long x)               { _stype_ref_t<long long> r(x);           return sub(r); }
+inline number_t& number_t::sub(unsigned long long x)      { _utype_ref_t<unsigned long long> r(x);  return sub(r); }
+inline number_t& number_t::mul(long long x)               { _stype_ref_t<long long> r(x);           return mul(r); }
+inline number_t& number_t::mul(unsigned long long x)      { _utype_ref_t<unsigned long long> r(x);  return mul(r); }
+inline number_t& number_t::div(long long x)               { _stype_ref_t<long long> r(x);           return div(r); }
+inline number_t& number_t::div(unsigned long long x)      { _utype_ref_t<unsigned long long> r(x);  return div(r); }
+inline number_t& number_t::mod(long long x)               { _stype_ref_t<long long> r(x);           return mod(r); }
+inline number_t& number_t::mod(unsigned long long x)      { _utype_ref_t<unsigned long long> r(x);  return mod(r); }
+inline number_t& number_t::bit_and(long long x)           { _stype_ref_t<long long> r(x);           return bit_and(r); }
+inline number_t& number_t::bit_and(unsigned long long x)  { _utype_ref_t<unsigned long long> r(x);  return bit_and(r); }
+inline number_t& number_t::bit_or(long long x)            { _stype_ref_t<long long> r(x);           return bit_or(r); }
+inline number_t& number_t::bit_or(unsigned long long x)   { _utype_ref_t<unsigned long long> r(x);  return bit_or(r); }
+inline number_t& number_t::bit_xor(long long x)           { _stype_ref_t<long long> r(x);           return bit_xor(r); }
+inline number_t& number_t::bit_xor(unsigned long long x)  { _utype_ref_t<unsigned long long> r(x);  return bit_xor(r); }
+#endif
 
 struct string_t
 {
@@ -728,7 +823,7 @@ struct string_t
     bool empty() const { return len == 0; }
 
     void clear();
-    int cmp(const string_t&) const;
+    int cmp(const string_t& another) const { return mynum::cmp(*this, another); }
 
     void take(char* p, size_t l);
     void take(char* p, size_t l, size_t c);
@@ -738,22 +833,22 @@ struct string_t
     void reserve(size_t);
 
     string_t& append(char, size_t);
-    string_t& append(const char*);
     string_t& append(const char*, size_t);
-    string_t& append(const string_t&);
     string_t& append(const string_t&, size_t bpos, size_t epos);
+    string_t& append(const char* p) { return append(p, p? strlen(p): 0); }
+    string_t& append(const string_t& another) { return append(another.dat, another.len); }
 
-    string_t& prepend(char, size_t);
-    string_t& prepend(const char*);
-    string_t& prepend(const char*, size_t);
-    string_t& prepend(const string_t&);
-    string_t& prepend(const string_t&, size_t bpos, size_t epos);
+    string_t& prepend(char c, size_t n)        { return insert(0, c, n); }
+    string_t& prepend(const char* p)           { return insert(0, p); }
+    string_t& prepend(const char* p, size_t l) { return insert(0, p, l); }
+    string_t& prepend(const string_t& another) { return insert(0, another); }
+    string_t& prepend(const string_t& another, size_t bpos, size_t epos) { return insert(0, another, bpos, epos); }
 
     string_t& insert(size_t pos, char, size_t);
-    string_t& insert(size_t pos, const char*);
     string_t& insert(size_t pos, const char*, size_t);
-    string_t& insert(size_t pos, const string_t&);
     string_t& insert(size_t pos, const string_t&, size_t bpos, size_t epos);
+    string_t& insert(size_t pos, const char* p)           { return insert(pos, p, p? strlen(p): 0); }
+    string_t& insert(size_t pos, const string_t& another) { return insert(pos, another.dat, another.len); }
 
     string_t& remove(size_t pos);
     string_t& remove(size_t bpos, size_t epos);
@@ -766,57 +861,64 @@ struct string_t
     string_t& to_lower(string_t& res) const;
 
     string_t& assign(char);
-    string_t& assign(const char*);
     string_t& assign(const char*, size_t);
-    string_t& assign(const string_t&);
     string_t& assign(const string_t&, size_t bpos, size_t epos);
+    string_t& assign(const char* p)           { return assign(p, p? strlen(p): 0); }
+    string_t& assign(const string_t& another) { return assign(another.dat, another.len); }
 
     size_t pos_not_chars(size_t pos, const char*) const;
-    size_t pos_not_blank(size_t pos) const;
-    size_t pos_not_chars(const char*) const;
-    size_t pos_not_blank() const;
-    size_t pos_not_chars(const string_t&) const;
+    size_t pos_not_chars(const char* p) const           { return pos_not_chars(0, p); }
+    size_t pos_not_chars(const string_t& another) const { return pos_not_chars(0, another.dat); }
+    size_t pos_not_blank(size_t pos) const   { return pos_not_chars(pos, " \t\n\r\f\v"); }
+    size_t pos_not_blank() const             { return pos_not_chars(0, " \t\n\r\f\v"); }
 
     size_t rpos_not_chars(size_t pos, const char*) const;
-    size_t rpos_not_blank(size_t pos) const;
-    size_t rpos_not_chars(const char*) const;
+    size_t rpos_not_blank(size_t pos) const; // TODO
     size_t rpos_not_blank() const;
-    size_t rpos_not_chars(const string_t&) const;
+    size_t rpos_not_chars(const char* p) const           { return rpos_not_chars(len - 1, p); }
+    size_t rpos_not_chars(const string_t& another) const { return rpos_not_chars(len - 1, another.dat); }
 
     string_t& strip_left(const char*);
-    string_t& strip_left(const string_t&);
     string_t& strip_right(const char*);
-    string_t& strip_right(const string_t&);
-    string_t& strip_left();
-    string_t& strip_right();
-    string_t& strip();
     string_t& strip(const char*);
-    string_t& strip(const string_t&);
+    string_t& strip_left(const string_t& another)  { return strip_left(another.dat); }
+    string_t& strip_right(const string_t& another) { return strip_right(another.dat); }
+    string_t& strip_left()  { return strip_left(" \t\r\n\f\v"); }
+    string_t& strip_right() { return strip_right(" \t\r\n\f\v"); }
+    string_t& strip(const string_t& another) { return strip(another.dat); }
+    string_t& strip() { return strip(" \t\r\n\f\v"); }
 
-    bool starts_with(size_t pos, const char*, bool ignorecase = false) const;
     bool starts_with(size_t pos, const char*, size_t, bool ignorecase = false) const;
-    bool starts_with(size_t pos, const string_t&, bool ignorecase = false) const;
-    bool starts_with(const char*, bool ignorecase = false) const;
-    bool starts_with(const char*, size_t, bool ignorecase = false) const;
-    bool starts_with(const string_t&, bool ignorecase = false) const;
+    bool starts_with(size_t pos, const char* p, bool ic = false) const { return starts_with(pos, p, p? strlen(p): 0, ic); }
+    bool starts_with(size_t pos, const string_t& another, bool ic = false) const { return starts_with(pos, another.dat, another.len, ic); }
+    bool starts_with(const char* p, bool ic = false) const { return starts_with(0, p, p? strlen(p): 0, ic); }
+    bool starts_with(const char* p, size_t l, bool ic = false) const { return starts_with(0, p, l, ic); }
+    bool starts_with(const string_t& another, bool ic = false) const { return starts_with(0, another.dat, another.len, ic); }
 
-    bool ends_with(size_t pos, const char*, bool ignorecase = false) const;
     bool ends_with(size_t pos, const char*, size_t, bool ignorecase = false) const;
-    bool ends_with(size_t pos, const string_t&, bool ignorecase = false) const;
-    bool ends_with(const char*, bool ignorecase = false) const;
-    bool ends_with(const char*, size_t, bool ignorecase = false) const;
-    bool ends_with(const string_t&, bool ignorecase = false) const;
+    bool ends_with(size_t pos, const char* p, bool ic = false) const { return ends_with(pos, p, p? strlen(p): 0, ic); }
+    bool ends_with(size_t pos, const string_t& another, bool ic = false) const { return ends_with(pos, another.dat, another.len, ic); }
+    bool ends_with(const char* p, bool ic = false) const { return ends_with(len - 1, p, p? strlen(p): 0, ic); }
+    bool ends_with(const char* p, size_t l, bool ic = false) const { return ends_with(len - 1, p, l, ic); }
+    bool ends_with(const string_t& another, bool ic = false) const { return ends_with(len - 1, another.dat, another.len, ic); }
 
-    bool has(char c) const;
     void cut(size_t l);
+    bool has(char c) const { return dat? strchr(dat, c) != NULL: false; }
 
-    string_t& operator = (const char*);
-    string_t& operator = (const string_t&);
+    string_t& operator = (const char* p) { return assign(p); }
+    string_t& operator = (const string_t& another) { return assign(another); }
+
     char operator [] (size_t x) const { return dat[x]; }
     char& operator [] (size_t x) { return dat[x]; }
 
     bool overlap(const char* p, size_t l);
 };
+
+inline string_t number_t::to_bin_string() const { string_t res; return to_bin_string(res); }
+inline string_t number_t::to_oct_string() const { string_t res; return to_oct_string(res); }
+inline string_t number_t::to_dec_string() const { string_t res; return to_dec_string(res); }
+inline string_t number_t::to_hex_string() const { string_t res; return to_hex_string(res); }
+inline string_t number_t::to_string(int base) const { string_t res; return to_string(res, base); }
 
 int cmp(const string_t& a, const string_t& b);
 int cmp(const string_t& a, const char* b);
@@ -824,8 +926,8 @@ int cmp(const char* a, const string_t& b);
 
 int check(const char* p, int base);
 int check(const char* p, size_t l, int base);
-int check(const string_t& str, int base);
 int check(const string_t& str, size_t bpos, size_t epos, int base);
+inline int check(const string_t& str, int base) { return check(str.dat, str.len, base); }
 
 typedef unsigned int format_flags_t;
 const format_flags_t NO_FLAGS = 0;
@@ -905,9 +1007,9 @@ void reset_leading();
 inline void set_leading(int base, const char* chars) { format_t::leadings.set(base, chars); }
 inline const string_t& get_leading(int base) { return format_t::leadings.get(base); }
 
-int load(number_t& a, const char* p, int base = 0, const format_t* format = NULL);
 int load(number_t& a, const char* p, size_t l, int base = 0, const format_t* format = NULL);
-int load(number_t& a, const string_t& str, int base = 0, const format_t* format = NULL);
+inline int load(number_t& a, const char* str, int base = 0, const format_t* fmt = NULL) { return load(a, str, str? strlen(str): 0, base, fmt); }
+inline int load(number_t& a, const string_t& str, int base = 0, const format_t* fmt = NULL) { return load(a, str.dat, str.len, base, fmt); }
 
 struct bitref_t
 {

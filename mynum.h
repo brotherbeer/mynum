@@ -3,7 +3,6 @@
 
 #include <cstddef>
 #include <climits>
-#include <cstring>
 
 
 namespace mynum {
@@ -155,7 +154,7 @@ struct number_t: public _base_number_t
     void add_word(word_t);
     void sub_word(word_t);
     void mul_word(word_t);
-    void div_word(word_t);
+    word_t div_word(word_t);
     void mod_word(word_t);
     void bit_and_word(word_t);
     void bit_or_word(word_t);
@@ -164,7 +163,7 @@ struct number_t: public _base_number_t
     void add_sword(sword_t);
     void sub_sword(sword_t);
     void mul_sword(sword_t);
-    void div_sword(sword_t);
+    word_t div_sword(sword_t);
     void mod_sword(sword_t);
     void bit_and_sword(sword_t);
     void bit_or_sword(sword_t);
@@ -642,18 +641,18 @@ inline void bit_and(unsigned long x, const number_t& b, number_t& res)       { _
 inline void bit_and(long long x, const number_t& b, number_t& res)           { _stype_ref_t<long long> ref(x); bit_and(ref, b, res);}
 inline void bit_and(unsigned long long x, const number_t& b, number_t& res)  { _utype_ref_t<unsigned long long> ref(x); bit_and(ref, b, res);}
 
-inline void bit_or(const number_t& a, int x, number_t& res)                 { _stype_ref_t<int> ref(x); bit_or(a, ref, res);}
-inline void bit_or(const number_t& a, unsigned int x, number_t& res)        { _utype_ref_t<unsigned int> ref(x); bit_or(a, ref, res);}
-inline void bit_or(const number_t& a, long x, number_t& res)                { _stype_ref_t<long> ref(x); bit_or(a, ref, res);}
-inline void bit_or(const number_t& a, unsigned long x, number_t& res)       { _utype_ref_t<unsigned long> ref(x); bit_or(a, ref, res);}
-inline void bit_or(const number_t& a, long long x, number_t& res)           { _stype_ref_t<long long> ref(x); bit_or(a, ref, res);}
-inline void bit_or(const number_t& a, unsigned long long x, number_t& res)  { _utype_ref_t<unsigned long long> ref(x); bit_or(a, ref, res);}
-inline void bit_or(int x, const number_t& b, number_t& res)                 { _stype_ref_t<int> ref(x); bit_or(ref, b, res);}
-inline void bit_or(unsigned int x, const number_t& b, number_t& res)        { _utype_ref_t<unsigned int> ref(x); bit_or(ref, b, res);}
-inline void bit_or(long x, const number_t& b, number_t& res)                { _stype_ref_t<long> ref(x); bit_or(ref, b, res);}
-inline void bit_or(unsigned long x, const number_t& b, number_t& res)       { _utype_ref_t<unsigned long> ref(x); bit_or(ref, b, res);}
-inline void bit_or(long long x, const number_t& b, number_t& res)           { _stype_ref_t<long long> ref(x); bit_or(ref, b, res);}
-inline void bit_or(unsigned long long x, const number_t& b, number_t& res)  { _utype_ref_t<unsigned long long> ref(x); bit_or(ref, b, res);}
+inline void bit_or(const number_t& a, int x, number_t& res)                  { _stype_ref_t<int> ref(x); bit_or(a, ref, res);}
+inline void bit_or(const number_t& a, unsigned int x, number_t& res)         { _utype_ref_t<unsigned int> ref(x); bit_or(a, ref, res);}
+inline void bit_or(const number_t& a, long x, number_t& res)                 { _stype_ref_t<long> ref(x); bit_or(a, ref, res);}
+inline void bit_or(const number_t& a, unsigned long x, number_t& res)        { _utype_ref_t<unsigned long> ref(x); bit_or(a, ref, res);}
+inline void bit_or(const number_t& a, long long x, number_t& res)            { _stype_ref_t<long long> ref(x); bit_or(a, ref, res);}
+inline void bit_or(const number_t& a, unsigned long long x, number_t& res)   { _utype_ref_t<unsigned long long> ref(x); bit_or(a, ref, res);}
+inline void bit_or(int x, const number_t& b, number_t& res)                  { _stype_ref_t<int> ref(x); bit_or(ref, b, res);}
+inline void bit_or(unsigned int x, const number_t& b, number_t& res)         { _utype_ref_t<unsigned int> ref(x); bit_or(ref, b, res);}
+inline void bit_or(long x, const number_t& b, number_t& res)                 { _stype_ref_t<long> ref(x); bit_or(ref, b, res);}
+inline void bit_or(unsigned long x, const number_t& b, number_t& res)        { _utype_ref_t<unsigned long> ref(x); bit_or(ref, b, res);}
+inline void bit_or(long long x, const number_t& b, number_t& res)            { _stype_ref_t<long long> ref(x); bit_or(ref, b, res);}
+inline void bit_or(unsigned long long x, const number_t& b, number_t& res)   { _utype_ref_t<unsigned long long> ref(x); bit_or(ref, b, res);}
 
 inline void bit_xor(const number_t& a, int x, number_t& res)                 { _stype_ref_t<int> ref(x); bit_xor(a, ref, res);}
 inline void bit_xor(const number_t& a, unsigned int x, number_t& res)        { _utype_ref_t<unsigned int> ref(x); bit_xor(a, ref, res);}
@@ -787,6 +786,12 @@ inline number_t& number_t::bit_xor(long long x)           { _stype_ref_t<long lo
 inline number_t& number_t::bit_xor(unsigned long long x)  { _utype_ref_t<unsigned long long> r(x);  return bit_xor(r); }
 #endif
 
+size_t _try_strlen(const char*);
+const char* _try_strchr(const char*, int);
+const char* _try_strstr(const char*, const char*);
+
+#define WHITE_SPACES " \t\r\n\f\v"
+
 struct string_t
 {
     static const size_t npos = -1;
@@ -835,11 +840,11 @@ struct string_t
     string_t& append(char, size_t);
     string_t& append(const char*, size_t);
     string_t& append(const string_t&, size_t bpos, size_t epos);
-    string_t& append(const char* p) { return append(p, p? strlen(p): 0); }
+    string_t& append(const char* p) { return append(p, _try_strlen(p)); }
     string_t& append(const string_t& another) { return append(another.dat, another.len); }
 
-    string_t& prepend(char c, size_t n)        { return insert(0, c, n); }
-    string_t& prepend(const char* p)           { return insert(0, p); }
+    string_t& prepend(char c, size_t n) { return insert(0, c, n); }
+    string_t& prepend(const char* p) { return insert(0, p); }
     string_t& prepend(const char* p, size_t l) { return insert(0, p, l); }
     string_t& prepend(const string_t& another) { return insert(0, another); }
     string_t& prepend(const string_t& another, size_t bpos, size_t epos) { return insert(0, another, bpos, epos); }
@@ -847,7 +852,7 @@ struct string_t
     string_t& insert(size_t pos, char, size_t);
     string_t& insert(size_t pos, const char*, size_t);
     string_t& insert(size_t pos, const string_t&, size_t bpos, size_t epos);
-    string_t& insert(size_t pos, const char* p)           { return insert(pos, p, p? strlen(p): 0); }
+    string_t& insert(size_t pos, const char* p) { return insert(pos, p, _try_strlen(p)); }
     string_t& insert(size_t pos, const string_t& another) { return insert(pos, another.dat, another.len); }
 
     string_t& remove(size_t pos);
@@ -863,53 +868,51 @@ struct string_t
     string_t& assign(char);
     string_t& assign(const char*, size_t);
     string_t& assign(const string_t&, size_t bpos, size_t epos);
-    string_t& assign(const char* p)           { return assign(p, p? strlen(p): 0); }
+    string_t& assign(const char* p) { return assign(p, _try_strlen(p)); }
     string_t& assign(const string_t& another) { return assign(another.dat, another.len); }
-
-    size_t pos_not_chars(size_t pos, const char*) const;
-    size_t pos_not_chars(const char* p) const           { return pos_not_chars(0, p); }
-    size_t pos_not_chars(const string_t& another) const { return pos_not_chars(0, another.dat); }
-    size_t pos_not_blank(size_t pos) const   { return pos_not_chars(pos, " \t\n\r\f\v"); }
-    size_t pos_not_blank() const             { return pos_not_chars(0, " \t\n\r\f\v"); }
-
-    size_t rpos_not_chars(size_t pos, const char*) const;
-    size_t rpos_not_blank(size_t pos) const; // TODO
-    size_t rpos_not_blank() const;
-    size_t rpos_not_chars(const char* p) const           { return rpos_not_chars(len - 1, p); }
-    size_t rpos_not_chars(const string_t& another) const { return rpos_not_chars(len - 1, another.dat); }
 
     string_t& strip_left(const char*);
     string_t& strip_right(const char*);
     string_t& strip(const char*);
-    string_t& strip_left(const string_t& another)  { return strip_left(another.dat); }
+    string_t& strip_left(const string_t& another) { return strip_left(another.dat); }
     string_t& strip_right(const string_t& another) { return strip_right(another.dat); }
-    string_t& strip_left()  { return strip_left(" \t\r\n\f\v"); }
-    string_t& strip_right() { return strip_right(" \t\r\n\f\v"); }
+    string_t& strip_left()  { return strip_left(WHITE_SPACES); }
+    string_t& strip_right() { return strip_right(WHITE_SPACES); }
     string_t& strip(const string_t& another) { return strip(another.dat); }
-    string_t& strip() { return strip(" \t\r\n\f\v"); }
+    string_t& strip() { return strip(WHITE_SPACES); }
+
+    size_t find(size_t pos, char c) const;
+    size_t find(size_t pos, const char* p) const;
+    size_t find(size_t pos, const string_t& str) const { return find(pos, str.dat); }
+    size_t find(const char* p) const { return find(0, p); }
+    size_t find(const string_t& str) const { return find(0, str.dat); }
 
     bool starts_with(size_t pos, const char*, size_t, bool ignorecase = false) const;
-    bool starts_with(size_t pos, const char* p, bool ic = false) const { return starts_with(pos, p, p? strlen(p): 0, ic); }
-    bool starts_with(size_t pos, const string_t& another, bool ic = false) const { return starts_with(pos, another.dat, another.len, ic); }
-    bool starts_with(const char* p, bool ic = false) const { return starts_with(0, p, p? strlen(p): 0, ic); }
-    bool starts_with(const char* p, size_t l, bool ic = false) const { return starts_with(0, p, l, ic); }
-    bool starts_with(const string_t& another, bool ic = false) const { return starts_with(0, another.dat, another.len, ic); }
+    bool starts_with(size_t pos, const char* p, bool ignorecase = false) const { return starts_with(pos, p, _try_strlen(p), ignorecase); }
+    bool starts_with(size_t pos, const string_t& another, bool ignorecase = false) const { return starts_with(pos, another.dat, another.len, ignorecase); }
+    bool starts_with(const char* p, bool ignorecase = false) const { return starts_with(0, p, _try_strlen(p), ignorecase); }
+    bool starts_with(const char* p, size_t l, bool ignorecase = false) const { return starts_with(0, p, l, ignorecase); }
+    bool starts_with(const string_t& another, bool ignorecase = false) const { return starts_with(0, another.dat, another.len, ignorecase); }
 
     bool ends_with(size_t pos, const char*, size_t, bool ignorecase = false) const;
-    bool ends_with(size_t pos, const char* p, bool ic = false) const { return ends_with(pos, p, p? strlen(p): 0, ic); }
-    bool ends_with(size_t pos, const string_t& another, bool ic = false) const { return ends_with(pos, another.dat, another.len, ic); }
-    bool ends_with(const char* p, bool ic = false) const { return ends_with(len - 1, p, p? strlen(p): 0, ic); }
-    bool ends_with(const char* p, size_t l, bool ic = false) const { return ends_with(len - 1, p, l, ic); }
-    bool ends_with(const string_t& another, bool ic = false) const { return ends_with(len - 1, another.dat, another.len, ic); }
+    bool ends_with(size_t pos, const char* p, bool ignorecase = false) const { return ends_with(pos, p, _try_strlen(p), ignorecase); }
+    bool ends_with(size_t pos, const string_t& another, bool ignorecase = false) const { return ends_with(pos, another.dat, another.len, ignorecase); }
+    bool ends_with(const char* p, bool ignorecase = false) const { return ends_with(len - 1, p, _try_strlen(p), ignorecase); }
+    bool ends_with(const char* p, size_t l, bool ignorecase = false) const { return ends_with(len - 1, p, l, ignorecase); }
+    bool ends_with(const string_t& another, bool ignorecase = false) const { return ends_with(len - 1, another.dat, another.len, ignorecase); }
 
-    void cut(size_t l);
-    bool has(char c) const { return dat? strchr(dat, c) != NULL: false; }
+    bool contains(char c) const { return _try_strchr(dat, c) != NULL; }
+    bool contains(const char* p) const { return _try_strstr(dat, p) != NULL; }
+
+    size_t last_pos() const { return len - 1; }
+    size_t pos_not_chars(size_t pos, const char*) const;
+    size_t rpos_not_chars(size_t pos, const char*) const;
 
     string_t& operator = (const char* p) { return assign(p); }
     string_t& operator = (const string_t& another) { return assign(another); }
 
-    char operator [] (size_t x) const { return dat[x]; }
     char& operator [] (size_t x) { return dat[x]; }
+    char operator [] (size_t x) const { return dat[x]; }
 
     bool overlap(const char* p, size_t l);
 };
@@ -1008,7 +1011,7 @@ inline void set_leading(int base, const char* chars) { format_t::leadings.set(ba
 inline const string_t& get_leading(int base) { return format_t::leadings.get(base); }
 
 int load(number_t& a, const char* p, size_t l, int base = 0, const format_t* format = NULL);
-inline int load(number_t& a, const char* str, int base = 0, const format_t* fmt = NULL) { return load(a, str, str? strlen(str): 0, base, fmt); }
+inline int load(number_t& a, const char* p, int base = 0, const format_t* fmt = NULL) { return load(a, p, _try_strlen(p), base, fmt); }
 inline int load(number_t& a, const string_t& str, int base = 0, const format_t* fmt = NULL) { return load(a, str.dat, str.len, base, fmt); }
 
 struct bitref_t

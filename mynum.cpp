@@ -12,6 +12,7 @@
 #include <cmath>
 #include <cstdlib>
 #include <cctype>
+#include <cstring>
 #include <cassert>
 #include "mynum.h"
 
@@ -711,7 +712,7 @@ void number_t::mul_word(word_t x)
     len = l * __sign(len);
 }
 
-void number_t::div_word(word_t x)
+word_t number_t::div_word(word_t x)
 {
     if (len && x)
     {
@@ -727,7 +728,9 @@ void number_t::div_word(word_t x)
         }
         __trim_leading_zeros(dat, l);
         len = l * __sign(len);
+        return rem;
     }
+    return 0;
 }
 
 void number_t::mod_word(word_t x)
@@ -846,17 +849,19 @@ void number_t::mul_sword(sword_t x)
     }
 }
 
-void number_t::div_sword(sword_t x)
+word_t number_t::div_sword(sword_t x)
 {
+    word_t r;
     if (x > 0)
     {
-        div_word(x);
+        r = div_word(x);
     }
     else
     {
-        div_word(-x);
+        r = div_word(-x);
         set_neg();
     }
+    return r;
 }
 
 void number_t::mod_sword(sword_t x)
@@ -2079,6 +2084,10 @@ void bit_xor_unit(const number_t& a, unit_t x, number_t& res)
     res.assign(a).bit_xor_unit(x);
 }
 
+size_t _try_strlen(const char* p) { return p? strlen(p): 0; }
+const char* _try_strchr(const char* p, int c) { return p? strchr(p, c): NULL; }
+const char* _try_strstr(const char* p, const char* q) { return p && q? strstr(p, q): NULL; }
+
 /** class string_t implementation */
 
 string_t::string_t(char c): cap(sizeof(dunit_t))
@@ -2246,6 +2255,26 @@ string_t& string_t::strip(const char* chars)
     return *this;
 }
 
+size_t string_t::find(size_t pos, char c) const
+{
+    const char* pc;
+    if (pos < len && dat && (pc = strchr(dat + pos, c)))
+    {
+        return pc - dat;
+    }
+    return npos;
+}
+
+size_t string_t::find(size_t pos, const char* p) const
+{
+    const char* pp;
+    if (pos < len && dat && p && (pp = strstr(dat + pos, p)))
+    {
+        return pp - dat;
+    }
+    return npos;
+}
+
 bool string_t::starts_with(size_t pos, const char* p, size_t l, bool ic) const
 {
     const char* e = p + l, *q = dat + pos;
@@ -2284,18 +2313,6 @@ bool string_t::ends_with(size_t pos, const char* p, size_t l, bool ic) const
         return l == 0;
     }
     return false;
-}
-
-void string_t::cut(size_t l)
-{
-    if (len < l)
-    {
-        l = len;
-    }
-    if (dat)
-    {
-        dat[len -= l] = '\0';
-    }
 }
 
 void string_t::take(char* p, size_t l)
@@ -2755,7 +2772,7 @@ string_t& format_t::dump(const number_t& a, int b, string_t& str) const
         }
         if (sep)
         {
-            str.cut(sep->len);
+            str.remove_to_end(str.len - sep->len);
         }
     }
     else
@@ -2805,7 +2822,7 @@ int load(number_t& a, const char* str, size_t len, int base, const format_t* fmt
     char* q = tmp.dat;
     for (const char* p = str, *e = str + len; p != e; p++)
     {
-        if (*p != ' ' && (*p < '\t' || *p > '\r') && !(fmt && fmt->group_separator().has(*p)))
+        if (*p != ' ' && (*p < '\t' || *p > '\r') && !(fmt && fmt->group_separator().contains(*p)))
         {
             *q++ = *p;
         }

@@ -22,8 +22,8 @@ static void __check(const number_t& res, const number_t& exp)
         cout << oper << endl;
         cout << i1 << ", " << b1 << endl;
         cout << i2 << ", " << b2 << endl;
-        cout << exp(10).c_str() << endl;
-        cout << res(10).c_str() << endl;
+        cout << exp(10) << endl;
+        cout << res(10) << endl;
         abort();
     }
 }
@@ -32,7 +32,7 @@ static void __check(const number_t& res, const number_t& exp)
 { \
     if (!b.in_range_fun()) \
     { \
-        cout << b(10).c_str() << " "#in_range_fun" error" << endl; \
+        cout << b(10) << " "#in_range_fun" error" << endl; \
         abort(); \
     } \
     number_t aa(a), r; \
@@ -70,7 +70,7 @@ size_t __random_test()
 
             add(a, b, res);
             __check(res, c);
-            
+
             aa.add(b);
             __check(aa, c);
             
@@ -582,7 +582,7 @@ void __test_sqr_and_mul_performace()
     clock_t t0 = clock(); \
     fun(); \
     cout << "OK!" << endl; \
-    cout << "time: " << clock() - t0 << endl; \
+    cout << "time: " << double(clock() - t0) / CLOCKS_PER_SEC << endl; \
 } while (0)
 
 void test_performance()
@@ -609,7 +609,7 @@ void test_performance()
     t0 = clock();
     for (int i = 1; i < 100000; i++)
     {
-        fac.mul_ui(i);
+        fac.mul_word(i);
     }
     t1 = clock();
     cout << "The factorial of 100000, time: " << double(t1 - t0) / CLOCKS_PER_SEC << " " << fac.bits_count() << "bits" << endl;

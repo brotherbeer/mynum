@@ -11,7 +11,10 @@
 using namespace std;
 using namespace mynum;
 
-string oper, i1, i2, i3;
+const number_t ZERO(0);
+const number_t ONE(1);
+
+string oper, i1, i2, i3, i4;
 int b1, b2;
 
 static void __check(const number_t& res, const number_t& exp)
@@ -42,18 +45,102 @@ static void __check(const number_t& res, const number_t& exp)
     __check(r, c); \
 } while(0)
 
-size_t __random_test()
+size_t __random_test_div(ifstream& in)
 {
-    ifstream in("randomtest.dat");
-    if (!in)
+    size_t n = 0;
+    number_t a, b, c, d;
+    number_t aa, bb, q, r;
+    b1 = b2 = 16;
+    while (in.good() && !in.eof())
     {
-        cout << "no randomtest.dat" << endl;
-        return 0;
-    }
+        n++;
+        in >> i1 >> i2 >> i3 >> i4;
 
+        a.assign(i1.c_str(), b1);
+        b.assign(i2.c_str(), b2);
+        c.assign(i3.c_str(), 16);
+        d.assign(i4.c_str(), 16);
+
+        aa.assign(a);
+        bb.assign(b);
+
+        div(a, b, q, r);
+        __check(q, c);
+        __check(r, d);
+
+        div(a, b, q);
+        __check(q, c);
+
+        mod(a, b, r);
+        __check(r, d);
+
+        __check(a / b, c);
+        __check(a % b, d);
+
+        div(a, bb, bb);
+        __check(bb, c);
+
+        div(aa, b, aa);
+        __check(aa, c);
+
+        aa.assign(a);
+        bb.assign(b);
+
+        mod(a, bb, bb);
+        __check(bb, d);
+
+        mod(aa, b, aa);
+        __check(aa, d);
+
+        aa.assign(a);
+        bb.assign(b);
+
+        div(a, bb, bb, r);
+        __check(bb, c);
+        __check(r, d);
+
+        div(aa, b, aa, r);
+        __check(aa, c);
+        __check(r, d);
+
+        aa.assign(a);
+        bb.assign(b);
+
+        div(a, bb, q, bb);
+        __check(q, c);
+        __check(bb, d);
+
+        div(aa, b, q, aa);
+        __check(q, c);
+        __check(aa, d);
+
+        div(b, b, q, r);
+        __check(q, ONE);
+        __check(r, ZERO);
+
+        div(b, b, q);
+        __check(q, ONE);
+
+        bb.assign(b);
+
+        div(bb, bb, bb);
+        __check(bb, ONE);
+
+        bb.assign(b);
+
+        div(bb, bb, bb, r);
+        __check(bb, ONE);
+        __check(r, ZERO);
+    }
+    in.close();
+    return n;
+}
+
+size_t __random_test(ifstream& in)
+{
     size_t n = 0;
     number_t a, b, c;
-    number_t aa, bb, cc, res;
+    number_t aa, bb, cc, res, q, r;
     while (in.good() && !in.eof())
     {
         n++;
@@ -121,6 +208,9 @@ size_t __random_test()
 
             div(a, b, res);
             __check(res, c);
+
+            div(a, b, q, r);
+            __check(q, c);
 
             aa.div(b);
             __check(aa, c);
@@ -580,7 +670,7 @@ void __test_sqr_and_mul_performace()
 {\
     cout << title << endl; \
     clock_t t0 = clock(); \
-    fun(); \
+    fun; \
     cout << "OK!" << endl; \
     cout << "time: " << double(clock() - t0) / CLOCKS_PER_SEC << endl; \
 } while (0)
@@ -620,7 +710,18 @@ void test_performance()
 
 void random_test()
 {
-    test_with_time("testing random", __random_test);
-    test_with_time("testing kmul", __random_test_kmul);
-    test_with_time("testing ksqr", __random_test_ksqr);
+    ifstream randomtest_dat("randomtest.dat");
+    if (randomtest_dat)
+    {
+        test_with_time("Testing all operations", __random_test(randomtest_dat));
+    }
+
+    ifstream divrandomtest_dat("divrandomtest.dat");
+    if (divrandomtest_dat)
+    {
+        test_with_time("Testing division", __random_test_div(divrandomtest_dat));
+    }
+
+    test_with_time("Testing kmul", __random_test_kmul());
+    test_with_time("Testing ksqr", __random_test_ksqr());
 }

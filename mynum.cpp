@@ -3275,8 +3275,8 @@ int div(const number_t& a, const number_t& b, number_t& q, number_t& r)
         }
         else
         {
-            q.set_zero();
             r.assign(a);
+            q.set_zero();
         }
         return 1;
     }

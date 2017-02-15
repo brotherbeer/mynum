@@ -2,7 +2,7 @@ import sys, argparse
 from random import *
 
 USAGE = '''
-%s [-h] [-d MAX_DIGITS_COUNT] [-i ITEMS_COUNT]
+%s [-h] [-d MAX_DIGITS_COUNT] [-i ITEMS_COUNT] [-p]
 
 This is a tool for generating test data for MYNUM.
 The test data is composed of some test items, one item
@@ -11,9 +11,9 @@ for example:
 
 + 123 10 111001000 2 579
 
-'+' is the operator, '123' is first integer based '10',
-'111001000' is the second integer based '2', '579' is the
-result of 123(10) + 111001000(2)\n
+'+' is the operator, '123' is first integer in base '10',
+'111001000' is the second integer in base '2',
+'579' is the result of 123(10) + 111001000(2)\n
 ''' % sys.argv[0]
 
 digits = '0123456789abcdefghijklmnopqrstuvwxyz'
@@ -48,8 +48,9 @@ LLONG_MIN = (-9223372036854775807 - 1)
 ULLONG_MAX = 0xffffffffffffffff
 USHORT_MAX = 0xffff
 
-def randNumStr(dmax):
-    b = randint(2, 36)
+def randNumStr(dmax, b = None):
+    if not b:
+        b = randint(2, 36)
     n = randint(0, dmax)
     s = ['0'] * n if n > 0 else ['0']
     for i in range(n): s[i] = choice(digits[0: b])

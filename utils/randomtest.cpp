@@ -43,6 +43,9 @@ static void __check(const number_t& res, const number_t& exp)
     __check(aa, c); \
     mynum::fun(a, b.to_basic_fun(), r); \
     __check(r, c); \
+    aa.assign(a); \
+    mynum::fun(aa, b.to_basic_fun(), aa); \
+    __check(aa, c); \
 } while(0)
 
 size_t __random_test_div(ifstream& in)
@@ -136,7 +139,69 @@ size_t __random_test_div(ifstream& in)
     return n;
 }
 
-size_t __random_test(ifstream& in)
+size_t __random_test_mul(ifstream& in)
+{
+    size_t n = 0;
+    number_t a, b, c, d;
+    number_t aa, bb, p;
+    b1 = b2 = 16;
+    while (in.good() && !in.eof())
+    {
+        n++;
+        in >> i1 >> i2 >> i3;
+
+        a.assign(i1.c_str(), b1);
+        b.assign(i2.c_str(), b2);
+        c.assign(i3.c_str(), 16);
+
+        mul(a, b, p);
+        __check(p, c);
+
+        kmul(a, b, p);
+        __check(p, c);
+
+        aa.assign(a);
+        bb.assign(b);
+
+        mul(a, bb, bb);
+        __check(bb, c);
+
+        mul(aa, b, aa);
+        __check(aa, c);
+
+        aa.assign(a);
+        bb.assign(b);
+
+        kmul(a, bb, bb);
+        __check(bb, c);
+
+        kmul(aa, b, aa);
+        __check(aa, c);
+
+        if (a == b)
+        {
+            sqr(a, p);
+            __check(p, c);
+
+            ksqr(a, p);
+            __check(p, c);
+
+            aa.assign(a);
+            sqr(aa, aa);
+            __check(aa, c);
+
+            aa.assign(a);
+            ksqr(aa, aa);
+            __check(aa, c);
+        }
+
+        __check(a * b, c);
+    }
+    in.close();
+    return n;
+}
+
+size_t __random_test_all(ifstream& in)
 {
     size_t n = 0;
     number_t a, b, c;
@@ -152,35 +217,43 @@ size_t __random_test(ifstream& in)
 
         if (oper == "+")
         {
-            aa.assign(a);
-            bb.assign(b);
-
             add(a, b, res);
             __check(res, c);
 
-            aa.add(b);
-            __check(aa, c);
-            
-            add(a, bb, bb);
-            __check(bb, c);
-
-            __check(a + b, c);
-        }
-        else if (oper == "-")
-        {
             aa.assign(a);
             bb.assign(b);
 
+            add(a, bb, bb);
+            __check(bb, c);
+            add(aa, b, aa);
+            __check(aa, c);
+
+            aa.assign(a);
+            aa.add(b);
+            __check(aa, c);
+
+            __check(a + b, c);
+            __check(a += b, c);
+        }
+        else if (oper == "-")
+        {
             sub(a, b, res);
             __check(res, c);
 
-            aa.sub(b);
-            __check(aa, c);
-           
+            aa.assign(a);
+            bb.assign(b);
+
             sub(a, bb, bb);
             __check(bb, c);
+            sub(aa, b, aa);
+            __check(aa, c);
+
+            aa.assign(a);
+            aa.sub(b);
+            __check(aa, c);
 
             __check(a - b, c);
+            __check(a -= b, c);
         }
         else if (oper == "*")
         {
@@ -249,51 +322,72 @@ size_t __random_test(ifstream& in)
         }
         else if (oper == "&")
         {
-            aa.assign(a);
-            bb.assign(b);
-
             mynum::bit_and(a, b, res);
             __check(res, c);
 
+            aa.assign(a);
+            bb.assign(b);
+            mynum::bit_and(a, bb, bb);
+            __check(bb, c);
+            mynum::bit_and(aa, b, aa);
+            __check(aa, c);
+
+            //aa.assign(a);
+            //mynum::bit_and(aa, aa, aa);
+            //__check(aa, a);
+
+            aa.assign(a);
             aa.bit_and(b);
             __check(aa, c);
 
-            mynum::bit_and(a, bb, bb);
-            __check(bb, c);
-
             __check(a & b, c);
+            __check(a &= b, c);
         }
         else if (oper == "|")
         {
-            aa.assign(a);
-            bb.assign(b);
-
             mynum::bit_or(a, b, res);
             __check(res, c);
 
+            aa.assign(a);
+            bb.assign(b);
+            mynum::bit_or(a, bb, bb);
+            __check(bb, c);
+            mynum::bit_or(aa, b, aa);
+            __check(aa, c);
+
+            //aa.assign(a);
+            //mynum::bit_or(aa, aa, aa);
+            //__check(aa, a);
+
+            aa.assign(a);
             aa.bit_or(b);
             __check(aa, c);
 
-            mynum::bit_or(a, bb, bb);
-            __check(bb, c);
-
             __check(a | b, c);
+            __check(a |= b, c);
         }
         else if (oper == "^")
         {
-            aa.assign(a);
-            bb.assign(b);
-
             mynum::bit_xor(a, b, res);
             __check(res, c);
 
+            aa.assign(a);
+            bb.assign(b);
+            mynum::bit_xor(a, bb, bb);
+            __check(bb, c);
+            mynum::bit_xor(aa, b, aa);
+            __check(aa, c);
+
+            aa.assign(a);
+            mynum::bit_xor(aa, aa, aa);
+            __check(aa, ZERO);
+
+            aa.assign(a);
             aa.bit_xor(b);
             __check(aa, c);
 
-            mynum::bit_xor(a, bb, bb);
-            __check(bb, c);
-
             __check(a ^ b, c);
+            __check(a ^= b, c);
         }
         else if (oper == "<")
         {
@@ -341,8 +435,13 @@ size_t __random_test(ifstream& in)
         {
             aa.assign(a);
             __check(aa >> b.to_ulong(), c);
+
             shr(a, b.to_ulong(), res);
             __check(res, c);
+
+            shr(aa, b.to_ulong(), aa);
+            __check(aa, c);
+
             a.shr(b.to_ulong());
             __check(a, c);
         }
@@ -350,8 +449,13 @@ size_t __random_test(ifstream& in)
         {
             aa.assign(a);
             __check(aa << b.to_ulong(), c);
+
             shl(a, b.to_ulong(), res);
             __check(res, c);
+
+            shl(aa, b.to_ulong(), aa);
+            __check(aa, c);
+
             a.shl(b.to_ulong());
             __check(a, c);
         }
@@ -713,13 +817,19 @@ void random_test()
     ifstream randomtest_dat("randomtest.dat");
     if (randomtest_dat)
     {
-        test_with_time("Testing all operations", __random_test(randomtest_dat));
+        test_with_time("Testing all operations", __random_test_all(randomtest_dat));
     }
 
     ifstream divrandomtest_dat("divrandomtest.dat");
     if (divrandomtest_dat)
     {
         test_with_time("Testing division", __random_test_div(divrandomtest_dat));
+    }
+
+    ifstream mulrandomtest_dat("mulrandomtest.dat");
+    if (mulrandomtest_dat)
+    {
+        test_with_time("Testing multiplication", __random_test_mul(mulrandomtest_dat));
     }
 
     test_with_time("Testing kmul", __random_test_kmul());

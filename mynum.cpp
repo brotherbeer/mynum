@@ -14,6 +14,7 @@
 #include <cctype>
 #include <cstring>
 #include <cassert>
+#include <iostream>
 #include "mynum.h"
 
 
@@ -3259,13 +3260,13 @@ int div(const number_t& a, const number_t& b, number_t& q, number_t& r)
         slen_t la = a.len, lb = b.len;
         if (la < 0)
         {
-            la = -la;
             sa = -1;
+            la = -la;
         }
         if (lb < 0)
         {
-            lb = -lb;
             sb = -1;
+            lb = -lb;
         }
         if (la >= lb)
         {
@@ -3276,7 +3277,7 @@ int div(const number_t& a, const number_t& b, number_t& q, number_t& r)
         else
         {
             r.assign(a);
-            q.set_zero();
+            q.set_zero();  // r must be assigned before setting q to 0
         }
         return 1;
     }
@@ -3291,13 +3292,13 @@ int div(const number_t& a, const number_t& b, number_t& q)
         slen_t la = a.len, lb = b.len;
         if (la < 0)
         {
-            la = -la;
             sa = -1;
+            la = -la;
         }
         if (lb < 0)
         {
-            lb = -lb;
             sb = -1;
+            lb = -lb;
         }
         if (la >= lb)
         {
@@ -3322,8 +3323,14 @@ int mod(const number_t& a, const number_t& b, number_t& r)
         slen_t lb = __abs(b.len);
         if (la >= lb)
         {
-            number_t dummy;
-            __div(a.dat, la, b.dat, lb, dummy, r);
+            if (lb > 1)
+            {
+                __mod(a.dat, la, b.dat, lb, r);
+            }
+            else
+            {
+                r.assign(a.absrem_unit(b.dat[0]));
+            }
             r.len *= sa;
         }
         else
@@ -3416,24 +3423,21 @@ int pom(const number_t& a, const number_t& b, const number_t& c, number_t& res)
     {
         if (a.len && b.len)
         {
-            number_t tmp(1), q, r;
+            number_t tmp(1);
             unit_t* p = b.dat + b.len - 1;
-            unit_t* e = b.dat - 1;
-            while (p != e)
+            unit_t* e = b.dat - 1, u;
+            for (; p != e; p--)
             {
-                unit_t u = 1 << (SHIFT - 1);
-                while (u != 0)
+                for (u = 1 << (SHIFT - 1); u != 0; u >>= 1)
                 {
-                    ksqr(tmp, tmp);
-                    div(tmp, c, q, tmp);
+                    tmp.ksqr();
+                    tmp.mod(c);
                     if (*p & u)
                     {
-                        kmul(tmp, a, tmp);
-                        div(tmp, c, q, tmp);
+                        tmp.kmul(a);
+                        tmp.mod(c);
                     }
-                    u >>= 1;
                 }
-                p--;
             }
             res.steal(tmp);
         }
@@ -3739,67 +3743,70 @@ void __div(const unit_t* a, slen_t la, const unit_t* b, slen_t lb, number_t& q, 
 
     if (lb > 1)
     {
-        unit_t *x, *y = r.dat, *tmp = q.dat;
-        slen_t n = 0, lx, ly, lr, qnewcap = 0, rnewcap = 0;
+        slen_t n = 0, qnewcap = 0, rnewcap = 0;
+        unit_t *x = r.dat, *y = (unit_t*)b, *tmp = q.dat;
 
-        lx = la;
-        ly = lb;
-        x = __allocate_units(lx + 1);
-        if (r.cap < ly)
+        if (r.cap < la + 1)
         {
-            y = __allocate_units(ly, &rnewcap);
+            x = __allocate_units(la + 1, &rnewcap);
         }
         else if (r.dat == a || r.dat == b)
         {
-            y = __allocate_units(r.cap, &rnewcap);
+            x = __allocate_units(r.cap, &rnewcap);
         }
-        __copy_units(x, a, lx);
-        __copy_units(y, b, ly);
-
-        if (*(x + lx - 1) >= *(y + ly - 1))
+        if (*(a + la - 1) >= *(b + lb - 1))
         {
-            n = SHIFT - __vbits_count(*(y + ly - 1));
-            lx = __shl_core(x, lx, n);
-            ly = __shl_core(y, ly, n);
-            if (*(x + lx - 1) >= *(y + ly - 1))
+            y = __allocate_units(lb);
+            n = SHIFT - __vbits_count(*(b + lb - 1));
+            la = __shl_core(a, la, n, x);
+            __shl_core(b, lb, n, y);
+            if (*(x + la - 1) >= *(y + lb - 1))
             {
-                x[lx++] = 0;
+                x[la++] = 0;
             }
         }
-
-        if (q.cap < lx - ly)
+        else
         {
-            tmp = __allocate_units(lx - ly, &qnewcap);
+            __copy_units(x, a, la);
         }
-        lr = __div_core(x, lx, y, ly, tmp);
+
+        if (q.cap < la - lb)
+        {
+            tmp = __allocate_units(la - lb, &qnewcap);
+        }
+        else if (q.dat == a || q.dat == b)
+        {
+            tmp = __allocate_units(q.cap, &qnewcap);
+        }
+        q.len = __div_core(x, la, y, lb, tmp);
         if (qnewcap)
         {
             __deallocate_units(q.dat);
             q.dat = tmp;
             q.cap = qnewcap;
         }
-        q.len = lr;
 
         if (n)
         {
-            __shr_core(x, ly, n);
+            __shr_core(x, lb, n);
         }
-        __copy_units(y, x, ly);
         if (rnewcap)
         {
             __deallocate_units(r.dat);
-            r.dat = y;
+            r.dat = x;
             r.cap = rnewcap;
         }
-        r.len = ly;
+        r.len = lb;
         __trim_leading_zeros(r.dat, r.len);
-
-        __deallocate_units(x);
+        if (y != b)
+        {
+            __deallocate_units(y);
+        }
     }
     else
     {
-        unit_t *tmpq = q.dat, *tmpr = r.dat;
-        slen_t lq, qnewcap = 0, rnewcap = 0;
+        slen_t qnewcap = 0;
+        unit_t *tmpq = q.dat, tmpr;
 
         if (q.cap < la)
         {
@@ -3809,29 +3816,14 @@ void __div(const unit_t* a, slen_t la, const unit_t* b, slen_t lb, number_t& q, 
         {
             tmpq = __allocate_units(q.cap, &qnewcap);
         }
-        if (r.cap < 1)
-        {
-            tmpr = __allocate_units(1, &rnewcap);
-        }
-        else if (r.dat == a || r.dat == b)
-        {
-            tmpr = __allocate_units(r.cap, &rnewcap);
-        }
-        *tmpr = __div_unit_core(a, la, *b, tmpq, &lq);
+        tmpr = __div_unit_core(a, la, *b, tmpq, &q.len);
         if (qnewcap)
         {
             __deallocate_units(q.dat);
             q.dat = tmpq;
             q.cap = qnewcap;
         }
-        if (rnewcap)
-        {
-            __deallocate_units(r.dat);
-            r.dat = tmpr;
-            r.cap = rnewcap;
-        }
-        q.len = lq;
-        r.len = *tmpr != 0;
+        r.assign(tmpr);
     }
 }
 
@@ -3841,45 +3833,51 @@ void __div(const unit_t* a, slen_t la, const unit_t* b, slen_t lb, number_t& q)
 
     if (lb > 1)
     {
-        unit_t *x, *y, *tmp = q.dat;
-        slen_t n = 0, lx, ly, lr, newcap = 0;
+        slen_t n = 0, newcap = 0;
+        unit_t *x = __allocate_units(la + 1);
+        unit_t *y = (unit_t*)b, *tmp = q.dat;
 
-        lx = la;
-        ly = lb;
-        x = __allocate_units(lx + 1);
-        y = __allocate_units(ly);
-        __copy_units(x, a, lx);
-        __copy_units(y, b, ly);
-
-        if (*(x + lx - 1) >= *(y + ly - 1))
+        if (*(a + la - 1) >= *(b + lb - 1))
         {
-            n = SHIFT - __vbits_count(*(y + ly - 1));
-            lx = __shl_core(x, lx, n);
-            ly = __shl_core(y, ly, n);
-            if (*(x + lx - 1) >= *(y + ly - 1))
+            y = __allocate_units(lb);
+            n = SHIFT - __vbits_count(*(b + lb - 1));
+            la = __shl_core(a, la, n, x);
+            __shl_core(b, lb, n, y);
+            if (*(x + la - 1) >= *(y + lb - 1))
             {
-                x[lx++] = 0;
+                x[la++] = 0;
             }
         }
-        if (q.cap < lx - ly)
+        else
         {
-            tmp = __allocate_units(lx - ly, &newcap);
+            __copy_units(x, a, la);
         }
-        lr = __div_core(x, lx, y, ly, tmp);
+
+        if (q.cap < la - lb)
+        {
+            tmp = __allocate_units(la - lb, &newcap);
+        }
+        else if (q.dat == a || q.dat == b)
+        {
+            tmp = __allocate_units(q.cap, &newcap);
+        }
+        q.len = __div_core(x, la, y, lb, tmp);
         if (newcap)
         {
             __deallocate_units(q.dat);
             q.dat = tmp;
             q.cap = newcap;
         }
-        q.len = lr;
         __deallocate_units(x);
-        __deallocate_units(y);
+        if (y != b)
+        {
+            __deallocate_units(y);
+        }
     }
     else
     {
+        slen_t newcap = 0;
         unit_t *tmp = q.dat;
-        slen_t lq, newcap = 0;
 
         if (q.cap < la)
         {
@@ -3889,14 +3887,63 @@ void __div(const unit_t* a, slen_t la, const unit_t* b, slen_t lb, number_t& q)
         {
             tmp = __allocate_units(q.cap, &newcap);
         }
-        __div_unit_core(a, la, *b, tmp, &lq);
+        __div_unit_core(a, la, *b, tmp, &q.len);
         if (newcap)
         {
             __deallocate_units(q.dat);
             q.dat = tmp;
             q.cap = newcap;
         }
-        q.len = lq;
+    }
+}
+
+void __mod(const unit_t* a, slen_t la, const unit_t* b, slen_t lb, number_t& r)
+{
+    assert(la >= lb && lb > 1);
+
+    slen_t n = 0, newcap = 0;
+    unit_t *x = r.dat, *y = (unit_t*)b;
+
+    if (r.cap < la + 1)
+    {
+        x = __allocate_units(la + 1, &newcap);
+    }
+    else if (r.dat == a || r.dat == b)
+    {
+        x = __allocate_units(r.cap, &newcap);
+    }
+    if (*(a + la - 1) >= *(b + lb - 1))
+    {
+        y = __allocate_units(lb);
+        n = SHIFT - __vbits_count(*(b + lb - 1));
+        la = __shl_core(a, la, n, x);
+        __shl_core(b, lb, n, y);
+        if (*(x + la - 1) >= *(y + lb - 1))
+        {
+            x[la++] = 0;
+        }
+    }
+    else
+    {
+        __copy_units(x, a, la);
+    }
+
+    __mod_core(x, la, y, lb);
+    if (n)
+    {
+        __shr_core(x, lb, n);
+    }
+    if (newcap)
+    {
+        __deallocate_units(r.dat);
+        r.dat = x;
+        r.cap = newcap;
+    }
+    __trim_leading_zeros(r.dat, lb);
+    r.len = lb;
+    if (y != b)
+    {
+        __deallocate_units(y);
     }
 }
 
@@ -4271,31 +4318,68 @@ slen_t __div_core(unit_t* x, slen_t lx, const unit_t* y, slen_t ly, unit_t* q)
     unit_t y2 = *(y + ly - 2);
     unit_t *xk = x + k - 1;
     unit_t *qk = q + k - 1;
-    while (xk >= x)
+    for (unit_t trial; xk >= x; xk--)
     {
-        unit_t trial = __guess_quotient(xk[ly], xk[ly - 1], xk[ly - 2], y1, y2);
+        trial = __guess_quotient(xk[ly], xk[ly - 1], xk[ly - 2], y1, y2);
         *qk-- = __truing_quotient(xk, y, ly, trial);
-        xk--;
     }
     __trim_leading_zeros(q, k);
     return k;
 }
 
+void __mod_core(unit_t* x, slen_t lx, const unit_t* y, slen_t ly)
+{
+    assert(ly >= 2);
+    assert(lx >= ly);
+    assert(*(x + lx - 1) < *(y + ly - 1));
+
+    slen_t k = lx - ly;
+    unit_t y1 = *(y + ly - 1);
+    unit_t y2 = *(y + ly - 2);
+    unit_t *xk = x + k - 1;
+    for (unit_t trial; xk >= x; xk--)
+    {
+        trial = __guess_quotient(xk[ly], xk[ly - 1], xk[ly - 2], y1, y2);
+        __truing_quotient(xk, y, ly, trial);
+    }
+}
+
 slen_t __shl_core(unit_t* x, slen_t lx, slen_t d)
 {
-    slen_t i = 0;
-    unit_t carry = 0;
-    for (; i != lx; i++)
+    assert(d < UNITBITS);
+
+    dunit_t carry = 0;
+    for (unit_t* e = x + lx; x != e; x++)
     {
-        dunit_t acc = (dunit_t)x[i] << d | carry;
-        x[i] = acc & MASK;
-        carry = acc >> SHIFT;
+        carry = (dunit_t(*x) << d) | carry;
+        *x = carry & MASK;
+        carry >>= SHIFT;
     }
     if (carry)
     {
-        x[i++] = carry;
+        lx++;
+        *x = carry & MASK;
     }
-    return i;
+    return lx;
+}
+
+slen_t __shl_core(const unit_t* x, slen_t lx, slen_t d, unit_t* y)
+{
+    assert(d < UNITBITS);
+
+    dunit_t carry = 0;
+    for (const unit_t* e = x + lx; x != e; x++, y++)
+    {
+        carry = (dunit_t(*x) << d) | carry;
+        *y = carry & MASK;
+        carry >>= SHIFT;
+    }
+    if (carry)
+    {
+        lx++;
+        *y = carry & MASK;
+    }
+    return lx;
 }
 
 unit_t __shr_core(unit_t* x, slen_t lx, slen_t d)

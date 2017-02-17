@@ -492,6 +492,7 @@ void number_t::mul_unit(unit_t x)
 {
     unit_t carry;
     slen_t l = __abs(len);
+
     if ((carry = __mul_unit_core(dat, l, x, dat)))
     {
         if (cap > l)
@@ -938,41 +939,48 @@ void number_t::bit_xor_sword(sword_t x)
 
 bool number_t::bit_at(size_t x) const
 {
-    if (slen_t(x / SHIFT) < len) // bug
+    slen_t i = x / UNITBITS;
+    slen_t r = x % UNITBITS;
+
+    if (i < __abs(len))
     {
-        return (dat[x / SHIFT] & ((unit_t)1 << x % SHIFT)) != 0;
+        return (dat[i] & ((unit_t)1 << r)) != 0;
     }
-    return 0;
+    return false;
 }
 
 void number_t::bit_set_one(size_t x)
 {
-    slen_t u;
-    if ((u = slen_t(x / SHIFT)) < len)  // bug
+    slen_t i = x / UNITBITS;
+    slen_t r = x % UNITBITS, l = __abs(len);
+
+    if (i < l)
     {
-        dat[u] |= (unit_t)1 << x % SHIFT;
+        dat[i] |= (unit_t)1 << r;
     }
     else
     {
-        if (u >= cap)
+        if (i >= cap)
         {
-            unit_t* tmp = __allocate_units(u + 1, &cap);
-            __copy_units(tmp, dat, len);
+            unit_t* tmp = __allocate_units(i + 1, &cap);
+            __copy_units(tmp, dat, l);
             __deallocate_units(dat);
             dat = tmp;
         }
-        dat[u] = (unit_t)1 << x % SHIFT;
-        __set_units_zero(dat + len, u - len);
-        len = u + 1;
+        dat[i] = (unit_t)1 << r;
+        __set_units_zero(dat + l, i - l);
+        len = (i + 1) * __sign(len);
     }
 }
 
 void number_t::bit_set_zero(size_t x)
 {
-    slen_t u;
-    if ((u = slen_t(x / SHIFT)) < len)   // bug
+    slen_t i = x / UNITBITS;
+    slen_t r = x % UNITBITS;
+
+    if (i < __abs(len))
     {
-        dat[u] &= ~((unit_t)1 << x % SHIFT);
+        dat[i] &= ~((unit_t)1 << r);
     }
 }
 
@@ -990,7 +998,12 @@ void number_t::bit_set(size_t x, bool v)
 
 size_t number_t::bits_count() const
 {
-    return len? __vbits_count(): 0;
+    if (len)
+    {
+        slen_t l = __abs(len);
+        return __vbits_count(dat[l - 1]) + (l - 1) * UNITBITS;
+    }
+    return 0;
 }
 
 size_t number_t::tzbits_count() const
@@ -1437,11 +1450,6 @@ void number_t::__copy(const number_t& another)
 void number_t::__reserve(slen_t units)
 {
     dat = __allocate_units(units, &cap);
-}
-
-slen_t number_t::__vbits_count() const
-{
-    return mynum::__vbits_count(dat[len - 1]) + (len - 1) * SHIFT;  // bug
 }
 
 void number_t::__construct_add(unit_t x)

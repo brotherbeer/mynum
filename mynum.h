@@ -21,6 +21,7 @@ namespace mynum {
 #error WORDMAX unknown
 #endif
 #endif
+#define DUNITBITS (UNITBITS * 2)
 
 #if UNITBITS == 16
 typedef short sunit_t;
@@ -364,8 +365,8 @@ struct number_t: public _base_number_t
     operator unsigned long () const  { return to_long(); }
     operator unsigned long long () const  { return to_longlong(); }
 
-    string_t operator () (int) const;
-    bool operator [] (size_t) const;
+    string_t operator () (int base) const;
+    bool operator [] (size_t x) const { return bit_at(x); }
     bitref_t operator [] (size_t);
 
 protected:

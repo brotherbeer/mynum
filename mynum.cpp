@@ -14,7 +14,6 @@
 #include <cctype>
 #include <cstring>
 #include <cassert>
-#include <iostream>
 #include "mynum.h"
 
 
@@ -517,6 +516,7 @@ unit_t number_t::div_unit(unit_t x)
 {
     unit_t r = 0;
     slen_t l = __abs(len);
+
     if (l && x)
     {
         r = __div_unit_core(dat, l, x, dat, &l);
@@ -530,6 +530,7 @@ unit_t number_t::div_unit(const UDM& udm)
     dunit_t r = 0, h;
     slen_t l = __abs(len);
     unsigned char shift = udm.shift;
+
     if (udm.notpo2)
     {
         unit_t* p = dat + l;
@@ -682,6 +683,7 @@ void number_t::mul_word(word_t x)
 {
     slen_t l = __abs(len), m = (l + (l & 1)) / 2;
     word_t *w = (word_t*)dat, *e = w + m, carry = 0;
+
     if (l & 1)
     {
         *(e - 1) &= MASK;
@@ -719,6 +721,7 @@ word_t number_t::div_word(word_t x)
     {
         slen_t l = __abs(len), m = (l + (l & 1)) / 2;
         word_t *e = (word_t*)dat, *q = e + m, rem = 0;
+
         if (l & 1)
         {
             *(q - 1) &= MASK;
@@ -740,6 +743,7 @@ void number_t::mod_word(word_t x)
     {
         slen_t l = __abs(len), m = (l + (l & 1)) / 2;
         word_t *e = (word_t*)dat, *q = e + m, rem = 0;
+
         if (l & 1)
         {
             *(q - 1) &= MASK;
@@ -785,6 +789,7 @@ void number_t::bit_or_word(word_t x)
     {
         word_t *w = (word_t*)dat;
         slen_t l = __abs(len), m = (l + (l & 1)) / 2;
+
         if (l & 1)
         {
             *(w + m - 1) &= MASK;
@@ -809,6 +814,7 @@ void number_t::bit_xor_word(word_t x)
     {
         word_t *w = (word_t*)dat;
         slen_t l = __abs(len), m = (l + (l & 1)) / 2;
+
         if (l & 1)
         {
             *(w + m - 1) &= MASK;
@@ -829,12 +835,26 @@ void number_t::bit_xor_word(word_t x)
 
 void number_t::add_sword(sword_t x)
 {
-    x > 0? add_word(x): sub_word(-x);
+    if (x > 0)
+    {
+        add_word(x);
+    }
+    else
+    {
+        sub_word(-x);
+    }
 }
 
 void number_t::sub_sword(sword_t x)
 {
-    x > 0? sub_word(x): add_word(-x);
+    if (x > 0)
+    {
+        sub_word(x);
+    }
+    else
+    {
+        add_word(-x);
+    }
 }
 
 void number_t::mul_sword(sword_t x)
@@ -867,7 +887,14 @@ word_t number_t::div_sword(sword_t x)
 
 void number_t::mod_sword(sword_t x)
 {
-    x > 0? mod_word(x): mod_word(-x);
+    if (x > 0)
+    {
+        mod_word(x);
+    }
+    else
+    {
+        mod_word(-x);
+    }
 }
 
 void number_t::bit_and_sword(sword_t x)
@@ -911,7 +938,7 @@ void number_t::bit_xor_sword(sword_t x)
 
 bool number_t::bit_at(size_t x) const
 {
-    if (slen_t(x / SHIFT) < len)
+    if (slen_t(x / SHIFT) < len) // bug
     {
         return (dat[x / SHIFT] & ((unit_t)1 << x % SHIFT)) != 0;
     }
@@ -921,7 +948,7 @@ bool number_t::bit_at(size_t x) const
 void number_t::bit_set_one(size_t x)
 {
     slen_t u;
-    if ((u = slen_t(x / SHIFT)) < len)
+    if ((u = slen_t(x / SHIFT)) < len)  // bug
     {
         dat[u] |= (unit_t)1 << x % SHIFT;
     }
@@ -943,7 +970,7 @@ void number_t::bit_set_one(size_t x)
 void number_t::bit_set_zero(size_t x)
 {
     slen_t u;
-    if ((u = slen_t(x / SHIFT)) < len)
+    if ((u = slen_t(x / SHIFT)) < len)   // bug
     {
         dat[u] &= ~((unit_t)1 << x % SHIFT);
     }
@@ -951,7 +978,14 @@ void number_t::bit_set_zero(size_t x)
 
 void number_t::bit_set(size_t x, bool v)
 {
-    v? bit_set_one(x): bit_set_zero(x);
+    if (v)
+    {
+        bit_set_one(x);
+    }
+    else
+    {
+        bit_set_zero(x);
+    }
 }
 
 size_t number_t::bits_count() const
@@ -965,6 +999,7 @@ size_t number_t::tzbits_count() const
     {
         slen_t l = __abs(len);
         unit_t* p = dat, *e = p + l;
+
         while (p != e && !*p)
         {
             p++;
@@ -980,6 +1015,7 @@ bool number_t::is_po2() const
     {
         const unit_t* p = dat;
         const unit_t* e = dat + len - 1;
+
         while (p != e)
         {
             if (*p++ != 0)
@@ -1044,8 +1080,7 @@ void number_t::steal(number_t& x)
         len = x.len;
         cap = x.cap;
         x.dat = NULL;
-        x.len = 0;
-        x.cap = 0;
+        x.len = x.cap = 0;
     }
 }
 
@@ -1065,12 +1100,7 @@ void number_t::set_one()
 
 string_t number_t::operator () (int base) const
 {
-    return this->to_string(base);
-}
-
-bool number_t::operator [] (size_t x) const
-{
-    return this->bit_at(x);
+    return to_string(base);
 }
 
 bitref_t number_t::operator [] (size_t x)
@@ -1411,7 +1441,7 @@ void number_t::__reserve(slen_t units)
 
 slen_t number_t::__vbits_count() const
 {
-    return mynum::__vbits_count(dat[len - 1]) + (len - 1) * SHIFT;
+    return mynum::__vbits_count(dat[len - 1]) + (len - 1) * SHIFT;  // bug
 }
 
 void number_t::__construct_add(unit_t x)
@@ -1420,6 +1450,7 @@ void number_t::__construct_add(unit_t x)
     {
         unit_t* p = dat;
         unit_t *e = dat + len;
+
         *p += x;
         while (*p < x && ++p != e)
         {
@@ -1440,6 +1471,7 @@ void number_t::__construct_mul(unit_t x)
 {
     unit_t* p = dat;
     dunit_t carry = 0;
+
     for (slen_t i = 0; i < len; i++)
     {
         carry += (dunit_t)dat[i] * x;
@@ -1460,6 +1492,7 @@ slen_t number_t::__abs_add_unit(unit_t x)
     slen_t l = __abs(len);
     unit_t* p = dat;
     unit_t* e = dat + l;
+
     *p += x;
     while (*p < x && ++p != e)
     {
@@ -1491,6 +1524,7 @@ slen_t number_t::__abs_add_word(word_t x)
     slen_t l = __abs(len);
     slen_t m = (l + (l & 1)) / 2;
     word_t* w = (word_t*)dat, *e = w + m;
+
     if (l & 1)
     {
         *(e - 1) &= MASK;
@@ -1527,6 +1561,7 @@ slen_t number_t::__abs_sub_unit(unit_t x)
 
     unit_t* p = dat;
     unit_t* e = p + __abs(len), t = *p;
+
     *p -= x;
     while (*p > t && ++p != e)
     {
@@ -1546,6 +1581,7 @@ slen_t number_t::__abs_sub_word(word_t x)
     slen_t l = __abs(len), s = 1;
     slen_t m = (l + (l & 1)) / 2;
     word_t* w = (word_t*)dat, *e = w + m, t;
+
     if (l & 1)
     {
         *(e - 1) &= MASK;
@@ -1672,6 +1708,7 @@ void number_t::__construct_from_xbase_string(const char* s, slen_t l, int base, 
 
     unit_t u, rbase;
     slen_t n, i = 0, sign = 1, k, r;
+
     if ((n = slen_t(ln_base * l / LN_BASE + 1)) > cap)
     {
         __deallocate_units(dat);
@@ -2203,7 +2240,8 @@ size_t string_t::pos_not_chars(size_t pos, const char* chars) const
 {
     if (dat && chars && pos < len)
     {
-        for (char* p = dat + pos; *p != '\0'; p++)
+        char* p = dat + pos;
+        for (; *p != '\0'; p++)
         {
             if (!strchr(chars, *p))
             {
@@ -2218,7 +2256,8 @@ size_t string_t::rpos_not_chars(size_t pos, const char* chars) const
 {
     if (dat && chars && pos < len)
     {
-        for (const char* p = dat + pos; p != dat - 1; p--)
+        const char* p = dat + pos;
+        for (; p != dat - 1; p--)
         {
             if (!strchr(chars, *p))
             {
@@ -2259,9 +2298,12 @@ string_t& string_t::strip(const char* chars)
 size_t string_t::find(size_t pos, char c) const
 {
     const char* pc;
-    if (pos < len && dat && (pc = strchr(dat + pos, c)))
+    if (pos < len && dat)
     {
-        return pc - dat;
+        if ((pc = strchr(dat + pos, c)))
+        {
+            return pc - dat;
+        }
     }
     return npos;
 }
@@ -2269,9 +2311,12 @@ size_t string_t::find(size_t pos, char c) const
 size_t string_t::find(size_t pos, const char* p) const
 {
     const char* pp;
-    if (pos < len && dat && p && (pp = strstr(dat + pos, p)))
+    if (pos < len && dat && p)
     {
-        return pp - dat;
+        if ((pp = strstr(dat + pos, p)))
+        {
+            return pp - dat;
+        }
     }
     return npos;
 }
@@ -2285,11 +2330,17 @@ bool string_t::starts_with(size_t pos, const char* p, size_t l, bool ic) const
         {
             if (ic)
             {
-                for (; p != e && tolower(*p) == tolower(*q); p++, q++);
+                while (p != e && tolower(*p) == tolower(*q))
+                {
+                     p++; q++;
+                }
             }
             else
             {
-                for (; p != e && *p == *q; p++, q++);
+                while (p != e && *p == *q)
+                {
+                    p++; q++;
+                }
             }
         }
     }
@@ -2818,9 +2869,11 @@ int load(number_t& a, const char* str, size_t len, int base, const format_t* fmt
     {
         return 0;
     }
+
     string_t tmp(len);
     size_t i = 0, nn = 0, np = 0, matchmax = 0;
     char* q = tmp.dat;
+
     for (const char* p = str, *e = str + len; p != e; p++)
     {
         if (*p != ' ' && (*p < '\t' || *p > '\r') && !(fmt && fmt->group_separator().contains(*p)))
@@ -3207,6 +3260,7 @@ void ksqr(const number_t& u, number_t& res)
 {
     const unit_t *a, *b, *x = u.dat;
     slen_t n, la, lb, lx = __abs(u.len), newcap = 0;
+
     if (lx <= KSQR_THRESHOLD)
     {
         sqr(u, res);
@@ -3258,6 +3312,7 @@ int div(const number_t& a, const number_t& b, number_t& q, number_t& r)
     {
         slen_t sa = 1, sb = 1;
         slen_t la = a.len, lb = b.len;
+
         if (la < 0)
         {
             sa = -1;
@@ -3290,6 +3345,7 @@ int div(const number_t& a, const number_t& b, number_t& q)
     {
         slen_t sa = 1, sb = 1;
         slen_t la = a.len, lb = b.len;
+
         if (la < 0)
         {
             sa = -1;
@@ -3321,6 +3377,7 @@ int mod(const number_t& a, const number_t& b, number_t& r)
         slen_t la = __abs(a.len);
         slen_t sa = __sign(a.len);
         slen_t lb = __abs(b.len);
+
         if (la >= lb)
         {
             if (lb > 1)
@@ -3344,10 +3401,8 @@ int mod(const number_t& a, const number_t& b, number_t& r)
 
 void shr(const number_t& a, size_t b, number_t& res)
 {
-    slen_t n = b / SHIFT;
-    slen_t m = b % SHIFT;
-    slen_t l = __abs(a.len) - n;
-    slen_t newcap = 0;
+    slen_t n = b / SHIFT, m = b % SHIFT;
+    slen_t l = __abs(a.len) - n, newcap = 0;
 
     if (l > 0)
     {
@@ -3375,11 +3430,8 @@ void shr(const number_t& a, size_t b, number_t& res)
 
 void shl(const number_t& a, size_t b, number_t& res)
 {
-    slen_t n = b / SHIFT;
-    slen_t m = b % SHIFT;
-    slen_t la = __abs(a.len);
-    slen_t l = la + n;
-    slen_t newcap = 0;
+    slen_t n = b / SHIFT, m = b % SHIFT;
+    slen_t la = __abs(a.len), l = la + n, newcap = 0;
 
     unit_t* tmp = res.dat;
     if (res.cap < l + 1)
@@ -3426,6 +3478,7 @@ int pom(const number_t& a, const number_t& b, const number_t& c, number_t& res)
             number_t tmp(1);
             unit_t* p = b.dat + b.len - 1;
             unit_t* e = b.dat - 1, u;
+
             for (; p != e; p--)
             {
                 for (u = 1 << (SHIFT - 1); u != 0; u >>= 1)
@@ -3481,6 +3534,7 @@ void bit_or(const number_t& a, const number_t& b, number_t& res)
 {
     unit_t* tmp = res.dat;
     slen_t la = __abs(a.len), lb = __abs(b.len), lr, newcap = 0;
+
     if (la > lb)
     {
         if (res.cap < la)
@@ -3510,6 +3564,7 @@ void bit_xor(const number_t& a, const number_t& b, number_t& res)
 {
     unit_t* tmp = res.dat;
     slen_t la = __abs(a.len), lb = __abs(b.len), lr, newcap = 0;
+
     if (la > lb)
     {
         if (res.cap < la)
@@ -3541,6 +3596,7 @@ void bit_not(const number_t& a, number_t& res)
     {
         unit_t* tmp = res.dat;
         slen_t la = __abs(a.len), lr, newcap = 0;
+
         if (res.cap < la)
         {
             tmp = __allocate_units(la, &newcap);
@@ -3744,20 +3800,21 @@ void __div(const unit_t* a, slen_t la, const unit_t* b, slen_t lb, number_t& q, 
     if (lb > 1)
     {
         slen_t n = 0, qnewcap = 0, rnewcap = 0;
-        unit_t *x = r.dat, *y = (unit_t*)b, *tmp = q.dat;
+        unit_t *x = r.dat, *y = (unit_t*)b, *z = q.dat;
+        unit_t hb = *(b + lb - 1), ns = *(a + la - 1) >= hb; // if need shift
 
-        if (r.cap < la + 1)
+        if (r.cap < la + ns)
         {
-            x = __allocate_units(la + 1, &rnewcap);
+            x = __allocate_units(la + ns, &rnewcap);
         }
-        else if (r.dat == a || r.dat == b)
+        else if (r.dat == b)
         {
             x = __allocate_units(r.cap, &rnewcap);
         }
-        if (*(a + la - 1) >= *(b + lb - 1))
+        if (ns)
         {
             y = __allocate_units(lb);
-            n = SHIFT - __vbits_count(*(b + lb - 1));
+            n = SHIFT - __vbits_count(hb);
             la = __shl_core(a, la, n, x);
             __shl_core(b, lb, n, y);
             if (*(x + la - 1) >= *(y + lb - 1))
@@ -3765,24 +3822,24 @@ void __div(const unit_t* a, slen_t la, const unit_t* b, slen_t lb, number_t& q, 
                 x[la++] = 0;
             }
         }
-        else
+        else if (x != a)
         {
             __copy_units(x, a, la);
         }
 
         if (q.cap < la - lb)
         {
-            tmp = __allocate_units(la - lb, &qnewcap);
+            z = __allocate_units(la - lb, &qnewcap);
         }
         else if (q.dat == a || q.dat == b)
         {
-            tmp = __allocate_units(q.cap, &qnewcap);
+            z = __allocate_units(q.cap, &qnewcap);
         }
-        q.len = __div_core(x, la, y, lb, tmp);
+        q.len = __div_core(x, la, y, lb, z);
         if (qnewcap)
         {
             __deallocate_units(q.dat);
-            q.dat = tmp;
+            q.dat = z;
             q.cap = qnewcap;
         }
 
@@ -3834,13 +3891,14 @@ void __div(const unit_t* a, slen_t la, const unit_t* b, slen_t lb, number_t& q)
     if (lb > 1)
     {
         slen_t n = 0, newcap = 0;
-        unit_t *x = __allocate_units(la + 1);
-        unit_t *y = (unit_t*)b, *tmp = q.dat;
+        unit_t hb = *(b + lb - 1), ns = *(a + la - 1) >= hb;
+        unit_t *x = __allocate_units(la + ns);
+        unit_t *y = (unit_t*)b, *z = q.dat;
 
-        if (*(a + la - 1) >= *(b + lb - 1))
+        if (ns)
         {
             y = __allocate_units(lb);
-            n = SHIFT - __vbits_count(*(b + lb - 1));
+            n = SHIFT - __vbits_count(hb);
             la = __shl_core(a, la, n, x);
             __shl_core(b, lb, n, y);
             if (*(x + la - 1) >= *(y + lb - 1))
@@ -3855,17 +3913,17 @@ void __div(const unit_t* a, slen_t la, const unit_t* b, slen_t lb, number_t& q)
 
         if (q.cap < la - lb)
         {
-            tmp = __allocate_units(la - lb, &newcap);
+            z = __allocate_units(la - lb, &newcap);
         }
         else if (q.dat == a || q.dat == b)
         {
-            tmp = __allocate_units(q.cap, &newcap);
+            z = __allocate_units(q.cap, &newcap);
         }
-        q.len = __div_core(x, la, y, lb, tmp);
+        q.len = __div_core(x, la, y, lb, z);
         if (newcap)
         {
             __deallocate_units(q.dat);
-            q.dat = tmp;
+            q.dat = z;
             q.cap = newcap;
         }
         __deallocate_units(x);
@@ -3877,45 +3935,50 @@ void __div(const unit_t* a, slen_t la, const unit_t* b, slen_t lb, number_t& q)
     else
     {
         slen_t newcap = 0;
-        unit_t *tmp = q.dat;
+        unit_t *z = q.dat;
 
         if (q.cap < la)
         {
-            tmp = __allocate_units(la, &newcap);
+            z = __allocate_units(la, &newcap);
         }
         else if (q.dat == a || q.dat == b)
         {
-            tmp = __allocate_units(q.cap, &newcap);
+            z = __allocate_units(q.cap, &newcap);
         }
-        __div_unit_core(a, la, *b, tmp, &q.len);
+        __div_unit_core(a, la, *b, z, &q.len);
         if (newcap)
         {
             __deallocate_units(q.dat);
-            q.dat = tmp;
+            q.dat = z;
             q.cap = newcap;
         }
     }
 }
 
+/**
+ *  if r.dat == a, r.dat != b and the capacity of the dividend
+ *  is large enough, this is an inplace algorithm
+ */
 void __mod(const unit_t* a, slen_t la, const unit_t* b, slen_t lb, number_t& r)
 {
     assert(la >= lb && lb > 1);
 
     slen_t n = 0, newcap = 0;
     unit_t *x = r.dat, *y = (unit_t*)b;
+    unit_t hb = *(b + lb - 1), ns = *(a + la - 1) >= hb;
 
-    if (r.cap < la + 1)
+    if (r.cap < la + ns)
     {
-        x = __allocate_units(la + 1, &newcap);
+        x = __allocate_units(la + ns, &newcap);
     }
-    else if (r.dat == a || r.dat == b)
+    else if (r.dat == b)
     {
         x = __allocate_units(r.cap, &newcap);
     }
-    if (*(a + la - 1) >= *(b + lb - 1))
+    if (ns)
     {
         y = __allocate_units(lb);
-        n = SHIFT - __vbits_count(*(b + lb - 1));
+        n = SHIFT - __vbits_count(hb);
         la = __shl_core(a, la, n, x);
         __shl_core(b, lb, n, y);
         if (*(x + la - 1) >= *(y + lb - 1))
@@ -3923,7 +3986,7 @@ void __mod(const unit_t* a, slen_t la, const unit_t* b, slen_t lb, number_t& r)
             x[la++] = 0;
         }
     }
-    else
+    else if (x != a)
     {
         __copy_units(x, a, la);
     }
@@ -3949,57 +4012,44 @@ void __mod(const unit_t* a, slen_t la, const unit_t* b, slen_t lb, number_t& r)
 
 bool __neq_core(const unit_t* x, const unit_t* y, slen_t l)
 {
-    assert (l >= 0);
-
     if (l)
     {
-        if (x[l - 1] != y[l - 1] || x[0] != y[0])
+        const dunit_t *p1, *p2, *pe;
+        if (*x != *y || x[l - 1] != y[l - 1] || x[l >> 1] != y[l >> 1])
         {
             return true;
         }
-        else
+        p1 = (dunit_t*)x;
+        p2 = (dunit_t*)y;
+        pe = (dunit_t*)(x + l - (l & 1));
+        while (p1 != pe) if (*p1++ != *p2++)
         {
-            slen_t i = (x[0] * 19937 + 1) % l;
-            if (x[i] != y[i])
-            {
-                return true;
-            }        
+            return true;
         }
-    }
-    const dunit_t* p1 = (dunit_t*)x;
-    const dunit_t* p2 = (dunit_t*)y;
-    const dunit_t* pe = l & 1? (dunit_t*)(x + l - 1): (dunit_t*)(x + l);
-    while (p1 != pe) if (*p1++ != *p2++)
-    {
-        return true;
     }
     return false;
 }
 
 __force_inline(int) __cmp_same_len_core(const unit_t* x, const unit_t* y, slen_t l)
 {
-    assert(l >= 0);
-
-    if (l & 1)
+    if (l)
     {
-        l--;
-        if (x[l] > y[l])
+        const dunit_t *p1, *p2, *pe;
+        const unit_t *hx = x + l - 1, *hy = y + l - 1;
+
+        if (*hx != *hy)
         {
-            return 1;
+            return *hx > *hy? 1: -1;
         }
-        else if (x[l] < y[l])
-        {
-            return -1;
-        }
-    }
-    const dunit_t* p1 = (dunit_t*)(x + l - 2);
-    const dunit_t* p2 = (dunit_t*)(y + l - 2);
-    const dunit_t* pe = (dunit_t*)(x - 2);
-    for (dunit_t d; p1 != pe; p1--, p2--)
-    {  
-        if ((d = *p1 - *p2))
-        {
-            return d <= *p1? 1: -1;
+        p1 = (dunit_t*)(hx - 1 - (l & 1));
+        p2 = (dunit_t*)(hy - 1 - (l & 1));
+        pe = (dunit_t*)(x - 2);
+        for (; p1 != pe; p1--, p2--)
+        {  
+            if (*p1 != *p2)
+            {
+                return *p1 > *p2? 1: -1;
+            }
         }
     }
     return 0;
@@ -4007,8 +4057,6 @@ __force_inline(int) __cmp_same_len_core(const unit_t* x, const unit_t* y, slen_t
 
 int __cmp_core(const unit_t* x, slen_t lx, const unit_t* y, slen_t ly)
 {
-    assert(lx >= 0 && ly >= 0);
-
     if (lx - ly)
     {
         return __sign(lx - ly);
@@ -4016,76 +4064,84 @@ int __cmp_core(const unit_t* x, slen_t lx, const unit_t* y, slen_t ly)
     return __cmp_same_len_core(x, y, lx);
 }
 
+/**
+ *  This is an inplace algorithm, x, y, res can be the same
+ */
 slen_t __add_core(const unit_t* x, slen_t lx, const unit_t* y, slen_t ly, unit_t* res)
 {
-    assert(lx >= ly);  // This is an inplace algorithm, x, y, res can be the same
+    assert(lx >= ly);
 
-    slen_t i = 0;
+    unit_t *r = res;
     dunit_t carry = 0;
-    while (i < ly)
+    const unit_t *e1 = x + ly;
+    const unit_t *e2 = x + lx;
+
+    while (x != e1)
     {
-        carry += (dunit_t)x[i] + y[i];
-        res[i++] = carry & MASK;
+        carry += (dunit_t)*x++ + *y++;
+        *r++ = carry & MASK;
         carry >>= SHIFT;
     }
-    while (i < lx)
+    while (x != e2)
     {
-        carry += x[i];
-        res[i++] = carry & MASK;
+        carry += *x++;
+        *r++ = carry & MASK;
         carry >>= SHIFT;
     }
     if (carry)
     {
-        res[i++] = (unit_t)carry;
+        lx++;
+        *r = (unit_t)carry;
     }
-    __trim_leading_zeros(res, i);
-    return i;
+    return lx;
 }
 
 slen_t __sub_core(const unit_t* x, slen_t lx, const unit_t* y, slen_t ly, unit_t* res)  // inplace
 {
     assert(lx >= ly);
 
+    unit_t *r = res;
     dunit_t borrow = 0;
-    slen_t i = 0;
-    for (; i < ly; i++)
+    const unit_t *e1 = x + ly;
+    const unit_t *e2 = x + lx;
+
+    while (x != e1)
     {
-        borrow = (dunit_t)x[i] - y[i] - borrow;
-        res[i] = borrow & MASK;
-        borrow >>= SHIFT;
-        borrow &= 1;
+        borrow = (dunit_t)*x++ - *y++ - borrow;
+        *r++ = borrow & MASK;
+        borrow >>= DUNITBITS - 1;
     }
-    for (; i < lx; i++)
+    while (x != e2)
     {
-        borrow = (dunit_t)x[i] - borrow;
-        res[i] = borrow & MASK;
-        borrow >>= SHIFT;
-        borrow &= 1;
+        borrow = (dunit_t)*x++ - borrow;
+        *r++ = borrow & MASK;
+        borrow >>= DUNITBITS - 1;
     }
-    __trim_leading_zeros(res, i);
-    return i;
+    __trim_leading_zeros(res, lx);
+    return lx;
 }
 
 slen_t __mul_core(const unit_t* x, slen_t lx, const unit_t* y, slen_t ly, unit_t* res)  // not inplace
 {
     assert(res != x && res != y);
 
-    unit_t* pr;
-    const unit_t* py;       
-    for (slen_t i = 0; i < lx; i++)
+    dunit_t carry = 0, m;
+    unit_t *pr, *rb = res;
+    const unit_t *ex = x + lx;
+    const unit_t *ey = y + ly, *py;
+
+    for (; x != ex; rb++, x++)
     {
-        pr = res + i;
-        py = y;
-        dunit_t carry = 0;
-        while (py < y + ly)
+        for (m = *x, pr = rb, py = y; py < ey; py++, pr++)
         {
-            carry += *pr + (dunit_t)*py++ * x[i];
-            *pr++ = carry & MASK;
+            carry += m * *py + *pr;
+            *pr = carry & MASK;
             carry >>= SHIFT;
         }
         if (carry)
         {
             *pr = (unit_t)carry;
+            carry = 0;
         }
     }
     lx += ly;
@@ -4097,40 +4153,40 @@ slen_t __sqr_core(const unit_t* x, slen_t lx, unit_t* res)  // not inplace
 {
     assert(res != x);
 
-    unit_t cflag, *r;
     dunit_t m, carry;
-    const unit_t* p, *q;
-    const unit_t* pend = x + lx - 1;
-    const unit_t* qend = x + lx;
+    unit_t *r, *rb = res;
+    const unit_t *q, *p = x;
+    const unit_t *eq = x + lx, *ep = eq - 1;
 
-    slen_t i = 0;
-    __set_units_zero(res, 2 * lx);
-    for (p = x; p != pend; p++, i++)
+    __set_units_zero(res, lx <<= 1);
+    while (p != ep)
     {
-        r = res + (i << 1);
-        carry = *r + (dunit_t)*p * *p;
+        r = rb;
+        m = *p;
+        carry = m * *p + *r;
         *r++ = carry & MASK;
         carry >>= SHIFT;
-
-        m = (dunit_t)*p << 1;
-        cflag = m >> UNITBITS;
-        m &= MASK;
-        for (q = p + 1; q != qend; q++, r++)
+        q = ++p;
+        rb += 2;
+        m <<= 1;
+        if (m >= BASE) for (m &= MASK; q != eq;)
         {
-            carry += *r + (dunit_t)*q * m;
-            *r = carry & MASK;
-            carry = (carry >> SHIFT) + ((dunit_t)*q * cflag);
+            carry += m * *q + *r;  // never overflow
+            *r++ = carry & MASK;
+            carry = (carry >> SHIFT) + *q++;
+        }
+        else while (q != eq)
+        {
+            carry += m * *q++ + *r; // never overflow
+            *r++ = carry & MASK;
+            carry >>= SHIFT; 
         }
         if (carry)
         {
             *(dunit_t*)r += carry;
         }
     }
-    lx <<= 1;
-    r = res + lx - 2;
-    carry = *r + (dunit_t)*p * *p;
-    *r++ = carry & MASK;
-    *r += carry >> SHIFT;
+    *(dunit_t*)rb += (dunit_t)*p * *p;
     __trim_leading_zeros(res, lx);
     return lx;
 }
@@ -4157,6 +4213,7 @@ unit_t __div_unit_core(const unit_t* x, slen_t lx, unit_t y, unit_t* q, slen_t* 
     dunit_t r = 0;
     const unit_t* px = x + lx;
     unit_t* pq = q + lx;
+
     while (--px >= x)
     {
         r = __make_dunit(r, *px);
@@ -4174,6 +4231,7 @@ unit_t __mod_unit_core(const unit_t* x, slen_t lx, unit_t y)  // inplace
 
     dunit_t r = 0;
     const unit_t* px = x + lx;
+
     while (--px >= x)
     {
         r = __make_dunit(r, *px) % y;
@@ -4188,6 +4246,7 @@ unit_t __div_unit_core(const unit_t* x, slen_t lx, const UDM& udm, unit_t* q, sl
     {
         unit_t* qt = q + lx;
         const unit_t* xt = x + lx;
+
         if (udm.nooverflow)
         {
             while (--xt >= x)
@@ -4277,29 +4336,28 @@ unit_t __guess_quotient(unit_t x1, unit_t x2, unit_t x3, unit_t y1, unit_t y2)
     return t & MASK;
 }
 
-unit_t __truing_quotient(unit_t* x, const unit_t* y, slen_t len, unit_t trial)
+unit_t __truing_quotient(unit_t* x, const unit_t* y, slen_t ly, unit_t trial)  // inplace
 {
+    unit_t *x0 = x;
+    const unit_t *y0 = y, *ey = y + ly;
     dunit_t borrow = 0, carry = 0;
-    for (slen_t i = 0; i < len; i++)
-    {
-        carry += (dunit_t)trial * y[i];
-        borrow = x[i] - (carry & MASK) - borrow;
-        x[i] = borrow & MASK;
-        carry >>= SHIFT;
-        borrow >>= SHIFT;
-        borrow &= 1;
-    }
-    borrow = (dunit_t)x[len] - carry - borrow;
-    x[len] = borrow & MASK;
-    borrow >>= SHIFT;
 
-    if (borrow)
+    for (; y != ey; x++, y++)
     {
-        carry = 0;
-        for (slen_t i = 0; i < len; i++)
+        carry += (dunit_t)trial * *y;
+        borrow = *x - (carry & MASK) - borrow;
+        *x = borrow & MASK;
+        carry >>= SHIFT;
+        borrow >>= DUNITBITS - 1;
+    }
+    borrow = (dunit_t)*x - carry - borrow;
+    *x = borrow & MASK;
+    if ((borrow >>= SHIFT))
+    {
+        for (y = y0, x= x0, carry = 0; y != ey; x++, y++)
         {
-            carry += (dunit_t)x[i] + y[i];
-            x[i] = carry & MASK;
+            carry += (dunit_t)*x + *y;
+            *x = carry & MASK;
             carry >>= SHIFT;
         }
         --trial;
@@ -4307,51 +4365,52 @@ unit_t __truing_quotient(unit_t* x, const unit_t* y, slen_t len, unit_t trial)
     return trial;
 }
 
-slen_t __div_core(unit_t* x, slen_t lx, const unit_t* y, slen_t ly, unit_t* q)
+slen_t __div_core(unit_t* x, slen_t lx, const unit_t* y, slen_t ly, unit_t* q)  // not inplace
 {
-    assert(ly >= 2);
-    assert(lx >= ly);
+    assert(ly >= 2 && lx >= ly);
     assert(*(x + lx - 1) < *(y + ly - 1));
 
     slen_t k = lx - ly;
-    unit_t y1 = *(y + ly - 1);
-    unit_t y2 = *(y + ly - 2);
+    unit_t y0 = *(y + ly - 1);
+    unit_t y1 = *(y + ly - 2);
     unit_t *xk = x + k - 1;
-    unit_t *qk = q + k - 1;
-    for (unit_t trial; xk >= x; xk--)
+    unit_t *qk = q + k - 1, t;
+
+    for (; xk >= x; xk--)
     {
-        trial = __guess_quotient(xk[ly], xk[ly - 1], xk[ly - 2], y1, y2);
-        *qk-- = __truing_quotient(xk, y, ly, trial);
+        t = __guess_quotient(xk[ly], xk[ly - 1], xk[ly - 2], y0, y1);
+        *qk-- = __truing_quotient(xk, y, ly, t);
     }
     __trim_leading_zeros(q, k);
     return k;
 }
 
-void __mod_core(unit_t* x, slen_t lx, const unit_t* y, slen_t ly)
+void __mod_core(unit_t* x, slen_t lx, const unit_t* y, slen_t ly)   // inplace
 {
-    assert(ly >= 2);
-    assert(lx >= ly);
+    assert(ly >= 2 && lx >= ly);
     assert(*(x + lx - 1) < *(y + ly - 1));
 
-    slen_t k = lx - ly;
-    unit_t y1 = *(y + ly - 1);
-    unit_t y2 = *(y + ly - 2);
-    unit_t *xk = x + k - 1;
-    for (unit_t trial; xk >= x; xk--)
+    unit_t y0 = *(y + ly - 1);
+    unit_t y1 = *(y + ly - 2);
+    unit_t *xk = x + lx - ly - 1, t;
+
+    for (; xk >= x; xk--)
     {
-        trial = __guess_quotient(xk[ly], xk[ly - 1], xk[ly - 2], y1, y2);
-        __truing_quotient(xk, y, ly, trial);
+        t = __guess_quotient(xk[ly], xk[ly - 1], xk[ly - 2], y0, y1);
+        __truing_quotient(xk, y, ly, t);
     }
 }
 
-slen_t __shl_core(unit_t* x, slen_t lx, slen_t d)
+slen_t __shl_core(unit_t* x, slen_t lx, slen_t d)  // inplace
 {
     assert(d < UNITBITS);
 
     dunit_t carry = 0;
-    for (unit_t* e = x + lx; x != e; x++)
+    unit_t* e = x + lx;
+
+    for (; x != e; x++)
     {
-        carry = (dunit_t(*x) << d) | carry;
+        carry = dunit_t(*x) << d | carry;
         *x = carry & MASK;
         carry >>= SHIFT;
     }
@@ -4363,15 +4422,17 @@ slen_t __shl_core(unit_t* x, slen_t lx, slen_t d)
     return lx;
 }
 
-slen_t __shl_core(const unit_t* x, slen_t lx, slen_t d, unit_t* y)
+slen_t __shl_core(const unit_t* x, slen_t lx, slen_t d, unit_t* y)  // may be inplace
 {
     assert(d < UNITBITS);
 
     dunit_t carry = 0;
-    for (const unit_t* e = x + lx; x != e; x++, y++)
+    const unit_t* e = x + lx;
+
+    while (x != e)
     {
-        carry = (dunit_t(*x) << d) | carry;
-        *y = carry & MASK;
+        carry = (dunit_t)*x++ << d | carry;
+        *y++ = carry & MASK;
         carry >>= SHIFT;
     }
     if (carry)
@@ -4382,25 +4443,28 @@ slen_t __shl_core(const unit_t* x, slen_t lx, slen_t d, unit_t* y)
     return lx;
 }
 
-unit_t __shr_core(unit_t* x, slen_t lx, slen_t d)
+unit_t __shr_core(unit_t* x, slen_t lx, slen_t d)  // inplace
 {
     assert(d < UNITBITS);
 
-    slen_t i = lx;
-    unit_t mask = ((unit_t)1 << d) - 1, carry = 0;
-    while (i-- > 0)
+    dunit_t over = 0;
+    unit_t *e = x - 1;
+    unit_t mask = ((unit_t)1 << d) - 1;
+
+    for (x += lx; --x != e;)
     {
-        dunit_t acc = (dunit_t)carry << SHIFT | x[i];
-        carry = acc & mask;
-        x[i] = (unit_t)(acc >> d);
+        over = over << SHIFT | *x;
+        *x = (over >> d) & MASK;
+        over &= mask;
     }
-    return carry;
+    return (unit_t)over;
 }
 
-slen_t __bit_and_core(const unit_t* x, const unit_t* y, slen_t lx, unit_t* res)
+slen_t __bit_and_core(const unit_t* x, const unit_t* y, slen_t lx, unit_t* res) 
 {
     unit_t* p = res;
     const unit_t* e = x + lx;
+
     while (x != e)
     {
         *p++ = *x++ & *y++;
@@ -4414,8 +4478,8 @@ slen_t __bit_or_core(const unit_t* x, slen_t lx, const unit_t* y, slen_t ly, uni
     assert(lx >= ly);
 
     unit_t* p = res;
-    const unit_t* e1 = x + ly;
-    const unit_t* e2 = x + lx;
+    const unit_t* e1 = x + ly, *e2 = x + lx;
+
     while (x != e1)
     {
         *p++ = *x++ | *y++;
@@ -4433,8 +4497,8 @@ slen_t __bit_xor_core(const unit_t* x, slen_t lx, const unit_t* y, slen_t ly, un
     assert(lx >= ly);
 
     unit_t* p = res;
-    const unit_t* e1 = x + ly;
-    const unit_t* e2 = x + lx;
+    const unit_t* e1 = x + ly, *e2 = x + lx;
+
     while (x != e1)
     {
         *p++ = *x++ ^ *y++;
@@ -4455,6 +4519,7 @@ slen_t __bit_not_core(const unit_t* x, slen_t lx, unit_t* res)
     const unit_t* e = x + lx;
     sunit_t s = sunit_t(unit_t(1) << (UNITBITS - 1));
     s >>= (UNITBITS - __vbits_count(*(e - 1)));
+
     while (x != e)
     {
         *p++ = ~*x++;
@@ -4609,21 +4674,21 @@ typedef __uint128_t __qunit_t;
 dunit_t __mul_dunit_high(dunit_t x, dunit_t y)
 {
     __qunit_t m = __qunit_t(x) * y;
-    return m >> (UNITBITS * 2);
+    return m >> DUNITBITS;
 }
 
 dunit_t __mul_add_dunit(dunit_t x, dunit_t y, dunit_t z, dunit_t* l)
 {
     __qunit_t m = __qunit_t(x) * y + z;
     *l = m & DMASK;
-    return m >> (UNITBITS * 2);
+    return m >> DUNITBITS;
 }
 
 dunit_t __qunit_div_by_dunit(dunit_t h, dunit_t l, dunit_t d, dunit_t* r)
 {
     assert(h < d);
 
-    __qunit_t qunit = __qunit_t(h) << (UNITBITS * 2) | l;
+    __qunit_t qunit = __qunit_t(h) << DUNITBITS | l;
     dunit_t q = dunit_t(qunit / d);
     *r = dunit_t(qunit % d);
     return q;
@@ -4633,7 +4698,7 @@ dunit_t __qunit_mod_by_dunit(dunit_t h, dunit_t l, dunit_t d)
 {
     assert(h < d);
 
-    __qunit_t qunit = __qunit_t(h) << (UNITBITS * 2) | l;
+    __qunit_t qunit = __qunit_t(h) << DUNITBITS | l;
     return dunit_t(qunit % d);
 }
 
@@ -4666,21 +4731,22 @@ slen_t __tzbits_count(unit_t x)
 
 dunit_t __mul_dunit_high(dunit_t x, dunit_t y)
 {
-    return __emulu(x, y) >> (UNITBITS * 2);
+    return __emulu(x, y) >> DUNITBITS;
 }
 
 dunit_t __mul_add_dunit(dunit_t x, dunit_t y, dunit_t z, dunit_t* l)
 {
-    unsigned __int64 r = __emulu(x, y) + z;
+    unsigned __int64 r;
+    r = __emulu(x, y) + z;
     *l = r & DMASK;
-    return r >> (UNITBITS * 2);
+    return r >> DUNITBITS;
 }
 
 dunit_t __qunit_div_by_dunit(dunit_t h, dunit_t l, dunit_t d, dunit_t* r)
 {
     assert(h < d);
 
-    unsigned __int64 qunit = (unsigned __int64)h << (UNITBITS * 2) | l;
+    unsigned __int64 qunit = (unsigned __int64)h << DUNITBITS | l;
     dunit_t q = dunit_t(qunit / d);
     *r = dunit_t(qunit % d);
     return q;
@@ -4690,7 +4756,7 @@ dunit_t __qunit_mod_by_dunit(dunit_t h, dunit_t l, dunit_t d)
 {
     assert(h < d);
 
-    unsigned __int64 qunit = (unsigned __int64)h << (UNITBITS * 2) | l;
+    unsigned __int64 qunit = (unsigned __int64)h << DUNITBITS | l;
     return dunit_t(qunit % d);
 }
 

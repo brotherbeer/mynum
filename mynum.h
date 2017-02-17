@@ -379,7 +379,6 @@ protected:
     slen_t __abs_add_word(word_t);
     slen_t __abs_sub_word(word_t);
     slen_t __bits_reserve(slen_t);
-    slen_t __vbits_count() const;
     void __copy(const number_t&);
     void __construct_add(unit_t);
     void __construct_mul(unit_t);

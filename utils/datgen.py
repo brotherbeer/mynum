@@ -5,8 +5,8 @@ USAGE = '''
 %s [-h] [-d MAX_DIGITS_COUNT] [-i ITEMS_COUNT] [-p]
 
 This is a tool for generating test data for MYNUM.
-The test data is composed of some test items, one item
-is made up of an operator, two integers and a result.
+The test data is composed of lines, each line is 
+made up of an operator, two integers and a result.
 for example:
 
 + 123 10 111001000 2 579
@@ -48,12 +48,15 @@ LLONG_MIN = (-9223372036854775807 - 1)
 ULLONG_MAX = 0xffffffffffffffff
 USHORT_MAX = 0xffff
 
-def randNumStr(dmax, b = None):
+def randNumStr(dmax, b = None, s = None):
     if not b:
         b = randint(2, 36)
     n = randint(0, dmax)
     s = ['0'] * n if n > 0 else ['0']
-    for i in range(n): s[i] = choice(digits[0: b])
+    for i in range(n):
+        s[i] = choice(digits[0: b])
+    if s != None:
+        return ''.join(s), b
     return choice(signs) + ''.join(s), b
 
 def notSameSign(va, vb):

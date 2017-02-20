@@ -6,15 +6,14 @@ USAGE = '''
 %s [-h] [-d MAX_DIGITS_COUNT] [-i ITEMS_COUNT]
 
 This is a tool for generating multiplication test data.
-The test data is composed of test items, one item is
-made up of the dividend, dividend, quotient and remainder.
+The test data is composed of lines, each line is
+made up of 2 factors and their product.
 for example:
 
--e6fb5e59 712f -20a70 -3c9
+92f b2ae0 668ebf20
 
-'-e6fb5e59' is the dividend, '712f' is the divisor,
-'-20a70' is the quotient, '-3c9' is the remainder.
-All the integers are in base 16.\n
+'92f' is the first factor, 'b2ae0' is the second factor,
+'668ebf20' is the product. All the integers are in base 16.\n
 ''' % sys.argv[0]
 
 def genTestData(args):

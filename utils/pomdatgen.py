@@ -5,39 +5,33 @@ from datgen import randNumStr, notSameSign
 USAGE = '''
 %s [-h] [-d MAX_DIGITS_COUNT] [-i ITEMS_COUNT]
 
-This is a tool for generating division test data.
-The test data is composed of lines, each line is
-made up of the dividend, dividend, quotient and
-remainder.
+This is a tool for generating modular exponentiation test data.
+The test data is composed of lines, each line is 
+made up of the base, exponent, divisor and the result.
 for example:
 
--e6fb5e59 712f -20a70 -3c9
+51 1ddb 5 1
 
-'-e6fb5e59' is the dividend, '712f' is the divisor,
-'-20a70' is the quotient, '-3c9' is the remainder.
+'51' is the base, '1ddb' is the exponent, '5' is the divisor,
+'1' is the result.
 All the integers are in base 16.\n
 ''' % sys.argv[0]
-
-def mydivmod(a, b):
-    q, r = divmod(abs(a), abs(b))
-    if a < 0:
-        r = -r
-    if notSameSign(a, b):
-        q = -q
-    return q, r
 
 def genTestData(args):
    for i in range(args.items_count):
         if (i + 1) % 500000 == 0:
             print >> sys.stderr, i, 'items generated'
 
-        a, b0 = randNumStr(args.max_digits_count, 16)
-        b, b1 = randNumStr(args.max_digits_count, 16)
+        a, b0 = randNumStr(args.max_digits_count, 16, None)
+        b, b1 = randNumStr(args.max_digits_count, 16, None)
+        c, b2 = randNumStr(args.max_digits_count, 16, None)
         va = int(a, b0)
         vb = int(b, b1)
-        if not vb: continue
-        q, r = mydivmod(va, vb)
-        print '%s %s %x %x' % (a, b, q, r)
+        vc = int(c, b1)
+        if vc == 0:
+            continue
+        res = pow(va, vb, vc)
+        print '%s %s %s %x' % (a, b, c, res)
 
 def parseArgs():
     parser = argparse.ArgumentParser(usage = USAGE)

@@ -64,9 +64,6 @@ size_t __random_test_div(ifstream& in)
         c.assign(i3.c_str(), 16);
         d.assign(i4.c_str(), 16);
 
-        aa.assign(a);
-        bb.assign(b);
-
         div(a, b, q, r);
         __check(q, c);
         __check(r, d);
@@ -79,6 +76,9 @@ size_t __random_test_div(ifstream& in)
 
         __check(a / b, c);
         __check(a % b, d);
+
+        aa.assign(a);
+        bb.assign(b);
 
         div(a, bb, bb);
         __check(bb, c);
@@ -94,6 +94,10 @@ size_t __random_test_div(ifstream& in)
 
         mod(aa, b, aa);
         __check(aa, d);
+
+        aa.assign(a);
+        mod(aa, aa, aa);
+        __check(aa, ZERO);
 
         aa.assign(a);
         bb.assign(b);
@@ -129,11 +133,22 @@ size_t __random_test_div(ifstream& in)
         div(bb, bb, bb);
         __check(bb, ONE);
 
+        aa.assign(a);
         bb.assign(b);
+
+        div(aa, aa, q, aa);
+        __check(q, ONE);
+        __check(aa, ZERO);
 
         div(bb, bb, bb, r);
         __check(bb, ONE);
         __check(r, ZERO);
+
+        aa.assign(a);
+        bb.assign(b);
+        div(aa, bb, aa, bb);
+        __check(aa, c);
+        __check(bb, d);
     }
     in.close();
     return n;
@@ -196,6 +211,29 @@ size_t __random_test_mul(ifstream& in)
         }
 
         __check(a * b, c);
+    }
+    in.close();
+    return n;
+}
+
+size_t __random_test_pom(ifstream& in)
+{
+    size_t n = 0;
+    number_t a, b, c, d;
+    number_t aa, bb, cc, r;
+    b1 = b2 = 16;
+    while (in.good() && !in.eof())
+    {
+        n++;
+        in >> i1 >> i2 >> i3 >> i4;
+
+        a.assign(i1.c_str(), b1);
+        b.assign(i2.c_str(), b2);
+        c.assign(i3.c_str(), 16);
+        d.assign(i4.c_str(), 16);
+
+        pom(a, b, c, r);
+        __check(r, d);
     }
     in.close();
     return n;
@@ -698,7 +736,7 @@ size_t __random_test_all(ifstream& in)
 void random(number_t& a);
 void create_big(number_t& x, int size);
 
-void __random_test_kmul()
+size_t __random_test_kmul()
 {
     size_t n = 100;
     srand((unsigned int)time(NULL));
@@ -717,9 +755,10 @@ void __random_test_kmul()
             abort();
         }
     }
+    return n;
 }
 
-void __random_test_ksqr()
+size_t __random_test_ksqr()
 {
     size_t n = 100;
     srand((unsigned int)time(NULL));
@@ -736,19 +775,20 @@ void __random_test_ksqr()
             abort();
         }
     }
+    return n;
 }
 
-void __test_sqr_and_mul_performace()
+size_t __test_sqr_and_mul_performace()
 {
     clock_t t0, t1, t2;
     clock_t T0 = 0, T1 = 0;
-    size_t n = 200;
+    size_t n = 3000;
     srand((unsigned int)time(NULL));
 
     number_t a, r1, r2;
     while (n--)
     {
-        create_big(a, rand() % 6000);
+        create_big(a, 1 + rand() % 2000);
         t0 = clock();
         sqr(a, r1);
         t1 = clock();
@@ -764,19 +804,21 @@ void __test_sqr_and_mul_performace()
     }
     if (T0 >= T1)
     {
-        cout << "warning: sqr is not faster than mul" << endl;
+        cout << "WARNING: sqr is not faster than mul" << endl;
     }
     cout << "sqr time: " << double(T0) / CLOCKS_PER_SEC
          << " mul time: " << double(T1) / CLOCKS_PER_SEC << endl;
+    return n;
 }
 
 #define test_with_time(title, fun) do\
 {\
     cout << title << endl; \
     clock_t t0 = clock(); \
-    fun; \
+    size_t n = fun; \
     cout << "OK!" << endl; \
     cout << "time: " << double(clock() - t0) / CLOCKS_PER_SEC << endl; \
+    cout << n << " items tested" << endl << endl; \
 } while (0)
 
 void test_performance()
@@ -832,6 +874,13 @@ void random_test()
         test_with_time("Testing multiplication", __random_test_mul(mulrandomtest_dat));
     }
 
+    ifstream pomrandomtest_dat("pomrandomtest.dat");
+    if (mulrandomtest_dat)
+    {
+        test_with_time("Testing multiplication", __random_test_pom(pomrandomtest_dat));
+    }
+
+    test_with_time("Testing sqr and mul", __test_sqr_and_mul_performace());
     test_with_time("Testing kmul", __random_test_kmul());
     test_with_time("Testing ksqr", __random_test_ksqr());
 }

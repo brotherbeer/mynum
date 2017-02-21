@@ -1120,7 +1120,6 @@ unit_t __truing_quotient(unit_t* x, const unit_t* y, slen_t len, unit_t trial);
 slen_t __div_core(unit_t* x, slen_t lx, const unit_t* y, slen_t ly, unit_t* q);
 void __mod_core(unit_t* x, slen_t lx, const unit_t* y, slen_t ly);
 slen_t __shl_core(unit_t* x, slen_t lx, slen_t d);
-slen_t __shl_core(const unit_t* x, slen_t lx, slen_t d, unit_t* y);
 unit_t __shr_core(unit_t* x, slen_t lx, slen_t d);
 slen_t __bit_and_core(const unit_t* x, const unit_t* y, slen_t lx, unit_t* res);
 slen_t __bit_or_core(const unit_t* x, slen_t lx, const unit_t* y, slen_t ly, unit_t* res);

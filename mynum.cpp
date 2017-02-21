@@ -365,7 +365,7 @@ number_t::~number_t()
 
 void number_t::bits_reserve(size_t n)
 {
-    reserve((n + (sizeof(unit_t) * 8) - 1) / (sizeof(unit_t) * 8));
+    reserve((n + UNITBITS - 1) / UNITBITS);
 }
 
 string_t& number_t::to_bin_string(string_t& res) const
@@ -3318,19 +3318,9 @@ int div(const number_t& a, const number_t& b, number_t& q, number_t& r)
 {
     if (!b.is_zero())
     {
-        slen_t sa = 1, sb = 1;
-        slen_t la = a.len, lb = b.len;
+        slen_t la = __abs(a.len), lb = __abs(b.len);
+        slen_t sa = __sign(a.len), sb = __sign(b.len);
 
-        if (la < 0)
-        {
-            sa = -1;
-            la = -la;
-        }
-        if (lb < 0)
-        {
-            sb = -1;
-            lb = -lb;
-        }
         if (la >= lb)
         {
             __div(a.dat, la, b.dat, lb, q, r);
@@ -3351,19 +3341,9 @@ int div(const number_t& a, const number_t& b, number_t& q)
 {
     if (!b.is_zero())
     {
-        slen_t sa = 1, sb = 1;
-        slen_t la = a.len, lb = b.len;
+        slen_t la = __abs(a.len), lb = __abs(b.len);
+        slen_t sa = __sign(a.len), sb = __sign(b.len);
 
-        if (la < 0)
-        {
-            sa = -1;
-            la = -la;
-        }
-        if (lb < 0)
-        {
-            sb = -1;
-            lb = -lb;
-        }
         if (la >= lb)
         {
             __div(a.dat, la, b.dat, lb, q);
@@ -3483,28 +3463,31 @@ int pom(const number_t& a, const number_t& b, const number_t& c, number_t& res)
     {
         if (a.len && b.len)
         {
-            number_t tmp(1);
+            number_t r, m(a);
             unit_t* p = b.dat + b.len - 1;
-            unit_t* e = b.dat - 1, u;
+            unit_t* e = b.dat - 1, i;
 
+            m.mod(c);
+            r.reserve(2 * c.cap + 1);
+            r.set_one();
             for (; p != e; p--)
             {
-                for (u = 1 << (SHIFT - 1); u != 0; u >>= 1)
+                for (i = 1 << (SHIFT - 1); i != 0; i >>= 1)
                 {
-                    tmp.ksqr();
-                    tmp.mod(c);
-                    if (*p & u)
+                    r.ksqr();
+                    r.mod(c);
+                    if (*p & i)
                     {
-                        tmp.kmul(a);
-                        tmp.mod(c);
+                        r.kmul(m);
+                        r.mod(c);
                     }
                 }
             }
-            res.steal(tmp);
+            res.steal(r);
         }
         else if (!b.len)
         {
-            res.set_one();
+            res.assign(1 - (int)c.is_one());
         }
         else if (!a.len)
         {
@@ -3805,12 +3788,12 @@ void __div(const unit_t* a, slen_t la, const unit_t* b, slen_t lb, number_t& q, 
 {
     assert(la >= lb && lb > 0);
 
+    slen_t qnewcap = 0, rnewcap = 0;
+    unit_t *x = r.dat, *z = q.dat, ns;
+ 
     if (lb > 1)
     {
-        slen_t n = 0, qnewcap = 0, rnewcap = 0;
-        unit_t *x = r.dat, *y = (unit_t*)b, *z = q.dat;
-        unit_t hb = *(b + lb - 1), ns = *(a + la - 1) >= hb; // if need shift
-
+        ns = *(a + la - 1) >= *(b + lb - 1);
         if (r.cap < la + ns)
         {
             x = __allocate_units(la + ns, &rnewcap);
@@ -3819,20 +3802,13 @@ void __div(const unit_t* a, slen_t la, const unit_t* b, slen_t lb, number_t& q, 
         {
             x = __allocate_units(r.cap, &rnewcap);
         }
-        if (ns)
-        {
-            y = __allocate_units(lb);
-            n = SHIFT - __vbits_count(hb);
-            la = __shl_core(a, la, n, x);
-            __shl_core(b, lb, n, y);
-            if (*(x + la - 1) >= *(y + lb - 1))
-            {
-                x[la++] = 0;
-            }
-        }
-        else if (x != a)
+        if (x != a)
         {
             __copy_units(x, a, la);
+        }
+        if (ns)
+        {
+            x[la++] = 0;
         }
 
         if (q.cap < la - lb)
@@ -3843,17 +3819,12 @@ void __div(const unit_t* a, slen_t la, const unit_t* b, slen_t lb, number_t& q, 
         {
             z = __allocate_units(q.cap, &qnewcap);
         }
-        q.len = __div_core(x, la, y, lb, z);
+        q.len = __div_core(x, la, b, lb, z);
         if (qnewcap)
         {
             __deallocate_units(q.dat);
             q.dat = z;
             q.cap = qnewcap;
-        }
-
-        if (n)
-        {
-            __shr_core(x, lb, n);
         }
         if (rnewcap)
         {
@@ -3863,32 +3834,24 @@ void __div(const unit_t* a, slen_t la, const unit_t* b, slen_t lb, number_t& q, 
         }
         r.len = lb;
         __trim_leading_zeros(r.dat, r.len);
-        if (y != b)
-        {
-            __deallocate_units(y);
-        }
     }
     else
     {
-        slen_t qnewcap = 0;
-        unit_t *tmpq = q.dat, tmpr;
-
         if (q.cap < la)
         {
-            tmpq = __allocate_units(la, &qnewcap);
+            z = __allocate_units(la, &qnewcap);
         }
         else if (q.dat == a || q.dat == b)
         {
-            tmpq = __allocate_units(q.cap, &qnewcap);
+            z = __allocate_units(q.cap, &qnewcap);
         }
-        tmpr = __div_unit_core(a, la, *b, tmpq, &q.len);
+        r.assign(__div_unit_core(a, la, *b, z, &q.len));
         if (qnewcap)
         {
             __deallocate_units(q.dat);
-            q.dat = tmpq;
+            q.dat = z;
             q.cap = qnewcap;
         }
-        r.assign(tmpr);
     }
 }
 
@@ -3896,29 +3859,18 @@ void __div(const unit_t* a, slen_t la, const unit_t* b, slen_t lb, number_t& q)
 {
     assert(la >= lb && lb > 0);
 
+    slen_t newcap = 0;
+    unit_t *x, *z = q.dat, ns;
+
     if (lb > 1)
     {
-        slen_t n = 0, newcap = 0;
-        unit_t hb = *(b + lb - 1), ns = *(a + la - 1) >= hb;
-        unit_t *x = __allocate_units(la + ns);
-        unit_t *y = (unit_t*)b, *z = q.dat;
-
+        ns = *(a + la - 1) >= *(b + lb - 1);
+        x = __allocate_units(la + ns);
+        __copy_units(x, a, la);
         if (ns)
         {
-            y = __allocate_units(lb);
-            n = SHIFT - __vbits_count(hb);
-            la = __shl_core(a, la, n, x);
-            __shl_core(b, lb, n, y);
-            if (*(x + la - 1) >= *(y + lb - 1))
-            {
-                x[la++] = 0;
-            }
+            x[la++] = 0;
         }
-        else
-        {
-            __copy_units(x, a, la);
-        }
-
         if (q.cap < la - lb)
         {
             z = __allocate_units(la - lb, &newcap);
@@ -3927,7 +3879,7 @@ void __div(const unit_t* a, slen_t la, const unit_t* b, slen_t lb, number_t& q)
         {
             z = __allocate_units(q.cap, &newcap);
         }
-        q.len = __div_core(x, la, y, lb, z);
+        q.len = __div_core(x, la, b, lb, z);
         if (newcap)
         {
             __deallocate_units(q.dat);
@@ -3935,16 +3887,9 @@ void __div(const unit_t* a, slen_t la, const unit_t* b, slen_t lb, number_t& q)
             q.cap = newcap;
         }
         __deallocate_units(x);
-        if (y != b)
-        {
-            __deallocate_units(y);
-        }
     }
     else
     {
-        slen_t newcap = 0;
-        unit_t *z = q.dat;
-
         if (q.cap < la)
         {
             z = __allocate_units(la, &newcap);
@@ -3971,9 +3916,9 @@ void __mod(const unit_t* a, slen_t la, const unit_t* b, slen_t lb, number_t& r)
 {
     assert(la >= lb && lb > 1);
 
-    slen_t n = 0, newcap = 0;
-    unit_t *x = r.dat, *y = (unit_t*)b;
-    unit_t hb = *(b + lb - 1), ns = *(a + la - 1) >= hb;
+    slen_t newcap = 0;
+    unit_t *x = r.dat;
+    unit_t ns = *(a + la - 1) >= *(b + lb - 1);
 
     if (r.cap < la + ns)
     {
@@ -3983,27 +3928,15 @@ void __mod(const unit_t* a, slen_t la, const unit_t* b, slen_t lb, number_t& r)
     {
         x = __allocate_units(r.cap, &newcap);
     }
-    if (ns)
-    {
-        y = __allocate_units(lb);
-        n = SHIFT - __vbits_count(hb);
-        la = __shl_core(a, la, n, x);
-        __shl_core(b, lb, n, y);
-        if (*(x + la - 1) >= *(y + lb - 1))
-        {
-            x[la++] = 0;
-        }
-    }
-    else if (x != a)
+    if (x != a)
     {
         __copy_units(x, a, la);
     }
-
-    __mod_core(x, la, y, lb);
-    if (n)
+    if (ns)
     {
-        __shr_core(x, lb, n);
+        x[la++] = 0;
     }
+    __mod_core(x, la, b, lb);
     if (newcap)
     {
         __deallocate_units(r.dat);
@@ -4012,10 +3945,6 @@ void __mod(const unit_t* a, slen_t la, const unit_t* b, slen_t lb, number_t& r)
     }
     __trim_leading_zeros(r.dat, lb);
     r.len = lb;
-    if (y != b)
-    {
-        __deallocate_units(y);
-    }
 }
 
 bool __neq_core(const unit_t* x, const unit_t* y, slen_t l)
@@ -4426,27 +4355,6 @@ slen_t __shl_core(unit_t* x, slen_t lx, slen_t d)  // inplace
     {
         lx++;
         *x = carry & MASK;
-    }
-    return lx;
-}
-
-slen_t __shl_core(const unit_t* x, slen_t lx, slen_t d, unit_t* y)  // may be inplace
-{
-    assert(d < UNITBITS);
-
-    dunit_t carry = 0;
-    const unit_t* e = x + lx;
-
-    while (x != e)
-    {
-        carry = (dunit_t)*x++ << d | carry;
-        *y++ = carry & MASK;
-        carry >>= SHIFT;
-    }
-    if (carry)
-    {
-        lx++;
-        *y = carry & MASK;
     }
     return lx;
 }

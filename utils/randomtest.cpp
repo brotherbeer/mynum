@@ -15,18 +15,19 @@ const number_t ZERO(0);
 const number_t ONE(1);
 
 string oper, i1, i2, i3, i4;
-int b1, b2;
+int b1, b2, b3, b4;
 
 static void __check(const number_t& res, const number_t& exp)
 {
     if (res != exp)
     {
         cout << "UNEXPECTED!!" << endl;
-        cout << oper << endl;
-        cout << i1 << ", " << b1 << endl;
-        cout << i2 << ", " << b2 << endl;
-        cout << exp(10) << endl;
-        cout << res(10) << endl;
+        if (oper != "") cout << oper << endl;
+        if (i1 != "") cout << i1 << ", " << b1 << endl;
+        if (i2 != "") cout << i2 << ", " << b2 << endl;
+        if (i3 != "") cout << i3 << ", " << b3 << endl;
+        cout << "exp: " << exp(10) << endl;
+        cout << "res: " << res(10) << endl;
         abort();
     }
 }
@@ -53,7 +54,8 @@ size_t __random_test_div(ifstream& in)
     size_t n = 0;
     number_t a, b, c, d;
     number_t aa, bb, q, r;
-    b1 = b2 = 16;
+    b1 = b2 = b3 = b4 = 16;
+    oper = i1 = i2 = i3 = i4 = "";
     while (in.good() && !in.eof())
     {
         n++;
@@ -61,8 +63,8 @@ size_t __random_test_div(ifstream& in)
 
         a.assign(i1.c_str(), b1);
         b.assign(i2.c_str(), b2);
-        c.assign(i3.c_str(), 16);
-        d.assign(i4.c_str(), 16);
+        c.assign(i3.c_str(), b3);
+        d.assign(i4.c_str(), b4);
 
         div(a, b, q, r);
         __check(q, c);
@@ -159,7 +161,8 @@ size_t __random_test_mul(ifstream& in)
     size_t n = 0;
     number_t a, b, c, d;
     number_t aa, bb, p;
-    b1 = b2 = 16;
+    b1 = b2 = b3 = b4 = 16;
+    oper = i1 = i2 = i3 = i4 = "";
     while (in.good() && !in.eof())
     {
         n++;
@@ -167,7 +170,7 @@ size_t __random_test_mul(ifstream& in)
 
         a.assign(i1.c_str(), b1);
         b.assign(i2.c_str(), b2);
-        c.assign(i3.c_str(), 16);
+        c.assign(i3.c_str(), b3);
 
         mul(a, b, p);
         __check(p, c);
@@ -221,7 +224,8 @@ size_t __random_test_pom(ifstream& in)
     size_t n = 0;
     number_t a, b, c, d;
     number_t aa, bb, cc, r;
-    b1 = b2 = 16;
+    b1 = b2 = b3 = b4 = 16;
+    oper = i1 = i2 = i3 = i4 = "";
     while (in.good() && !in.eof())
     {
         n++;
@@ -229,8 +233,8 @@ size_t __random_test_pom(ifstream& in)
 
         a.assign(i1.c_str(), b1);
         b.assign(i2.c_str(), b2);
-        c.assign(i3.c_str(), 16);
-        d.assign(i4.c_str(), 16);
+        c.assign(i3.c_str(), b3);
+        d.assign(i4.c_str(), b4);
 
         pom(a, b, c, r);
         __check(r, d);
@@ -244,10 +248,11 @@ size_t __random_test_all(ifstream& in)
     size_t n = 0;
     number_t a, b, c;
     number_t aa, bb, cc, res, q, r;
+    oper = i1 = i2 = i3 = i4 = "";
     while (in.good() && !in.eof())
     {
         n++;
-        in >> oper >>  i1 >>  b1 >>  i2 >>  b2 >>  i3;
+        in >> oper >>  i1 >> b1 >> i2 >> b2 >> i3;
 
         a.assign(i1.c_str(), b1);
         b.assign(i2.c_str(), b2);
@@ -875,9 +880,9 @@ void random_test()
     }
 
     ifstream pomrandomtest_dat("pomrandomtest.dat");
-    if (mulrandomtest_dat)
+    if (pomrandomtest_dat)
     {
-        test_with_time("Testing multiplication", __random_test_pom(pomrandomtest_dat));
+        test_with_time("Testing modular exponentiation", __random_test_pom(pomrandomtest_dat));
     }
 
     test_with_time("Testing sqr and mul", __test_sqr_and_mul_performace());

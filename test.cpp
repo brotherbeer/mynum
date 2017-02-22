@@ -1333,6 +1333,9 @@ void test_div()
         NN a("41234523452356543634565436"), b(-123), c;
         div(a, b, a); assert(a == NN("-335240028067939379142808"));
         div(c, b, a); assert(a == 0);
+    }{
+        NN a("37401e908", 16), b(0x12ffef), c;
+        div(a, b, c); assert(c == 11910);
     }
     for (int i = 0; i < 2000; i++)
     {

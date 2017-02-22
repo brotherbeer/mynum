@@ -149,8 +149,8 @@ static __force_inline(slen_t) __vbits_count(unit_t x);
 static __force_inline(slen_t) __tzbits_count(unit_t x);
 static __force_inline(dunit_t) __mul_dunit_high(dunit_t x, dunit_t y);
 static __force_inline(dunit_t) __mul_add_dunit(dunit_t x, dunit_t y, dunit_t z, dunit_t* low);
-static __force_inline(dunit_t) __qunit_mod_by_dunit(dunit_t h, dunit_t l, dunit_t d);
-static __force_inline(dunit_t) __qunit_div_by_dunit(dunit_t h, dunit_t l, dunit_t d, dunit_t* r);
+static __force_inline(dunit_t) __qunit_by_dunit(dunit_t h, dunit_t l, dunit_t d, dunit_t* r);
+static __force_inline(dunit_t) __qunit_mod_dunit(dunit_t h, dunit_t l, dunit_t d);
 
 #define __sign_shift(x) ((x) >> ((sizeof(slen_t) << 3) - 1))
 
@@ -242,7 +242,7 @@ number_t::number_t(const number_t& another)
     __copy(another);
 }
 
-#define __construct_from_signed_ordinary(type, x) {\
+#define __construct_from_signed_ordinary(type, x) { \
     slen_t sign = 1; \
     if (x < 0) {x = -x; sign = -1;} \
     __reserve(len = sizeof(type) / sizeof(unit_t)); \
@@ -251,7 +251,7 @@ number_t::number_t(const number_t& another)
     len *= sign; \
 }
 
-#define __construct_from_unsigned_ordinary(type, x) {\
+#define __construct_from_unsigned_ordinary(type, x) { \
     __reserve(len = sizeof(type) / sizeof(unit_t)); \
     *(type*)dat = x; \
     __trim_leading_zeros(dat, len); \
@@ -729,7 +729,7 @@ word_t number_t::div_word(word_t x)
         }
         while (--q >= e)
         {
-            *q = __qunit_div_by_dunit(rem, *q, x, &rem);
+            *q = __qunit_by_dunit(rem, *q, x, &rem);
         }
         __trim_leading_zeros(dat, l);
         len = l * __sign(len);
@@ -751,7 +751,7 @@ void number_t::mod_word(word_t x)
         }
         while (--q >= e)
         {
-            rem = __qunit_mod_by_dunit(rem, *q, x);
+            rem = __qunit_mod_dunit(rem, *q, x);
         }
         if (rem)
         {
@@ -1155,8 +1155,7 @@ bool number_t::in_range_short() const
     return false;
 }
 
-#define __judge_signed_range(type, typemax, typemin) \
-{ \
+#define __judge_signed_range(type, typemax, typemin) { \
     slen_t m = sizeof(type) / sizeof(unit_t); \
     if (__abs(len) < m) return true; \
     else if (len ==  m) return *(unsigned type*)dat <=  typemax; \
@@ -1164,8 +1163,7 @@ bool number_t::in_range_short() const
     return false; \
 }
 
-#define __judge_unsigned_range(type) \
-{ \
+#define __judge_unsigned_range(type) { \
     return len == 0 || (len > 0 && len <= slen_t(sizeof(type) / sizeof(unit_t))); \
 }
 
@@ -1617,6 +1615,7 @@ static __force_inline(unit_t) __strbin_to_unit(const char* p, int l)
 {
     unit_t x = 0;
     const unit_t A = 1 << (UNITBITS - 1);
+
     for (int i = 0; i < l; i++)
     {
         if (p[i] == '1')
@@ -1632,15 +1631,18 @@ void number_t::__construct_from_bin_string(const char* s, slen_t l)
     assert(len == 0);
 
     int sign = 1;
+    const char *p0, *p1;
+    slen_t n;
+
     if (*s == '-')
     {
-        s++; l--;
+        s++;
+        l--;
         sign = -1;
     }
-    const char *p0 = s + l - UNITBITS;
-    const char *p1 = s + l % UNITBITS;
-    slen_t n = (l + UNITBITS - 1) / UNITBITS;
-    if (n > cap)
+    p0 = s + l - UNITBITS;
+    p1 = s + l % UNITBITS;
+    if ((n = (l + UNITBITS - 1) / UNITBITS) > cap)
     {
         __deallocate_units(dat);
         __reserve(n);
@@ -1672,17 +1674,19 @@ void number_t::__construct_from_hex_string(const char* s, slen_t l)
 {
     assert(len == 0);
 
-    int sign = 1;
+    int sign = 1, k = sizeof(unit_t) << 1;
+    const char *p0, *p1;
+    slen_t n;
+
     if (*s == '-')
     {
-        s++; l--;
+        s++;
+        l--;
         sign = -1;
     }
-    const int k = sizeof(unit_t) << 1;
-    const char *p0 = s + l - k;
-    const char *p1 = s + l % k;
-    slen_t n = (l + k - 1) / k;
-    if (n > cap)
+    p0 = s + l - k;
+    p1 = s + l % k;
+    if ((n = (l + k - 1) / k) > cap)
     {
         __deallocate_units(dat);
         __reserve(n);
@@ -1785,8 +1789,9 @@ static const char* __B[16] =
 
 string_t& number_t::__to_bin_string(string_t& res) const
 {
-    slen_t l;
-    if ((l = __abs(len)))
+    slen_t l = __abs(len);
+
+    if (l)
     {
         char* str, *ps;
         byte_t* p = (byte_t*)(dat + l - 1) + sizeof(unit_t) - 1;
@@ -1862,8 +1867,9 @@ int __is_valid(int b)
 
 string_t& number_t::__to_hex_string(string_t& res) const
 {
-    slen_t l;
-    if ((l = __abs(len)))
+    slen_t l = __abs(len);
+
+    if (l)
     {
         char* str, *ps;
         byte_t* p = (byte_t*)(dat + l - 1) + sizeof(unit_t) - 1;
@@ -1929,8 +1935,9 @@ static __force_inline(void) __unit_to_str(unit_t x, char* str, int base, int wid
 
 string_t& number_t::__to_xbase_string(string_t& res, unit_t base, unit_t power_base, unit_t power_base_digits, float ln_power_base) const
 {
-    slen_t l;
-    if ((l = __abs(len)))
+    slen_t l = __abs(len);
+
+    if (l)
     {
         slen_t size = 0;
         char* str = NULL, *ps = NULL;
@@ -2016,7 +2023,7 @@ UDM::UDM(unit_t d): divisor(d), shift(0), notpo2((d & (d - 1)) != 0), nooverflow
         if (notpo2)
         {
             h = dunit_t(1) << shift;
-            q = __qunit_div_by_dunit(h, 0, d, &r);
+            q = __qunit_by_dunit(h, 0, d, &r);
             multiplier = q + 1;
             if (d > r + h)
             {
@@ -2158,8 +2165,6 @@ string_t::string_t(const char* p, size_t l): dat(NULL), len(0), cap(0)
 {
     if (p)
     {
-        assert(l <= strlen(p));
-
         cap = len = l;
         dat = (char*)mem::allocate(cap + 1, sizeof(char));
         memcpy(dat, p, len);
@@ -2264,8 +2269,7 @@ size_t string_t::rpos_not_chars(size_t pos, const char* chars) const
 {
     if (dat && chars && pos < len)
     {
-        const char* p = dat + pos;
-        for (; p != dat - 1; p--)
+        for (const char* p = dat + pos; p != dat - 1; p--)
         {
             if (!strchr(chars, *p))
             {
@@ -2278,16 +2282,14 @@ size_t string_t::rpos_not_chars(size_t pos, const char* chars) const
 
 string_t& string_t::strip_left(const char* chars)
 {
-    size_t bpos = pos_not_chars(0, chars);
-    return assign(*this, bpos, len);
+    return assign(*this, pos_not_chars(0, chars), len);
 }
 
 string_t& string_t::strip_right(const char* chars)
 {
     if (len)
     {
-        size_t epos = rpos_not_chars(len - 1, chars);
-        return remove_to_end(epos + 1);
+        return remove_to_end(rpos_not_chars(len - 1, chars) + 1);
     }
     return *this;
 }
@@ -2305,10 +2307,11 @@ string_t& string_t::strip(const char* chars)
 
 size_t string_t::find(size_t pos, char c) const
 {
-    const char* pc;
     if (pos < len && dat)
     {
-        if ((pc = strchr(dat + pos, c)))
+        const char* pc = strchr(dat + pos, c);
+
+        if (pc)
         {
             return pc - dat;
         }
@@ -2318,10 +2321,11 @@ size_t string_t::find(size_t pos, char c) const
 
 size_t string_t::find(size_t pos, const char* p) const
 {
-    const char* pp;
     if (pos < len && dat && p)
     {
-        if ((pp = strstr(dat + pos, p)))
+        const char* pp = strstr(dat + pos, p);
+
+        if (pp)
         {
             return pp - dat;
         }
@@ -2331,7 +2335,9 @@ size_t string_t::find(size_t pos, const char* p) const
 
 bool string_t::starts_with(size_t pos, const char* p, size_t l, bool ic) const
 {
-    const char* e = p + l, *q = dat + pos;
+    const char* e = p + l;
+    const char* q = dat + pos;
+
     if (dat && p && pos < len && l)
     {
         if (len >= l)
@@ -2737,14 +2743,18 @@ const string_t* format_t::__append_group(string_t& str, const char* p, size_t l,
 
 string_t& format_t::dump(const number_t& a, int b, string_t& str) const
 {
+    const char *p, *e;
     string_t tmp, sign(16), leading(16);
-    a.to_string(tmp, b);
-    const char* p = tmp.dat, *e = p + tmp.len;
-    size_t l = tmp.len, r, space, g;
+    size_t l, r, space, g;
 
+    a.to_string(tmp, b);
+    p = tmp.dat;
+    e = p + tmp.len;
+    l = tmp.len;
     if (*p == '-')
     {
-        p++; l--;
+        p++;
+        l--;
         sign.assign('-');
     }
     else if (a.is_zero() && has(ZERO_NEG))
@@ -3082,10 +3092,10 @@ void add(const number_t& a, const number_t& b, number_t& res)
     unit_t *tmp, *pa = a.dat, *pb = b.dat;
     slen_t lr, la, lb, sa, sb, newcap = 0;
 
-    la = __abs(a.len);
-    lb = __abs(b.len);
     sa = __sign(a.len);
+    la = __abs(a.len);
     sb = __sign(b.len);
+    lb = __abs(b.len);
     if (la < lb || (la == lb && __cmp_same_len_core(pa, pb, la) == -1))
     {
         tmp = pa; pa = pb;  pb = tmp;
@@ -3123,10 +3133,10 @@ void sub(const number_t& a, const number_t& b, number_t& res)
     unit_t *tmp, *pa = a.dat, *pb = b.dat;
     slen_t lr, la, lb, sa, sb, sign = 1, newcap = 0;
 
-    la = __abs(a.len);
-    lb = __abs(b.len);
     sa = __sign(a.len);
+    la = __abs(a.len);
     sb = __sign(b.len);
+    lb = __abs(b.len);
     if (la < lb || (la == lb && __cmp_same_len_core(pa, pb, la) == -1))
     {
         tmp = pa; pa = pb;  pb = tmp;
@@ -3420,8 +3430,8 @@ void shl(const number_t& a, size_t b, number_t& res)
 {
     slen_t n = b / SHIFT, m = b % SHIFT;
     slen_t la = __abs(a.len), l = la + n, newcap = 0;
-
     unit_t* tmp = res.dat;
+
     if (res.cap < l + 1)
     {
         tmp = __allocate_units(l + 1, &newcap);
@@ -3908,11 +3918,7 @@ void __div(const unit_t* a, slen_t la, const unit_t* b, slen_t lb, number_t& q)
     }
 }
 
-/**
- *  if r.dat == a, r.dat != b and the capacity of the dividend
- *  is large enough, this is an inplace algorithm
- */
-void __mod(const unit_t* a, slen_t la, const unit_t* b, slen_t lb, number_t& r)
+void __mod(const unit_t* a, slen_t la, const unit_t* b, slen_t lb, number_t& r) // may be inplace
 {
     assert(la >= lb && lb > 1);
 
@@ -4001,10 +4007,7 @@ int __cmp_core(const unit_t* x, slen_t lx, const unit_t* y, slen_t ly)
     return __cmp_same_len_core(x, y, lx);
 }
 
-/**
- *  This is an inplace algorithm, x, y, res can be the same
- */
-slen_t __add_core(const unit_t* x, slen_t lx, const unit_t* y, slen_t ly, unit_t* res)
+slen_t __add_core(const unit_t* x, slen_t lx, const unit_t* y, slen_t ly, unit_t* res) // inplace
 {
     assert(lx >= ly);
 
@@ -4246,29 +4249,23 @@ unit_t __mod_unit_core(const unit_t* x, slen_t lx, const UDM& udm)  // inplace
     return r & MASK;
 }
 
-unit_t __guess_quotient(unit_t x1, unit_t x2, unit_t x3, unit_t y1, unit_t y2)
+unit_t __guess_quotient(unit_t x0, unit_t x1, unit_t x2, unit_t y0, unit_t y1)
 {
-    dunit_t t, r, m, n, o;
-    dunit_t x1x2 = __make_dunit(x1, x2);
-    dunit_t y1y2 = __make_dunit(y1, y2);
+    dunit_t t, r, u, v;
+    dunit_t x0x1 = __make_dunit(x0, x1);
+    dunit_t y0y1 = __make_dunit(y0, y1);
 
-    t = x1x2 / y1;
-    r = x1x2 % y1;
+    t = x0x1 / y0;
+    r = x0x1 % y0;
     if (t >= BASE)
     {
         t = MASK;
-        r = x1x2 - t * y1;
+        r = x0x1 - t * y0;
     }
-    if (r < BASE && t * y2 > __make_dunit(r, x3))
+    if (r < BASE && (u = t * y1) > (v = __make_dunit(r, x2)))
     {
-        m = --t * y2;
-        n = __make_dunit(r += y1, x3);
-        if (r < BASE && m > n)
-        {
-            m -= n;
-            o = m / y1y2 + (m % y1y2 != 0);
-            t -= o;
-        }
+        u -= v;
+        t -= u / y0y1 + (u % y0y1 != 0);
     }
     return t & MASK;
 }
@@ -4481,88 +4478,54 @@ bool __char_digit_valid(char c, int base)
     return __CHAR_DIGIT[(unsigned char)c] < base;
 }
 
-/**
- * Compute h * BASE * BASE + l by d
- * Return the quotient, and r points to the remainder
- */
+__force_inline(dunit_t) __original_div_3by2(dunit_t x0x1, unit_t x2, dunit_t y0y1, dunit_t* pr)
+{
+    dunit_t t, r, u, v, w;
+    unit_t y0 = y0y1 >> SHIFT, y1 = y0y1 & MASK;
+
+    t = x0x1 / y0;
+    r = x0x1 % y0;
+    if (t >= BASE)
+    {
+        t = MASK;
+        r = x0x1 - t * y0;
+    }
+    u = t * y1;
+    v = __make_dunit(r, x2);
+    if (r < BASE && u > v)
+    {
+        u -= v;
+        w = u / y0y1 + (u % y0y1 != 0);
+        t -= w;
+        u = t * y1;
+        v = __make_dunit(r + w * y0, x2);
+    }
+    *pr = v - u;
+    return t;
+}
+
 __force_inline(dunit_t) __original_div_4by2(dunit_t h, dunit_t l, dunit_t d, dunit_t* r)
 {
     assert(h < d && d != 0);
 
-    dunit_t q1, q2, rx, u, v, w;
-    unit_t d1 = d >> SHIFT, d2 = d & MASK;
-    unit_t l1 = l >> SHIFT, l2 = l & MASK;
+    dunit_t q0, q1, u, v;
+    unit_t l0 = l >> SHIFT, l1 = l & MASK;
 
-    if (d1)
+    if (d >= BASE)
     {
-        // compute:
-        // q1 = (h * BASE + l1) / d
-        // r  = (h * BASE + l1) % d
-        // q2 = (r * BASE + l2) / d
-        // r  = (r * BASE + l2) % d
-        // q1 * BASE + q2 is the result of this division
-
-        // first step, use h / d1 to evaluate q1
-        q1 = h / d1;
-        rx = h % d1;
-        // if h < d, q1 can only be less than BASE
-        if (q1 >= BASE)
-        {
-            q1 = MASK;
-            rx = h - q1 * d1;
-        }
-        // evaluated q1 may be greater than the true value, the proof is issue #10 */
-        // second step, adjust q1 to the true value, see issue #12
-        u = q1 * d2;
-        v = __make_dunit(rx, l1);
-        if (rx < BASE && v < u)
-        {
-            u = --q1 * d2;
-            v = __make_dunit(rx += d1, l1);
-            if (rx < BASE && v < u)
-            {
-                w = (u - v) / d + ((u - v) % d != 0);
-                q1 -= w;
-                u = q1 * d2;
-                v = __make_dunit(rx + w * d1, l1);
-            }
-        }
-        *r = v - u;
-
-        //use the same algorithm to derive q2
-        q2 = *r / d1;
-        rx = *r % d1;
-        if (q2 >= BASE)
-        {
-            q2 = MASK;
-            rx = *r - q2 * d1;
-        }
-        u = q2 * d2;
-        v = __make_dunit(rx, l2);
-        if (rx < BASE && v < u)
-        {
-            u = --q2 * d2;
-            v = __make_dunit(rx += d1, l2);
-            if (rx < BASE && v < u)
-            {
-                w = (u - v) / d + ((u - v) % d != 0);
-                q2 -= w;
-                u = q2 * d2;
-                v = __make_dunit(rx + w * d1, l2);
-            }
-        }
-        *r = v - u;
+        q0 = __original_div_3by2(h, l0, d, r);
+        q1 = __original_div_3by2(*r, l1, d, r);
     }
     else
     {
-        u = __make_dunit(h, l1);
-        q1 = u / d2;
-        *r = u % d2;
-        v = __make_dunit(*r, l2);
-        q2 = v / d2;
-        *r = v % d2;
+        u = __make_dunit(h, l0);
+        q0 = u / d;
+        *r = u % d;
+        v = __make_dunit(*r, l1);
+        q1 = v / d;
+        *r = v % d;
     }
-    return __make_dunit(q1, q2 & MASK);  // Oh~ It's too slowwwww
+    return q0 << SHIFT | q1;
 }
 
 #if defined(__GNUC__) && !defined(NO_INTRINSIC)
@@ -4600,26 +4563,7 @@ dunit_t __mul_add_dunit(dunit_t x, dunit_t y, dunit_t z, dunit_t* l)
     return m >> DUNITBITS;
 }
 
-dunit_t __qunit_div_by_dunit(dunit_t h, dunit_t l, dunit_t d, dunit_t* r)
-{
-    assert(h < d);
-
-    __qunit_t qunit = __qunit_t(h) << DUNITBITS | l;
-    dunit_t q = dunit_t(qunit / d);
-    *r = dunit_t(qunit % d);
-    return q;
-}
-
-dunit_t __qunit_mod_by_dunit(dunit_t h, dunit_t l, dunit_t d)
-{
-    assert(h < d);
-
-    __qunit_t qunit = __qunit_t(h) << DUNITBITS | l;
-    return dunit_t(qunit % d);
-}
-
 #elif defined(_MSC_VER) && !defined(NO_INTRINSIC)
-
 #pragma intrinsic(_BitScanReverse)
 #pragma intrinsic(_BitScanForward)
 
@@ -4642,7 +4586,6 @@ slen_t __tzbits_count(unit_t x)
 }
 
 #if UNITBITS == 16
-
 #pragma intrinsic(__emulu)
 
 dunit_t __mul_dunit_high(dunit_t x, dunit_t y)
@@ -4658,26 +4601,7 @@ dunit_t __mul_add_dunit(dunit_t x, dunit_t y, dunit_t z, dunit_t* l)
     return r >> DUNITBITS;
 }
 
-dunit_t __qunit_div_by_dunit(dunit_t h, dunit_t l, dunit_t d, dunit_t* r)
-{
-    assert(h < d);
-
-    unsigned __int64 qunit = (unsigned __int64)h << DUNITBITS | l;
-    dunit_t q = dunit_t(qunit / d);
-    *r = dunit_t(qunit % d);
-    return q;
-}
-
-dunit_t __qunit_mod_by_dunit(dunit_t h, dunit_t l, dunit_t d)
-{
-    assert(h < d);
-
-    unsigned __int64 qunit = (unsigned __int64)h << DUNITBITS | l;
-    return dunit_t(qunit % d);
-}
-
 #elif UNITBITS == 32
-
 #pragma intrinsic(_umul128)
 
 dunit_t __mul_dunit_high(dunit_t x, dunit_t y)
@@ -4693,18 +4617,6 @@ dunit_t __mul_add_dunit(dunit_t x, dunit_t y, dunit_t z, dunit_t* l)
     t = *l = _umul128(x, y, &h);
     *l += z;
     return h + (*l < t);
-}
-
-dunit_t __qunit_div_by_dunit(dunit_t h, dunit_t l, dunit_t d, dunit_t* r)
-{
-    return __original_div_4by2(h, l, d, r);
-}
-
-dunit_t __qunit_mod_by_dunit(dunit_t h, dunit_t l, dunit_t d)
-{
-	dunit_t r;
-    __original_div_4by2(h, l, d, &r);
-    return r;
 }
 
 #endif
@@ -4786,13 +4698,41 @@ dunit_t __mul_add_dunit(dunit_t x, dunit_t y, dunit_t z, dunit_t* l)
     return h + (*l < t);
 }
 
-dunit_t __qunit_div_by_dunit(dunit_t h, dunit_t l, dunit_t d, dunit_t* r)
+#endif
+
+#if defined(__GNUC__) && !defined(NO_INTRINSIC)
+
+dunit_t __qunit_by_dunit(dunit_t h, dunit_t l, dunit_t d, dunit_t* r)
 {
+    assert(h < d);
+
+    __qunit_t qunit = __qunit_t(h) << DUNITBITS | l;
+    dunit_t q = dunit_t(qunit / d);
+    *r = dunit_t(qunit % d);
+    return q;
+}
+
+dunit_t __qunit_mod_dunit(dunit_t h, dunit_t l, dunit_t d)
+{
+    assert(h < d);
+
+    __qunit_t qunit = __qunit_t(h) << DUNITBITS | l;
+    return dunit_t(qunit % d);
+}
+
+#else
+
+dunit_t __qunit_by_dunit(dunit_t h, dunit_t l, dunit_t d, dunit_t* r)
+{
+    assert(h < d);
+
     return __original_div_4by2(h, l, d, r);
 }
 
-dunit_t __qunit_mod_by_dunit(dunit_t h, dunit_t l, dunit_t d)
+dunit_t __qunit_mod_dunit(dunit_t h, dunit_t l, dunit_t d)
 {
+    assert(h < d);
+
     dunit_t r;
     __original_div_4by2(h, l, d, &r);
     return r;

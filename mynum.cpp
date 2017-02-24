@@ -43,10 +43,9 @@ namespace mynum {
 
 const float LN_8 = 2.0794f;   // log(8)
 const float LN_10 = 2.3026f;  // log(10)
-const unit_t SHIFT = sizeof(unit_t) << 3;
-const dunit_t BASE = (dunit_t)1 << SHIFT;
-const unit_t MASK = ~unit_t(0);
-const dunit_t DMASK = ~dunit_t(0);
+const dunit_t BASE = (dunit_t)1 << UNITBITS;
+const unit_t UNITMAX = ~unit_t(0);
+const dunit_t DUNITMAX = ~dunit_t(0);
 const int KMUL_THRESHOLD = 80;
 const int KSQR_THRESHOLD = 120;
 
@@ -102,7 +101,7 @@ struct _radix_t
     {
         assert(__is_valid(base));
 
-        while ((dunit_t)power_base * base < (dunit_t)MASK)
+        while ((dunit_t)power_base * base < (dunit_t)UNITMAX)
         {
             power_base_digits++;
             power_base *= base;
@@ -172,12 +171,12 @@ static __force_inline(int) __sign(slen_t x, slen_t y)
 
 static __force_inline(dunit_t) __make_dunit(unit_t high, unit_t low)
 {
-    return (dunit_t)high << SHIFT | low;
+    return (dunit_t)high << UNITBITS | low;
 }
 
 static __force_inline(dunit_t) __make_dunit(dunit_t high, unit_t low)
 {
-    return high << SHIFT | low;
+    return high << UNITBITS | low;
 }
 
 /** class number_t implementation */
@@ -497,13 +496,13 @@ void number_t::mul_unit(unit_t x)
     {
         if (cap > l)
         {
-            dat[l] = carry & MASK;
+            dat[l] = carry & UNITMAX;
         }
         else
         {
             unit_t* tmp = __allocate_units((cap = l << 1));
             __copy_units(tmp, dat, l);
-            tmp[l] = carry & MASK;
+            tmp[l] = carry & UNITMAX;
             __deallocate_units(dat);
             dat = tmp;
         }
@@ -557,7 +556,7 @@ unit_t number_t::div_unit(const UDM& udm)
     }
     __trim_leading_zeros(dat, l);
     len = l * __sign(len);
-    return r & MASK;
+    return r & UNITMAX;
 }
 
 void number_t::mod_unit(unit_t x)
@@ -647,7 +646,7 @@ void number_t::add_word(word_t x)
                 __reserve(2);
             }
             *(word_t*)dat = x;
-            len = 1 + (x > MASK);
+            len = 1 + (x > UNITMAX);
         }
     }
     else
@@ -687,7 +686,7 @@ void number_t::mul_word(word_t x)
 
     if (l & 1)
     {
-        *(e - 1) &= MASK;
+        *(e - 1) &= UNITMAX;
     }
     for (; w != e; w++)
     {
@@ -725,7 +724,7 @@ word_t number_t::div_word(word_t x)
 
         if (l & 1)
         {
-            *(q - 1) &= MASK;
+            *(q - 1) &= UNITMAX;
         }
         while (--q >= e)
         {
@@ -747,7 +746,7 @@ void number_t::mod_word(word_t x)
 
         if (l & 1)
         {
-            *(q - 1) &= MASK;
+            *(q - 1) &= UNITMAX;
         }
         while (--q >= e)
         {
@@ -772,7 +771,7 @@ void number_t::bit_and_word(word_t x)
         slen_t l = __abs(len);
         if (l == 1)
         {
-            *dat &= x & MASK;
+            *dat &= x & UNITMAX;
         }
         else
         {
@@ -793,7 +792,7 @@ void number_t::bit_or_word(word_t x)
 
         if (l & 1)
         {
-            *(w + m - 1) &= MASK;
+            *(w + m - 1) &= UNITMAX;
         }
         if (l == 1)
         {
@@ -818,7 +817,7 @@ void number_t::bit_xor_word(word_t x)
 
         if (l & 1)
         {
-            *(w + m - 1) &= MASK;
+            *(w + m - 1) &= UNITMAX;
         }
         if (l == 1)
         {
@@ -1331,7 +1330,7 @@ int number_t::to_int() const
         v = *(int*)dat;
         if (__abs(len) < 2)
         {
-            v &= MASK;
+            v &= UNITMAX;
         }
     }
     return len >= 0? v: -v;
@@ -1372,7 +1371,7 @@ unsigned int number_t::to_uint() const
         v = *(unsigned int*)dat;
         if (__abs(len) < 2)
         {
-            v &= MASK;
+            v &= UNITMAX;
         }
     }
     return v;
@@ -1481,12 +1480,12 @@ void number_t::__construct_mul(unit_t x)
     for (slen_t i = 0; i < len; i++)
     {
         carry += (dunit_t)dat[i] * x;
-        *p++ = carry & MASK;
-        carry >>= SHIFT;
+        *p++ = carry & UNITMAX;
+        carry >>= UNITBITS;
     }
     if (carry)
     {
-        *p++ = carry & MASK;
+        *p++ = carry & UNITMAX;
         len++;
     }
 }
@@ -1520,7 +1519,7 @@ slen_t number_t::__abs_add_unit(unit_t x)
         }
         l++;
     }
-    return l;
+    return l; // donot need trimming
 }
 
 slen_t number_t::__abs_add_word(word_t x)
@@ -1533,7 +1532,7 @@ slen_t number_t::__abs_add_word(word_t x)
 
     if (l & 1)
     {
-        *(e - 1) &= MASK;
+        *(e - 1) &= UNITMAX;
     }
     *w += x;
     while (*w < x && ++w != e)
@@ -1590,7 +1589,7 @@ slen_t number_t::__abs_sub_word(word_t x)
 
     if (l & 1)
     {
-        *(e - 1) &= MASK;
+        *(e - 1) &= UNITMAX;
     }
     t = *w;
     if (t >= x || l > 2)
@@ -1728,7 +1727,8 @@ void number_t::__construct_from_xbase_string(const char* s, slen_t l, int base, 
     }
     if (*s == '-')
     {
-        s++; l--;
+        s++;
+        l--;
         sign = -1;
     }
     r = l % power_base_digits;
@@ -2055,7 +2055,7 @@ void mul_unit(const number_t& a, unit_t x, number_t& res)
     }
     if ((carry = __mul_unit_core(a.dat, la, x, res.dat)))
     {
-        res.dat[la++] = carry & MASK;
+        res.dat[la++] = carry & UNITMAX;
     }
     __trim_leading_zeros(res.dat, la);
     res.len = la * __sign(a.len);
@@ -3399,7 +3399,7 @@ int mod(const number_t& a, const number_t& b, number_t& r)
 
 void shr(const number_t& a, size_t b, number_t& res)
 {
-    slen_t n = b / SHIFT, m = b % SHIFT;
+    slen_t n = b / UNITBITS, m = b % UNITBITS;
     slen_t l = __abs(a.len) - n, newcap = 0;
 
     if (l > 0)
@@ -3428,7 +3428,7 @@ void shr(const number_t& a, size_t b, number_t& res)
 
 void shl(const number_t& a, size_t b, number_t& res)
 {
-    slen_t n = b / SHIFT, m = b % SHIFT;
+    slen_t n = b / UNITBITS, m = b % UNITBITS;
     slen_t la = __abs(a.len), l = la + n, newcap = 0;
     unit_t* tmp = res.dat;
 
@@ -3482,7 +3482,7 @@ int pom(const number_t& a, const number_t& b, const number_t& c, number_t& res)
             r.set_one();
             for (; p != e; p--)
             {
-                for (i = 1 << (SHIFT - 1); i != 0; i >>= 1)
+                for (i = 1 << (UNITBITS - 1); i != 0; i >>= 1)
                 {
                     r.ksqr();
                     r.mod(c);
@@ -4019,14 +4019,14 @@ slen_t __add_core(const unit_t* x, slen_t lx, const unit_t* y, slen_t ly, unit_t
     while (x != e1)
     {
         carry += (dunit_t)*x++ + *y++;
-        *r++ = carry & MASK;
-        carry >>= SHIFT;
+        *r++ = carry & UNITMAX;
+        carry >>= UNITBITS;
     }
     while (x != e2)
     {
         carry += *x++;
-        *r++ = carry & MASK;
-        carry >>= SHIFT;
+        *r++ = carry & UNITMAX;
+        carry >>= UNITBITS;
     }
     if (carry)
     {
@@ -4048,13 +4048,13 @@ slen_t __sub_core(const unit_t* x, slen_t lx, const unit_t* y, slen_t ly, unit_t
     while (x != e1)
     {
         borrow = (dunit_t)*x++ - *y++ - borrow;
-        *r++ = borrow & MASK;
+        *r++ = borrow & UNITMAX;
         borrow >>= DUNITBITS - 1;
     }
     while (x != e2)
     {
         borrow = (dunit_t)*x++ - borrow;
-        *r++ = borrow & MASK;
+        *r++ = borrow & UNITMAX;
         borrow >>= DUNITBITS - 1;
     }
     __trim_leading_zeros(res, lx);
@@ -4075,8 +4075,8 @@ slen_t __mul_core(const unit_t* x, slen_t lx, const unit_t* y, slen_t ly, unit_t
         for (m = *x, pr = rb, py = y; py < ey; py++, pr++)
         {
             carry += m * *py + *pr;
-            *pr = carry & MASK;
-            carry >>= SHIFT;
+            *pr = carry & UNITMAX;
+            carry >>= UNITBITS;
         }
         if (carry)
         {
@@ -4104,22 +4104,22 @@ slen_t __sqr_core(const unit_t* x, slen_t lx, unit_t* res)  // not inplace
         r = rb;
         m = *p;
         carry = m * *p + *r;
-        *r++ = carry & MASK;
-        carry >>= SHIFT;
+        *r++ = carry & UNITMAX;
+        carry >>= UNITBITS;
         q = ++p;
         rb += 2;
         m <<= 1;
-        if (m >= BASE) for (m &= MASK; q != eq;)
+        if (m >= BASE) for (m &= UNITMAX; q != eq;)
         {
             carry += m * *q + *r;  // never overflow
-            *r++ = carry & MASK;
-            carry = (carry >> SHIFT) + *q++;
+            *r++ = carry & UNITMAX;
+            carry = (carry >> UNITBITS) + *q++;
         }
         else while (q != eq)
         {
             carry += m * *q++ + *r; // never overflow
-            *r++ = carry & MASK;
-            carry >>= SHIFT; 
+            *r++ = carry & UNITMAX;
+            carry >>= UNITBITS; 
         }
         if (carry)
         {
@@ -4140,10 +4140,10 @@ unit_t __mul_unit_core(const unit_t* x, slen_t lx, unit_t y, unit_t* z)  // inpl
     while (p != e)
     {
         carry += dunit_t(*p++) * y;
-        *z++ = carry & MASK;
-        carry >>= SHIFT;
+        *z++ = carry & UNITMAX;
+        carry >>= UNITBITS;
     }
-    return carry & MASK;
+    return carry & UNITMAX;
 }
 
 unit_t __div_unit_core(const unit_t* x, slen_t lx, unit_t y, unit_t* q, slen_t* lq)  // inplace
@@ -4162,7 +4162,7 @@ unit_t __div_unit_core(const unit_t* x, slen_t lx, unit_t y, unit_t* q, slen_t* 
     }
     *lq = lx;
     __trim_leading_zeros(q, *lq);
-    return r & MASK;
+    return r & UNITMAX;
 }
 
 unit_t __mod_unit_core(const unit_t* x, slen_t lx, unit_t y)  // inplace
@@ -4176,7 +4176,7 @@ unit_t __mod_unit_core(const unit_t* x, slen_t lx, unit_t y)  // inplace
     {
         r = __make_dunit(r, *px) % y;
     }
-    return r & MASK;
+    return r & UNITMAX;
 }
 
 unit_t __div_unit_core(const unit_t* x, slen_t lx, const UDM& udm, unit_t* q, slen_t* lq)  // inplace
@@ -4219,7 +4219,7 @@ unit_t __div_unit_core(const unit_t* x, slen_t lx, const UDM& udm, unit_t* q, sl
     }
     __trim_leading_zeros(q, lx);
     *lq = lx;
-    return r & MASK;
+    return r & UNITMAX;
 }
 
 unit_t __mod_unit_core(const unit_t* x, slen_t lx, const UDM& udm)  // inplace
@@ -4246,7 +4246,7 @@ unit_t __mod_unit_core(const unit_t* x, slen_t lx, const UDM& udm)  // inplace
     {
         r = *x & (((unit_t)1 << udm.shift) - 1);
     }
-    return r & MASK;
+    return r & UNITMAX;
 }
 
 unit_t __guess_quotient(unit_t x0, unit_t x1, unit_t x2, unit_t y0, unit_t y1)
@@ -4259,7 +4259,7 @@ unit_t __guess_quotient(unit_t x0, unit_t x1, unit_t x2, unit_t y0, unit_t y1)
     r = x0x1 % y0;
     if (t >= BASE)
     {
-        t = MASK;
+        t = UNITMAX;
         r = x0x1 - t * y0;
     }
     if (r < BASE && (u = t * y1) > (v = __make_dunit(r, x2)))
@@ -4267,7 +4267,7 @@ unit_t __guess_quotient(unit_t x0, unit_t x1, unit_t x2, unit_t y0, unit_t y1)
         u -= v;
         t -= u / y0y1 + (u % y0y1 != 0);
     }
-    return t & MASK;
+    return t & UNITMAX;
 }
 
 unit_t __truing_quotient(unit_t* x, const unit_t* y, slen_t ly, unit_t trial)  // inplace
@@ -4279,20 +4279,20 @@ unit_t __truing_quotient(unit_t* x, const unit_t* y, slen_t ly, unit_t trial)  /
     for (; y != ey; x++, y++)
     {
         carry += (dunit_t)trial * *y;
-        borrow = *x - (carry & MASK) - borrow;
-        *x = borrow & MASK;
-        carry >>= SHIFT;
+        borrow = *x - (carry & UNITMAX) - borrow;
+        *x = borrow & UNITMAX;
+        carry >>= UNITBITS;
         borrow >>= DUNITBITS - 1;
     }
     borrow = (dunit_t)*x - carry - borrow;
-    *x = borrow & MASK;
-    if ((borrow >>= SHIFT))
+    *x = borrow & UNITMAX;
+    if ((borrow >>= UNITBITS))
     {
         for (y = y0, x= x0, carry = 0; y != ey; x++, y++)
         {
             carry += (dunit_t)*x + *y;
-            *x = carry & MASK;
-            carry >>= SHIFT;
+            *x = carry & UNITMAX;
+            carry >>= UNITBITS;
         }
         --trial;
     }
@@ -4345,13 +4345,13 @@ slen_t __shl_core(unit_t* x, slen_t lx, slen_t d)  // inplace
     for (; x != e; x++)
     {
         carry = dunit_t(*x) << d | carry;
-        *x = carry & MASK;
-        carry >>= SHIFT;
+        *x = carry & UNITMAX;
+        carry >>= UNITBITS;
     }
     if (carry)
     {
         lx++;
-        *x = carry & MASK;
+        *x = carry & UNITMAX;
     }
     return lx;
 }
@@ -4366,8 +4366,8 @@ unit_t __shr_core(unit_t* x, slen_t lx, slen_t d)  // inplace
 
     for (x += lx; --x != e;)
     {
-        over = over << SHIFT | *x;
-        *x = (over >> d) & MASK;
+        over = over << UNITBITS | *x;
+        *x = (over >> d) & UNITMAX;
         over &= mask;
     }
     return (unit_t)over;
@@ -4481,13 +4481,13 @@ bool __char_digit_valid(char c, int base)
 __force_inline(dunit_t) __original_div_3by2(dunit_t x0x1, unit_t x2, dunit_t y0y1, dunit_t* pr)
 {
     dunit_t t, r, u, v, w;
-    unit_t y0 = y0y1 >> SHIFT, y1 = y0y1 & MASK;
+    unit_t y0 = y0y1 >> UNITBITS, y1 = y0y1 & UNITMAX;
 
     t = x0x1 / y0;
     r = x0x1 % y0;
     if (t >= BASE)
     {
-        t = MASK;
+        t = UNITMAX;
         r = x0x1 - t * y0;
     }
     u = t * y1;
@@ -4509,7 +4509,7 @@ __force_inline(dunit_t) __original_div_4by2(dunit_t h, dunit_t l, dunit_t d, dun
     assert(h < d && d != 0);
 
     dunit_t q0, q1, u, v;
-    unit_t l0 = l >> SHIFT, l1 = l & MASK;
+    unit_t l0 = l >> UNITBITS, l1 = l & UNITMAX;
 
     if (d >= BASE)
     {
@@ -4525,7 +4525,7 @@ __force_inline(dunit_t) __original_div_4by2(dunit_t h, dunit_t l, dunit_t d, dun
         q1 = v / d;
         *r = v % d;
     }
-    return q0 << SHIFT | q1;
+    return q0 << UNITBITS | q1;
 }
 
 #if defined(__GNUC__) && !defined(NO_INTRINSIC)
@@ -4559,7 +4559,7 @@ dunit_t __mul_dunit_high(dunit_t x, dunit_t y)
 dunit_t __mul_add_dunit(dunit_t x, dunit_t y, dunit_t z, dunit_t* l)
 {
     __qunit_t m = __qunit_t(x) * y + z;
-    *l = m & DMASK;
+    *l = m & DUNITMAX;
     return m >> DUNITBITS;
 }
 
@@ -4597,7 +4597,7 @@ dunit_t __mul_add_dunit(dunit_t x, dunit_t y, dunit_t z, dunit_t* l)
 {
     unsigned __int64 r;
     r = __emulu(x, y) + z;
-    *l = r & DMASK;
+    *l = r & DUNITMAX;
     return r >> DUNITBITS;
 }
 
@@ -4681,8 +4681,8 @@ dunit_t __mul_dunit_high(dunit_t x, dunit_t y)
     dunit_t a, b, c, d;
     dunit_t m, n, o;
 
-    a = x >> UNITBITS; b = x & MASK;
-    c = y >> UNITBITS; d = y & MASK;
+    a = x >> UNITBITS; b = x & UNITMAX;
+    c = y >> UNITBITS; d = y & UNITMAX;
     m = d * a + (d * b >> UNITBITS);    // never overflow
     n = c * b;
     o = m + n;   // maybe overflow, if overflow o < m

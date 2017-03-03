@@ -4134,12 +4134,11 @@ slen_t __sqr_core(const unit_t* x, slen_t lx, unit_t* res)  // not inplace
 unit_t __mul_unit_core(const unit_t* x, slen_t lx, unit_t y, unit_t* z)  // inplace
 {
     dunit_t carry = 0;
-    const unit_t* p = x;
     const unit_t* e = x + lx;
 
-    while (p != e)
+    while (x != e)
     {
-        carry += dunit_t(*p++) * y;
+        carry += dunit_t(*x++) * y;
         *z++ = carry & UNITMAX;
         carry >>= UNITBITS;
     }

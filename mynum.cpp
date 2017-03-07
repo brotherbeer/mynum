@@ -4065,16 +4065,16 @@ slen_t __mul_core(const unit_t* x, slen_t lx, const unit_t* y, slen_t ly, unit_t
 {
     assert(res != x && res != y);
 
-    dunit_t carry = 0, m;
+    dunit_t carry = 0, xi;
     unit_t *pr, *rb = res;
     const unit_t *ex = x + lx;
     const unit_t *ey = y + ly, *py;
 
-    for (; x != ex; rb++, x++)
+    for (; x != ex; x++, rb++)
     {
-        for (m = *x, pr = rb, py = y; py < ey; py++, pr++)
+        for (xi = *x, py = y, pr = rb; py < ey; py++, pr++)
         {
-            carry += m * *py + *pr;
+            carry += xi * *py + *pr;
             *pr = carry & UNITMAX;
             carry >>= UNITBITS;
         }
@@ -4093,7 +4093,7 @@ slen_t __sqr_core(const unit_t* x, slen_t lx, unit_t* res)  // not inplace
 {
     assert(res != x);
 
-    dunit_t m, carry;
+    dunit_t xi, carry;
     unit_t *r, *rb = res;
     const unit_t *q, *p = x;
     const unit_t *eq = x + lx, *ep = eq - 1;
@@ -4102,22 +4102,22 @@ slen_t __sqr_core(const unit_t* x, slen_t lx, unit_t* res)  // not inplace
     while (p != ep)
     {
         r = rb;
-        m = *p;
-        carry = m * *p + *r;
+        xi = *p;
+        carry = xi * *p + *r;
         *r++ = carry & UNITMAX;
         carry >>= UNITBITS;
         q = ++p;
         rb += 2;
-        m <<= 1;
-        if (m >= BASE) for (m &= UNITMAX; q != eq;)
+        xi <<= 1;
+        if (xi >= BASE) for (xi &= UNITMAX; q != eq;)
         {
-            carry += m * *q + *r;  // never overflow
+            carry += xi * *q + *r; // never overflow, xi <= UNITMAX - 1
             *r++ = carry & UNITMAX;
             carry = (carry >> UNITBITS) + *q++;
         }
         else while (q != eq)
         {
-            carry += m * *q++ + *r; // never overflow
+            carry += xi * *q++ + *r;
             *r++ = carry & UNITMAX;
             carry >>= UNITBITS; 
         }

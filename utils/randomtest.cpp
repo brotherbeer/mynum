@@ -741,9 +741,9 @@ size_t __random_test_all(ifstream& in)
 void random(number_t& a);
 void create_big(number_t& x, int size);
 
-size_t __random_test_kmul()
+size_t __random_test_kmul(size_t N)
 {
-    size_t n = 100;
+    size_t n = N;
     srand((unsigned int)time(NULL));
 
     number_t a, b, r1, r2;
@@ -760,12 +760,12 @@ size_t __random_test_kmul()
             abort();
         }
     }
-    return n;
+    return N;
 }
 
-size_t __random_test_ksqr()
+size_t __random_test_ksqr(size_t N)
 {
-    size_t n = 100;
+    size_t n = N;
     srand((unsigned int)time(NULL));
 
     number_t a, r1, r2;
@@ -780,14 +780,14 @@ size_t __random_test_ksqr()
             abort();
         }
     }
-    return n;
+    return N;
 }
 
-size_t __test_sqr_and_mul_performace()
+size_t __test_sqr_and_mul_performace(size_t N)
 {
     clock_t t0, t1, t2;
     clock_t T0 = 0, T1 = 0;
-    size_t n = 3000;
+    size_t n = N;
     srand((unsigned int)time(NULL));
 
     number_t a, r1, r2;
@@ -813,7 +813,7 @@ size_t __test_sqr_and_mul_performace()
     }
     cout << "sqr time: " << double(T0) / CLOCKS_PER_SEC
          << " mul time: " << double(T1) / CLOCKS_PER_SEC << endl;
-    return n;
+    return N;
 }
 
 #define test_with_time(title, fun) do\
@@ -855,8 +855,6 @@ void test_performance()
     t1 = clock();
     cout << "The factorial of 100000, time: " << double(t1 - t0) / CLOCKS_PER_SEC << " " << fac.bits_count() << "bits" << endl;
     /* 100000! has 1516688 bits, 1000000! has 18488865 bits */
-
-    __test_sqr_and_mul_performace();
 }
 
 void random_test()
@@ -885,7 +883,7 @@ void random_test()
         test_with_time("Testing modular exponentiation", __random_test_pom(pomrandomtest_dat));
     }
 
-    test_with_time("Testing sqr and mul", __test_sqr_and_mul_performace());
-    test_with_time("Testing kmul", __random_test_kmul());
-    test_with_time("Testing ksqr", __random_test_ksqr());
+    test_with_time("Testing sqr and mul", __test_sqr_and_mul_performace(3000));
+    test_with_time("Testing kmul", __random_test_kmul(100));
+    test_with_time("Testing ksqr", __random_test_ksqr(100));
 }

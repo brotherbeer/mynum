@@ -1,4 +1,4 @@
-import sys, argparse
+import sys, os, argparse
 from random import *
 
 USAGE = '''
@@ -14,7 +14,7 @@ for example:
 '+' is the operator, '123' is first integer in base '10',
 '111001000' is the second integer in base '2',
 '579' is the result of 123(10) + 111001000(2)\n
-''' % sys.argv[0]
+''' % os.path.basename(sys.argv[0])
 
 digits = '0123456789abcdefghijklmnopqrstuvwxyz'
 opers = [

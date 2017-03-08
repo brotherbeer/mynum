@@ -1,9 +1,9 @@
-import sys, argparse
+import sys, os, argparse
 from random import *
 from datgen import randNumStr, notSameSign
 
 USAGE = '''
-%s [-h] [-d MAX_DIGITS_COUNT] [-i ITEMS_COUNT]
+%s [-h] [-d MAX_DIGITS_COUNT] [-i ITEMS_COUNT] [-b BASE]
 
 This is a tool for generating modular exponentiation test data.
 The test data is composed of lines, each line is 
@@ -15,14 +15,16 @@ for example:
 '51' is the base, '1ddb' is the exponent, '5' is the divisor,
 '1' is the result.
 All the integers are in base 16.\n
-''' % sys.argv[0]
+''' % os.path.basename(sys.argv[0])
 
 def genTestData(args):
    for i in range(args.items_count):
         if (i + 1) % 500000 == 0:
             print >> sys.stderr, i, 'items generated'
-
-        a, b0 = randNumStr(args.max_digits_count, 16, None)
+        if args.base == 0:
+            a, b0 = randNumStr(args.max_digits_count, 16, None)
+        else:
+            a, b0 = str(args.base), 10
         b, b1 = randNumStr(args.max_digits_count, 16, None)
         c, b2 = randNumStr(args.max_digits_count, 16, None)
         va = int(a, b0)
@@ -35,6 +37,7 @@ def genTestData(args):
 
 def parseArgs():
     parser = argparse.ArgumentParser(usage = USAGE)
+    parser.add_argument('-b', '--base', type = int, help = 'The base', default = 0)
     parser.add_argument('-d', '--max-digits-count', type = int, help='The max digits of each integer', default = 64)
     parser.add_argument('-i', '--items-count', type = int, help = 'How many items should be generated', default = 32)
     args = parser.parse_args()

@@ -1,4 +1,4 @@
-import sys, argparse
+import sys, os, argparse
 from random import *
 from datgen import randNumStr, notSameSign
 
@@ -14,7 +14,7 @@ for example:
 
 '92f' is the first factor, 'b2ae0' is the second factor,
 '668ebf20' is the product. All the integers are in base 16.\n
-''' % sys.argv[0]
+''' % os.path.basename(sys.argv[0])
 
 def genTestData(args):
    for i in range(args.items_count):

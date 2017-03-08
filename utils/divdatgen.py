@@ -1,4 +1,4 @@
-import sys, argparse
+import sys, os, argparse
 from random import *
 from datgen import randNumStr, notSameSign
 
@@ -16,7 +16,7 @@ for example:
 '-e6fb5e59' is the dividend, '712f' is the divisor,
 '-20a70' is the quotient, '-3c9' is the remainder.
 All the integers are in base 16.\n
-''' % sys.argv[0]
+''' % os.path.basename(sys.argv[0])
 
 def mydivmod(a, b):
     q, r = divmod(abs(a), abs(b))

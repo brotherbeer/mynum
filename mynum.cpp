@@ -2370,11 +2370,17 @@ bool string_t::ends_with(size_t pos, const char* p, size_t l, bool ic) const
         q = dat + pos;
         if (ic)
         {
-            for (; tolower(*p) == tolower(*q) && l; p--, q--, l--);
+            while (l && tolower(*p) == tolower(*q))
+            {
+                p--, q--, l--;
+            }
         }
         else
         {
-            for (; *p == *q && l; p--, q--, l--);
+            while (l && *p == *q)
+            {
+                p--, q--, l--;
+            }
         }
         return l == 0;
     }

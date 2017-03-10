@@ -1,11 +1,11 @@
 /* MYNUM LIBARAY SOURCE CODE
- * 
+ *
  * This library provides addition, subtraction, multiplication, division,
  * modulo, exponentiation and bitwise operations for big integer arithmetic.
  * No restrictions on the dissemination and modification of the source code.
  * The author hopes mynum will be useful, but dose not make any warranty.
  * If you have any questions, please contact <brotherbeer@163.com>
- * 
+ *
  * NOTICE!! This library is only available on the LITTLE-ENDIAN machines now.
  */
 
@@ -54,7 +54,7 @@ const int POWERDEC_BASE_DIGITS = 4;
 const int POWEROCT_BASE_DIGITS = 5;
 const unit_t POWERDEC_BASE = 10000;
 const unit_t POWEROCT_BASE = 0100000;
-const float LN_BASE = 11.0903f;            // log(BASE) 
+const float LN_BASE = 11.0903f;            // log(BASE)
 const float LN_POWERDEC_BASE = 9.2103f;    // log(POWERDEC_BASE)
 const float LN_POWEROCT_BASE = 10.3972f;   // log(POWEROCT_BASE)
 
@@ -823,7 +823,7 @@ void number_t::bit_xor_word(word_t x)
         {
             l++;
         }
-        *w ^= x;           
+        *w ^= x;
         __trim_leading_zeros(dat, l);
         len = l * __sign(len);
     }
@@ -1847,7 +1847,7 @@ string_t& number_t::__to_bin_string(string_t& res) const
     return res.assign('0');
 }
 
-char __DIGIT_CHAR[36] = 
+char __DIGIT_CHAR[36] =
 {
     '0', '1', '2', '3', '4', '5', '6', '7', '8', '9',
     'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j',
@@ -2211,7 +2211,7 @@ string_t& string_t::assign(const char* p, size_t l)
             mem::deallocate(dat);
             dat = (char*)mem::allocate((cap = l) + 1, sizeof(char));
         }
-        memcpy(dat, p, len = l);
+        memmove(dat, p, len = l);
     }
     if (dat)
     {
@@ -2262,7 +2262,7 @@ size_t string_t::pos_not_chars(size_t pos, const char* chars) const
             }
         }
     }
-    return npos;    
+    return npos;
 }
 
 size_t string_t::rpos_not_chars(size_t pos, const char* chars) const
@@ -3056,7 +3056,7 @@ int cmp(const number_t& a, const number_t& b)
 {
     if (a.len - b.len)
     {
-        return a.len - b.len > 0? 1: -1;        
+        return a.len - b.len > 0? 1: -1;
     }
     return __cmp_same_len_core(a.dat, b.dat, __abs(a.len)) * __sign(a.len);
 }
@@ -3217,7 +3217,7 @@ void kmul(const number_t& u, const number_t& v, number_t& res)
     __trim_leading_zeros(d, ld);
 
     number_t ac, bd, a_bd_c;
-    
+
     __kmul(a, la, c, lc, ac);
     __kmul(b, lb, d, ld, bd);
 
@@ -3556,7 +3556,7 @@ void bit_or(const number_t& a, const number_t& b, number_t& res)
         {
             tmp = __allocate_units(lb, &newcap);
         }
-        lr = __bit_or_core(b.dat, lb, a.dat, la, tmp);  
+        lr = __bit_or_core(b.dat, lb, a.dat, la, tmp);
     }
     if (newcap)
     {
@@ -3806,7 +3806,7 @@ void __div(const unit_t* a, slen_t la, const unit_t* b, slen_t lb, number_t& q, 
 
     slen_t qnewcap = 0, rnewcap = 0;
     unit_t *x = r.dat, *z = q.dat, ns;
- 
+
     if (lb > 1)
     {
         ns = *(a + la - 1) >= *(b + lb - 1);
@@ -3994,7 +3994,7 @@ __force_inline(int) __cmp_same_len_core(const unit_t* x, const unit_t* y, slen_t
         p2 = (dunit_t*)(hy - 1 - (l & 1));
         pe = (dunit_t*)(x - 2);
         for (; p1 != pe; p1--, p2--)
-        {  
+        {
             if (*p1 != *p2)
             {
                 return *p1 > *p2? 1: -1;
@@ -4125,7 +4125,7 @@ slen_t __sqr_core(const unit_t* x, slen_t lx, unit_t* res)  // not inplace
         {
             carry += xi * *q++ + *r;
             *r++ = carry & UNITMAX;
-            carry >>= UNITBITS; 
+            carry >>= UNITBITS;
         }
         if (carry)
         {
@@ -4378,7 +4378,7 @@ unit_t __shr_core(unit_t* x, slen_t lx, slen_t d)  // inplace
     return (unit_t)over;
 }
 
-slen_t __bit_and_core(const unit_t* x, const unit_t* y, slen_t lx, unit_t* res) 
+slen_t __bit_and_core(const unit_t* x, const unit_t* y, slen_t lx, unit_t* res)
 {
     unit_t* p = res;
     const unit_t* e = x + lx;

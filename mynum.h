@@ -279,7 +279,7 @@ struct number_t: public _base_number_t
     number_t& operator = (short x)               { return assign((int)x); }
     number_t& operator = (int x)                 { return assign(x); }
     number_t& operator = (long x)                { return assign(x); }
-    number_t& operator = (long long x)           { return assign(x); }   
+    number_t& operator = (long long x)           { return assign(x); }
     number_t& operator = (unsigned char x)       { return assign((unsigned int)x); }
     number_t& operator = (unsigned short x)      { return assign((unsigned int)x); }
     number_t& operator = (unsigned int x)        { return assign(x); }

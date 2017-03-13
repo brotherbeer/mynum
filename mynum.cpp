@@ -241,6 +241,15 @@ number_t::number_t(const number_t& another)
     __copy(another);
 }
 
+number_t::number_t(const number_t& another, size_t bbit, size_t ebit)
+{
+    if (ebit > bbit)
+    {
+        __reserve((ebit - bbit) / UNITBITS + 2);
+        __construct_from_bit_range(another, bbit, ebit);
+    }
+}
+
 #define __construct_from_signed_ordinary(type, x) { \
     slen_t sign = 1; \
     if (x < 0) {x = -x; sign = -1;} \
@@ -300,6 +309,39 @@ number_t& number_t::assign(const number_t& x)
         }
         __copy_units(dat, x.dat, l);
         len = x.len;
+    }
+    return *this;
+}
+
+number_t& number_t::assign(const number_t& x, size_t bbit, size_t ebit)
+{
+    if (ebit > bbit)
+    {
+        if (this->is_not(x))
+        {
+            slen_t newcap = (ebit - bbit) / UNITBITS + 2;
+            if (newcap > cap)
+            {
+                __deallocate_units(dat);
+                __reserve(newcap);
+            }
+            __construct_from_bit_range(x, bbit, ebit);
+        }
+        else
+        {
+            shr(bbit);
+            ebit -= bbit;
+            len = ebit / UNITBITS;
+            if ((ebit %= UNITBITS))
+            {
+                *(dat + ++len - 1) &= UNITMAX >> (UNITBITS - ebit);
+            }
+            __trim_leading_zeros(dat, len);
+        }
+    }
+    else
+    {
+        set_zero();
     }
     return *this;
 }
@@ -1778,6 +1820,26 @@ void number_t::__construct_from_string(const char* s, slen_t l, int base)
             break;
         }
     }
+}
+
+void number_t::__construct_from_bit_range(const number_t& x, size_t bbit, size_t ebit)
+{
+    assert (ebit > bbit && x.dat != dat);
+
+    unit_t* p = dat;
+    const unit_t* b = x.dat + bbit / UNITBITS;
+    const unit_t* e = x.dat + (ebit - 1) / UNITBITS;
+    while (b <= e)
+    {
+        *p++ = *b++;
+    }
+    len = p - dat;
+    if ((ebit %= UNITBITS))
+    {
+        *(--p) &= UNITMAX >> (UNITBITS - ebit);
+    }
+    __shr_core(dat, len, bbit % UNITBITS);
+    __trim_leading_zeros(dat, len);
 }
 
 static const char* __B[16] =

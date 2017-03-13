@@ -87,6 +87,7 @@ struct number_t: public _base_number_t
     number_t(const string_t&, int base);
     number_t(const string_t&, size_t bpos, size_t epos, int base);
     number_t(const number_t&);
+    number_t(const number_t&, size_t bbit, size_t ebit);
 
     ~number_t();
 
@@ -103,6 +104,7 @@ struct number_t: public _base_number_t
     number_t& assign(const string_t&, int base);
     number_t& assign(const string_t&, size_t bpos, size_t epos, int base);
     number_t& assign(const number_t&);
+    number_t& assign(const number_t&, size_t bbit, size_t ebit);
 
     void copy(const number_t&);
 
@@ -386,6 +388,7 @@ protected:
     void __construct_from_hex_string(const char*, slen_t);
     void __construct_from_xbase_string(const char*, slen_t l, int base, float ln_base, unit_t power_base, unit_t power_base_digits);
     void __construct_from_string(const char*, slen_t, int base);
+    void __construct_from_bit_range(const number_t&, size_t bbit, size_t ebit);
 
     string_t& __to_bin_string(string_t&) const;
     string_t& __to_hex_string(string_t&) const;

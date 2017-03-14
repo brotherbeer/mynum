@@ -64,6 +64,7 @@ void test_and_small();
 void test_or_small();
 void test_xor_small();
 void test_basic_type_conversion();
+void test_prime();
 
 void test_detail()
 {
@@ -106,10 +107,24 @@ void test_detail()
     test_or_small();
     test_xor_small();
     test_basic_type_conversion();
+    test_prime();
 }
 
 int main(int argc, char* argv[])
 {
+    //number_t a("712341234123423454123412342345234542356456765874675814123412342345234542356456765874675814123412342345234542356456765874675812345423564564123412342345234542356456765874675817658746758123412341234124124124124124777771"), b;
+    //a.sqr();
+    //a.sqr();
+    //clock_t t0 = clock();
+    //prime_next(a, b);
+    //std::cout << "time: " << clock() - t0 << std::endl;
+
+    //std::cout << b << std::endl;
+    //std::cout << b - a << std::endl;
+
+    //return 0;
+
+
     assert(min_base() == 2);
     assert(max_base() == 36);
 
@@ -3301,6 +3316,39 @@ void test_basic_type_conversion()
         b--; assert(!b.in_range_char()); b--; assert(!b.in_range_char()); b++; assert(!b.in_range_char()); b++; assert(b.in_range_char());
         c--; assert(c.in_range_short()); c--; assert(c.in_range_short()); c++; assert(c.in_range_short()); c++; assert(c.in_range_short());
         d--; assert(!d.in_range_short()); d--; assert(!d.in_range_short()); d++; assert(!d.in_range_short()); d++; assert(d.in_range_short());
+    }
+}
+
+void test_prime()
+{
+    {
+        assert(!prime_test(0));
+        assert(!prime_test(1));
+
+        assert(prime_test(2));
+        assert(prime_test(3));
+        assert(!prime_test(4));
+        assert(prime_test(5));
+
+        assert(prime_test(233));
+        assert(prime_test(239));
+
+        assert(!prime_test(561)); // Carmichael
+        assert(!prime_test(1105));
+        assert(!prime_test(1729));
+        assert(prime_test(19937)); // prime
+        assert(prime_test(54503));
+        assert(prime_test(54517));
+        assert(prime_test(54521));
+    }{
+        NN next;
+        prime_next(-8, next); assert(next == 2);
+        prime_next(0, next); assert(next == 2);
+        prime_next(1, next); assert(next == 2);
+        prime_next(2, next); assert(next == 3);
+        prime_next(3, next); assert(next == 5);
+        prime_next(233, next); assert(next == 239);
+        prime_next(239, next); assert(next == 241);
     }
 }
 

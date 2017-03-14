@@ -71,7 +71,7 @@ struct UDM   // Unit Divisor to Multiplier
 
 struct string_t;
 struct bitref_t;
-struct number_t: public _base_number_t
+struct number_t: public _base_number_t  // bignum class
 {
     number_t() {}
     number_t(int);
@@ -228,6 +228,9 @@ struct number_t: public _base_number_t
     size_t bits_count() const;
     size_t tzbits_count() const;
     void bits_reserve(size_t);
+
+    number_t& halve();
+    number_t& twice();
 
     bool is_even() const { return !is_odd(); }
     bool is_not(const number_t& another) const { return this != &another; }
@@ -438,6 +441,7 @@ template <class T> struct _utype_ref_t: public number_t
     }
 };
 
+/** common functions*/
 int cmp(const number_t& a, const number_t& b);
 int cmp_abs(const number_t& a, const number_t& b);
 bool neq(const number_t& a, const number_t& b);
@@ -472,6 +476,9 @@ void mod_unit(const number_t& a, const UDM&, number_t& res);
 void bit_and_unit(const number_t& a, unit_t x, number_t& res);
 void bit_or_unit(const number_t& a, unit_t x, number_t& res);
 void bit_xor_unit(const number_t& a, unit_t x, number_t& res);
+
+bool prime_test(const number_t& n);
+void prime_next(const number_t& n, number_t& res);
 
 int max_base();
 inline int min_base() { return 2; }
@@ -1097,6 +1104,13 @@ struct bitref_t
         return v;
     }
 };
+
+/** complex functions*/
+void __pom(unit_t a, const number_t& b, const number_t& c, number_t& res);
+void __pom(const number_t& a, const number_t& b, const number_t& c, number_t& res);
+void __pom_b2(const number_t& b, const number_t& c, number_t& res);
+bool __MR_witness(unit_t b, const number_t& n, const number_t& nd1, const number_t& u, size_t t);
+bool __prime_test(const number_t& n);
 
 /** inner functions */
 void __mul(const unit_t* x, slen_t lx, const unit_t* y, slen_t ly, number_t& res);

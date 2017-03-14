@@ -14,6 +14,8 @@
 #include <cctype>
 #include <cstring>
 #include <cassert>
+#include <iostream>
+#include <ctime>
 #include "mynum.h"
 
 
@@ -407,6 +409,16 @@ number_t::~number_t()
 void number_t::bits_reserve(size_t n)
 {
     reserve((n + UNITBITS - 1) / UNITBITS);
+}
+
+number_t& number_t::halve()
+{
+    return shr(1);
+}
+
+number_t& number_t::twice()
+{
+    return shl(1);
 }
 
 string_t& number_t::to_bin_string(string_t& res) const
@@ -2199,6 +2211,126 @@ void bit_xor_unit(const number_t& a, unit_t x, number_t& res)
     res.assign(a).bit_xor_unit(x);
 }
 
+bool __MR_witness(unit_t b, const number_t& n, const number_t& nd1, const number_t& u, size_t t)
+{
+    bool cond;
+    number_t x;
+    __pom(b, u, n, x);
+    for (size_t i = 1; i <= t; i++)
+    {
+        cond = !x.is_one() && neq(x, nd1);
+        x.ksqr();
+        x.mod(n);
+        if (x.is_one() && cond)
+        {
+            return true;
+        }
+    }
+    if (!x.is_one())
+    {
+        return true;
+    }
+    return false;
+}
+
+static unit_t __SMALL[] = 
+{
+    3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59,
+    61, 67, 71, 73, 79, 83, 89, 97, 101, 103, 107, 109, 113, 127,
+    131, 137, 139, 149, 151, 157, 163, 167, 173, 179, 181, 191,
+    193, 197, 199, 211, 223, 227, 229, 233,
+};
+
+static const int __SMALL_SIZE = sizeof(__SMALL) / sizeof(unit_t);
+static const int __SMALL_LAST = __SMALL[__SMALL_SIZE - 1];
+
+bool __prime_test(const number_t& n)
+{
+    assert(n.is_pos() && n.is_odd());
+
+    unit_t* p = __SMALL;
+    unit_t* e = __SMALL + __SMALL_SIZE;
+
+    if (gt(n, __SMALL_LAST))
+    {
+        while (p != e)
+        {
+            if (!n.absrem_unit(UDM(*p++)))
+            {
+                return false;
+            }
+        }
+
+        number_t nd1(n), u, fm;
+        nd1--;
+        __pom_b2(nd1, n, fm);
+        if (!fm.is_one())
+        {
+            return false;
+        }
+
+        size_t t = nd1.tzbits_count();
+        u.assign(nd1, t, nd1.bits_count());
+        for (p = __SMALL; p != e; p++)
+        {
+            if (__MR_witness(*p, n, nd1, u, t))
+            {
+                return false;
+            }
+        }
+        return true;
+    }
+    else
+    {
+        for (p = __SMALL; p != e; p++)
+        {
+            if (n.dat[0] == *p)
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+}
+
+bool prime_test(const number_t& n)
+{
+    if (n.is_pos() && n.is_odd() && !n.is_one())
+    {
+        return __prime_test(n);
+    }
+    else if (eq(n, 2))
+    {
+        return true;
+    }
+    return false;
+}
+
+void prime_next(const number_t& n, number_t& res)
+{
+    if (n.is_pos() && !n.is_one())
+    {
+        number_t m(n);
+        if (n.is_even())
+        {
+            m++;
+        }
+        else
+        {
+            m.add_unit(2);
+        }
+        while (!__prime_test(m))
+        {
+            m.add_unit(2);
+        }
+        res.steal(m);
+    }
+    else
+    {
+        res.assign(2);
+    }
+}
+
 size_t _try_strlen(const char* p) { return p? strlen(p): 0; }
 const char* _try_strchr(const char* p, int c) { return p? strchr(p, c): NULL; }
 const char* _try_strstr(const char* p, const char* q) { return p && q? strstr(p, q): NULL; }
@@ -3535,33 +3667,87 @@ void pow(const number_t& a, size_t b, number_t& res)
     }
 }
 
+void __pom(unit_t a, const number_t& b, const number_t& c, number_t& res)
+{
+    assert(a && b.is_pos() && !c.is_zero());
+
+    number_t r(1);
+    unit_t* p = b.dat + b.len - 1;
+    unit_t* e = b.dat - 1, i, i0 = 1 << (UNITBITS - 1);
+
+    for (; p != e; p--)
+    {
+        for (i = i0; i != 0; i >>= 1)
+        {
+            r.ksqr();
+            r.mod(c);
+            if (*p & i)
+            {
+                r.mul_unit(a);
+                r.mod(c);
+            }
+        }
+    }
+    res.steal(r);
+}
+
+void __pom_b2(const number_t& a, const number_t& b, number_t& res)
+{
+    //assert(a.is_pos() && b.is_pos());
+
+    number_t r(1);
+    unit_t *p = a.dat + a.len - 1;
+    unit_t *e = a.dat - 1, i, i0 = 1 << (UNITBITS - 1);
+
+    r.reserve(2 * b.cap + 1);
+    for (; p != e; p--)
+    {
+        for (i = i0; i != 0; i >>= 1)
+        {
+            r.ksqr();
+            r.mod(b);
+            if (*p & i)
+            {
+                r.twice();
+                r.mod(b);
+            }
+        }
+    }
+    res.steal(r);
+}
+
+void __pom(const number_t& a, const number_t& b, const number_t& c, number_t& res)
+{
+    assert(a.len && b.is_pos() && !c.is_zero());
+
+    number_t r(1), m(a);
+    unit_t *p = b.dat + b.len - 1;
+    unit_t *e = b.dat - 1, i, i0 = 1 << (UNITBITS - 1);
+
+    m.mod(c);
+    for (; p != e; p--)
+    {
+        for (i = i0; i != 0; i >>= 1)
+        {
+            r.ksqr();
+            r.mod(c);
+            if (*p & i)
+            {
+                r.kmul(m);
+                r.mod(c);
+            }
+        }
+    }
+    res.steal(r);
+}
+
 int pom(const number_t& a, const number_t& b, const number_t& c, number_t& res)
 {
     if (!c.is_zero() && !b.is_neg())
     {
         if (a.len && b.len)
         {
-            number_t r, m(a);
-            unit_t* p = b.dat + b.len - 1;
-            unit_t* e = b.dat - 1, i;
-
-            m.mod(c);
-            r.reserve(2 * c.cap + 1);
-            r.set_one();
-            for (; p != e; p--)
-            {
-                for (i = 1 << (UNITBITS - 1); i != 0; i >>= 1)
-                {
-                    r.ksqr();
-                    r.mod(c);
-                    if (*p & i)
-                    {
-                        r.kmul(m);
-                        r.mod(c);
-                    }
-                }
-            }
-            res.steal(r);
+            __pom(a, b, c, res);
         }
         else if (!b.len)
         {

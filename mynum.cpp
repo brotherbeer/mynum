@@ -14,8 +14,6 @@
 #include <cctype>
 #include <cstring>
 #include <cassert>
-#include <iostream>
-#include <ctime>
 #include "mynum.h"
 
 
@@ -2248,52 +2246,38 @@ bool __prime_test(const number_t& n)
 {
     assert(n.is_pos() && n.is_odd());
 
-    unit_t* p = __SMALL;
-    unit_t* e = __SMALL + __SMALL_SIZE;
-
+    unit_t *p = __SMALL, *e;
     if (gt(n, __SMALL_LAST))
     {
-        while (p != e)
-        {
-            if (!n.absrem_unit(UDM(*p++)))
-            {
-                return false;
-            }
-        }
-
-        number_t nd1(n), u, fm;
-        nd1--;
-        __pom_b2(nd1, n, fm);
-        if (!fm.is_one())
+        e = p + __SMALL_SIZE;
+        while (p != e) if (!n.absrem_unit(UDM(*p++)))
         {
             return false;
         }
 
+        number_t nd1(n), u, fm;
+        nd1--;
         size_t t = nd1.tzbits_count();
         u.assign(nd1, t, nd1.bits_count());
-        for (p = __SMALL; p != e; p++)
-        {
-            if (__MR_witness(*p, n, nd1, u, t))
-            {
-                return false;
-            }
-        }
+
+        if (__MR_witness(unit_t(2), n, nd1, u, t)) return false;
+        if (__MR_witness(unit_t(3), n, nd1, u, t)) return false;
+        if (__MR_witness(unit_t(5), n, nd1, u, t)) return false;
+        if (__MR_witness(unit_t(7), n, nd1, u, t)) return false;
         return true;
     }
     else
     {
-        for (p = __SMALL; p != e; p++)
+        e = p + __SMALL_SIZE;
+        while (p != e) if (n.dat[0] == *p++)
         {
-            if (n.dat[0] == *p)
-            {
-                return true;
-            }
+            return true;
         }
         return false;
     }
 }
 
-bool prime_test(const number_t& n)
+bool prime_test_roughly(const number_t& n)
 {
     if (n.is_pos() && n.is_odd() && !n.is_one())
     {
@@ -2306,7 +2290,7 @@ bool prime_test(const number_t& n)
     return false;
 }
 
-void prime_next(const number_t& n, number_t& res)
+void prime_next_roughly(const number_t& n, number_t& res)
 {
     if (n.is_pos() && !n.is_one())
     {
@@ -3685,31 +3669,6 @@ void __pom(unit_t a, const number_t& b, const number_t& c, number_t& res)
             {
                 r.mul_unit(a);
                 r.mod(c);
-            }
-        }
-    }
-    res.steal(r);
-}
-
-void __pom_b2(const number_t& a, const number_t& b, number_t& res)
-{
-    //assert(a.is_pos() && b.is_pos());
-
-    number_t r(1);
-    unit_t *p = a.dat + a.len - 1;
-    unit_t *e = a.dat - 1, i, i0 = 1 << (UNITBITS - 1);
-
-    r.reserve(2 * b.cap + 1);
-    for (; p != e; p--)
-    {
-        for (i = i0; i != 0; i >>= 1)
-        {
-            r.ksqr();
-            r.mod(b);
-            if (*p & i)
-            {
-                r.twice();
-                r.mod(b);
             }
         }
     }

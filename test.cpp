@@ -112,18 +112,14 @@ void test_detail()
 
 int main(int argc, char* argv[])
 {
-    //number_t a("712341234123423454123412342345234542356456765874675814123412342345234542356456765874675814123412342345234542356456765874675812345423564564123412342345234542356456765874675817658746758123412341234124124124124124777771"), b;
+    //number_t a("89712548723548723452390875347896534967510239592380456234895234897"), b;
     //a.sqr();
     //a.sqr();
-    //clock_t t0 = clock();
-    //prime_next(a, b);
-    //std::cout << "time: " << clock() - t0 << std::endl;
-
+    //std::cout << a << std::endl;
+    //prime_next_roughly(a, b);
     //std::cout << b << std::endl;
     //std::cout << b - a << std::endl;
-
     //return 0;
-
 
     assert(min_base() == 2);
     assert(max_base() == 36);
@@ -3322,33 +3318,33 @@ void test_basic_type_conversion()
 void test_prime()
 {
     {
-        assert(!prime_test(0));
-        assert(!prime_test(1));
+        assert(!prime_test_roughly(0));
+        assert(!prime_test_roughly(1));
 
-        assert(prime_test(2));
-        assert(prime_test(3));
-        assert(!prime_test(4));
-        assert(prime_test(5));
+        assert(prime_test_roughly(2));
+        assert(prime_test_roughly(3));
+        assert(!prime_test_roughly(4));
+        assert(prime_test_roughly(5));
 
-        assert(prime_test(233));
-        assert(prime_test(239));
+        assert(prime_test_roughly(233));
+        assert(prime_test_roughly(239));
 
-        assert(!prime_test(561)); // Carmichael
-        assert(!prime_test(1105));
-        assert(!prime_test(1729));
-        assert(prime_test(19937)); // prime
-        assert(prime_test(54503));
-        assert(prime_test(54517));
-        assert(prime_test(54521));
+        assert(!prime_test_roughly(561)); // Carmichael
+        assert(!prime_test_roughly(1105));
+        assert(!prime_test_roughly(1729));
+        assert(prime_test_roughly(19937)); // prime
+        assert(prime_test_roughly(54503));
+        assert(prime_test_roughly(54517));
+        assert(prime_test_roughly(54521));
     }{
         NN next;
-        prime_next(-8, next); assert(next == 2);
-        prime_next(0, next); assert(next == 2);
-        prime_next(1, next); assert(next == 2);
-        prime_next(2, next); assert(next == 3);
-        prime_next(3, next); assert(next == 5);
-        prime_next(233, next); assert(next == 239);
-        prime_next(239, next); assert(next == 241);
+        prime_next_roughly(-8, next); assert(next == 2);
+        prime_next_roughly(0, next); assert(next == 2);
+        prime_next_roughly(1, next); assert(next == 2);
+        prime_next_roughly(2, next); assert(next == 3);
+        prime_next_roughly(3, next); assert(next == 5);
+        prime_next_roughly(233, next); assert(next == 239);
+        prime_next_roughly(239, next); assert(next == 241);
     }
 }
 

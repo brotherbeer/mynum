@@ -2239,10 +2239,12 @@ static unit_t __SMALL[] =
     193, 197, 199, 211, 223, 227, 229, 233,
 };
 
+//static unit_t __SMALL[] = {3,5,7,11,13,17,19,23,29,31,37,41,43,47,53,59,61,67,71,73,79,83,89,97,101,103,107,109,113,127,131,137,139,149,151,157,163,167,173,179,181,191,193,197,199,211,223,227,229,233,239,241,251,257,263,269,271,277,281,283,293,307,311,313,317,331,337,347,349,353,359,367,373,379,383,389,397,401,409,419,421,431,433,439,443,449,457,461,463,467,479,487,491,499};
+
 static const int __SMALL_SIZE = sizeof(__SMALL) / sizeof(unit_t);
 static const int __SMALL_LAST = __SMALL[__SMALL_SIZE - 1];
 
-bool __prime_test(const number_t& n)
+bool __prime_test_roughly(const number_t& n)
 {
     assert(n.is_pos() && n.is_odd());
 
@@ -2281,7 +2283,7 @@ bool prime_test_roughly(const number_t& n)
 {
     if (n.is_pos() && n.is_odd() && !n.is_one())
     {
-        return __prime_test(n);
+        return __prime_test_roughly(n);
     }
     else if (eq(n, 2))
     {
@@ -2292,24 +2294,35 @@ bool prime_test_roughly(const number_t& n)
 
 void prime_next_roughly(const number_t& n, number_t& res)
 {
-    if (n.is_pos() && !n.is_one())
+    if (gt(n, 1))
     {
         number_t m(n);
-        if (n.is_even())
-        {
-            m++;
-        }
-        else
-        {
-            m.add_unit(2);
-        }
-        while (!__prime_test(m))
+        m.add_unit(n.is_even()? 1: 2);
+        while (!__prime_test_roughly(m))
         {
             m.add_unit(2);
         }
         res.steal(m);
     }
     else
+    {
+        res.assign(2);
+    }
+}
+
+void prime_prev_roughly(const number_t& n, number_t& res)
+{
+    if (gt(n, 3))
+    {
+        number_t m(n);
+        m.sub_unit(n.is_even()? 1: 2);
+        while (!__prime_test_roughly(m))
+        {
+            m.sub_unit(2);
+        }
+        res.steal(m);
+    }
+    else if (eq(n, 3))
     {
         res.assign(2);
     }

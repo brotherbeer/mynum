@@ -112,15 +112,6 @@ void test_detail()
 
 int main(int argc, char* argv[])
 {
-    //number_t a("89712548723548723452390875347896534967510239592380456234895234897"), b;
-    //a.sqr();
-    //a.sqr();
-    //std::cout << a << std::endl;
-    //prime_next_roughly(a, b);
-    //std::cout << b << std::endl;
-    //std::cout << b - a << std::endl;
-    //return 0;
-
     assert(min_base() == 2);
     assert(max_base() == 36);
 
@@ -3345,6 +3336,14 @@ void test_prime()
         prime_next_roughly(3, next); assert(next == 5);
         prime_next_roughly(233, next); assert(next == 239);
         prime_next_roughly(239, next); assert(next == 241);
+        prime_next_roughly(74093, next); assert(next == 74099);
+    }{
+        NN prev;
+        prime_prev_roughly(3, prev); assert(prev == 2);
+        prime_prev_roughly(4, prev); assert(prev == 3);
+        prime_prev_roughly(239, prev); assert(prev == 233);
+        prime_prev_roughly(983, prev); assert(prev == 977);
+        prime_prev_roughly(74093, prev); assert(prev == 74077);
     }
 }
 

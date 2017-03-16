@@ -477,8 +477,13 @@ void bit_and_unit(const number_t& a, unit_t x, number_t& res);
 void bit_or_unit(const number_t& a, unit_t x, number_t& res);
 void bit_xor_unit(const number_t& a, unit_t x, number_t& res);
 
+unit_t random_unit();
+void set_random_seed(size_t seed);
+void random(size_t bits, number_t& n);
+
 bool prime_test_roughly(const number_t& n);
 void prime_next_roughly(const number_t& n, number_t& res);
+void prime_prev_roughly(const number_t& n, number_t& res);
 
 int max_base();
 inline int min_base() { return 2; }
@@ -1109,7 +1114,7 @@ struct bitref_t
 void __pom(unit_t a, const number_t& b, const number_t& c, number_t& res);
 void __pom(const number_t& a, const number_t& b, const number_t& c, number_t& res);
 bool __MR_witness(unit_t b, const number_t& n, const number_t& nd1, const number_t& u, size_t t);
-bool __prime_test(const number_t& n);
+bool __prime_test_roughly(const number_t& n);
 
 /** inner functions */
 void __mul(const unit_t* x, slen_t lx, const unit_t* y, slen_t ly, number_t& res);

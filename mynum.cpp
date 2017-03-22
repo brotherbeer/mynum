@@ -43,9 +43,6 @@ namespace mynum {
 
 const float LN_8 = 2.0794f;   // log(8)
 const float LN_10 = 2.3026f;  // log(10)
-const dunit_t BASE = (dunit_t)1 << UNITBITS;
-const unit_t UNITMAX = ~unit_t(0);
-const dunit_t DUNITMAX = ~dunit_t(0);
 const int KMUL_THRESHOLD = 80;
 const int KSQR_THRESHOLD = 120;
 
@@ -68,24 +65,6 @@ const float LN_POWERDEC_BASE = 20.7233f;
 const float LN_POWEROCT_BASE = 20.7944f;
 
 #endif
-
-struct mem
-{
-    static __force_inline(void*) allocate(size_t s, size_t u)
-    {
-        return malloc(s * u);
-    }
-
-    static __force_inline(void) deallocate(void* p)
-    {
-        free(p);
-    }
-
-private:
-    mem() {}
-    mem(const mem&) {}
-    ~mem() {}
-};
 
 __force_inline(int) __max_base();
 __force_inline(int) __is_valid(int b);
@@ -2209,125 +2188,6 @@ void bit_xor_unit(const number_t& a, unit_t x, number_t& res)
     res.assign(a).bit_xor_unit(x);
 }
 
-bool __MR_witness(unit_t b, const number_t& n, const number_t& nd1, const number_t& u, size_t t)
-{
-    bool cond;
-    number_t x;
-    __pom(b, u, n, x);
-    for (size_t i = 1; i <= t; i++)
-    {
-        cond = !x.is_one() && neq(x, nd1);
-        x.ksqr();
-        x.mod(n);
-        if (x.is_one() && cond)
-        {
-            return true;
-        }
-    }
-    if (!x.is_one())
-    {
-        return true;
-    }
-    return false;
-}
-
-static unit_t __SMALL[] = 
-{
-    3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59,
-    61, 67, 71, 73, 79, 83, 89, 97, 101, 103, 107, 109, 113, 127,
-    131, 137, 139, 149, 151, 157, 163, 167, 173, 179, 181, 191,
-    193, 197, 199, 211, 223, 227, 229, 233,
-};
-
-//static unit_t __SMALL[] = {3,5,7,11,13,17,19,23,29,31,37,41,43,47,53,59,61,67,71,73,79,83,89,97,101,103,107,109,113,127,131,137,139,149,151,157,163,167,173,179,181,191,193,197,199,211,223,227,229,233,239,241,251,257,263,269,271,277,281,283,293,307,311,313,317,331,337,347,349,353,359,367,373,379,383,389,397,401,409,419,421,431,433,439,443,449,457,461,463,467,479,487,491,499};
-
-static const int __SMALL_SIZE = sizeof(__SMALL) / sizeof(unit_t);
-static const int __SMALL_LAST = __SMALL[__SMALL_SIZE - 1];
-
-bool __prime_test_roughly(const number_t& n)
-{
-    assert(n.is_pos() && n.is_odd());
-
-    unit_t *p = __SMALL, *e;
-    if (gt(n, __SMALL_LAST))
-    {
-        e = p + __SMALL_SIZE;
-        while (p != e) if (!n.absrem_unit(UDM(*p++)))
-        {
-            return false;
-        }
-
-        number_t nd1(n), u, fm;
-        nd1--;
-        size_t t = nd1.tzbits_count();
-        u.assign(nd1, t, nd1.bits_count());
-
-        if (__MR_witness(unit_t(2), n, nd1, u, t)) return false;
-        if (__MR_witness(unit_t(3), n, nd1, u, t)) return false;
-        if (__MR_witness(unit_t(5), n, nd1, u, t)) return false;
-        if (__MR_witness(unit_t(7), n, nd1, u, t)) return false;
-        return true;
-    }
-    else
-    {
-        e = p + __SMALL_SIZE;
-        while (p != e) if (n.dat[0] == *p++)
-        {
-            return true;
-        }
-        return false;
-    }
-}
-
-bool prime_test_roughly(const number_t& n)
-{
-    if (n.is_pos() && n.is_odd() && !n.is_one())
-    {
-        return __prime_test_roughly(n);
-    }
-    else if (eq(n, 2))
-    {
-        return true;
-    }
-    return false;
-}
-
-void prime_next_roughly(const number_t& n, number_t& res)
-{
-    if (gt(n, 1))
-    {
-        number_t m(n);
-        m.add_unit(n.is_even()? 1: 2);
-        while (!__prime_test_roughly(m))
-        {
-            m.add_unit(2);
-        }
-        res.steal(m);
-    }
-    else
-    {
-        res.assign(2);
-    }
-}
-
-void prime_prev_roughly(const number_t& n, number_t& res)
-{
-    if (gt(n, 3))
-    {
-        number_t m(n);
-        m.sub_unit(n.is_even()? 1: 2);
-        while (!__prime_test_roughly(m))
-        {
-            m.sub_unit(2);
-        }
-        res.steal(m);
-    }
-    else if (eq(n, 3))
-    {
-        res.assign(2);
-    }
-}
-
 size_t _try_strlen(const char* p) { return p? strlen(p): 0; }
 const char* _try_strchr(const char* p, int c) { return p? strchr(p, c): NULL; }
 const char* _try_strstr(const char* p, const char* q) { return p && q? strstr(p, q): NULL; }
@@ -3647,91 +3507,6 @@ void shl(const number_t& a, size_t b, number_t& res)
     }
     __trim_leading_zeros(res.dat, l);
     res.len = l * __sign(a.len);
-}
-
-void pow(const number_t& a, size_t b, number_t& res)
-{
-    number_t A(a);
-    res.set_one();
-    while (b != 0)
-    {
-        if (b & 1)
-        {
-            res.kmul(A);
-        }
-        A.ksqr();
-        b >>= 1;
-    }
-}
-
-void __pom(unit_t a, const number_t& b, const number_t& c, number_t& res)
-{
-    assert(a && b.is_pos() && !c.is_zero());
-
-    number_t r(1);
-    unit_t* p = b.dat + b.len - 1;
-    unit_t* e = b.dat - 1, i, i0 = 1 << (UNITBITS - 1);
-
-    for (; p != e; p--)
-    {
-        for (i = i0; i != 0; i >>= 1)
-        {
-            r.ksqr();
-            r.mod(c);
-            if (*p & i)
-            {
-                r.mul_unit(a);
-                r.mod(c);
-            }
-        }
-    }
-    res.steal(r);
-}
-
-void __pom(const number_t& a, const number_t& b, const number_t& c, number_t& res)
-{
-    assert(a.len && b.is_pos() && !c.is_zero());
-
-    number_t r(1), m(a);
-    unit_t *p = b.dat + b.len - 1;
-    unit_t *e = b.dat - 1, i, i0 = 1 << (UNITBITS - 1);
-
-    m.mod(c);
-    for (; p != e; p--)
-    {
-        for (i = i0; i != 0; i >>= 1)
-        {
-            r.ksqr();
-            r.mod(c);
-            if (*p & i)
-            {
-                r.kmul(m);
-                r.mod(c);
-            }
-        }
-    }
-    res.steal(r);
-}
-
-int pom(const number_t& a, const number_t& b, const number_t& c, number_t& res)
-{
-    if (!c.is_zero() && !b.is_neg())
-    {
-        if (a.len && b.len)
-        {
-            __pom(a, b, c, res);
-        }
-        else if (!b.len)
-        {
-            res.assign(1 - (int)c.is_one());
-        }
-        else if (!a.len)
-        {
-            res.set_zero();
-        }
-        return 1;
-    }
-    return 0;
 }
 
 void bit_and(const number_t& a, const number_t& b, number_t& res)

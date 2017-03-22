@@ -1,11 +1,14 @@
-#include "mynum.h"
-#include "myoperators.h"
 #include <ctime>
 #include <cstdlib>
 #include <iomanip>
 #include <sstream>
 #include <cmath>
+#include <map>
+#include <fstream>
 #include <cassert>
+#include "mynum.h"
+#include "myoperators.h"
+#include "mytheory.h"
 
 
 #ifdef __GNUC__
@@ -65,6 +68,7 @@ void test_or_small();
 void test_xor_small();
 void test_basic_type_conversion();
 void test_prime();
+void test_rand();
 
 void test_detail()
 {
@@ -108,6 +112,7 @@ void test_detail()
     test_xor_small();
     test_basic_type_conversion();
     test_prime();
+    test_rand();
 }
 
 int main(int argc, char* argv[])
@@ -2696,8 +2701,15 @@ void test_string()
         string_t d(0); assert(d == "");
         number_t x(123);
         string_t e(x);  assert(e.capacity() == 123);
+    }{
+        std::map<string_t, string_t> strmap;
+        strmap["aaa"] = "aaaaaa";
+        strmap["bbb"] = "bbbbbb";
+        strmap["ccc"] = "cccccc";
+        assert(strmap.find("bbb") != strmap.end());
+        assert(strmap.find("ddd") == strmap.end());
+        assert(strmap.find("bbb")->second == "bbbbbb");
     }
-
     reset_leading();
 }
 
@@ -3344,6 +3356,40 @@ void test_prime()
         prime_prev_roughly(239, prev); assert(prev == 233);
         prime_prev_roughly(983, prev); assert(prev == 977);
         prime_prev_roughly(74093, prev); assert(prev == 74077);
+    }
+}
+
+void test_rand()
+{
+    {
+        NN a;
+        for (int i = 0; i < 16; i++)
+        {
+            assert(rand(113, a));
+            assert(a.bits_count() <= 113);
+            assert(rand(128, a));
+            assert(a.bits_count() <= 128);
+        }
+    }{
+        SRG_t srg;
+        assert(srg.valid());
+        NN a;
+        for (int i = 0; i < 16; i++)
+        {
+            assert(rand(141, a, srg));
+            assert(a.bits_count() <= 141);
+            assert(rand(32, a, srg));
+            assert(a.bits_count() <= 32);
+        }
+    }{
+        NN a;
+        for (int i = 0; i < 16; i++)
+        {
+            assert(rand(127, a, true));
+            assert(a.bits_count() == 127);
+            assert(rand(16, a, true));
+            assert(a.bits_count() == 16);
+        }
     }
 }
 

@@ -1,7 +1,7 @@
 /* MYNUM LIBARAY HEADER */
 #pragma once
 
-#include <cstddef>
+#include <cstdlib>
 #include <climits>
 
 
@@ -21,7 +21,6 @@ namespace mynum {
 #error WORDMAX unknown
 #endif
 #endif
-#define DUNITBITS (UNITBITS * 2)
 
 #if UNITBITS == 16
 typedef short sunit_t;
@@ -43,6 +42,30 @@ typedef dunit_t word_t;
 typedef sdunit_t sword_t;
 typedef unsigned char byte_t;
 
+const unit_t UNITMAX = ~unit_t(0);
+const dunit_t DUNITMAX = ~dunit_t(0);
+const dunit_t WORDBITS = (UNITBITS * 2);
+const dunit_t DUNITBITS = WORDBITS;
+const dunit_t BASE = (dunit_t)1 << UNITBITS;
+
+struct mem  // global memory interface
+{
+    static void* allocate(size_t s, size_t u)
+    {
+        return malloc(s * u);
+    }
+
+    static void deallocate(void* p)
+    {
+        free(p);
+    }
+
+private:
+    mem() {}
+    mem(const mem&) {}
+    ~mem() {}
+};
+
 struct _base_number_t
 {
     unit_t* dat;
@@ -58,19 +81,10 @@ struct _base_number_t
     {}
 };
 
-struct UDM   // Unit Divisor to Multiplier
-{
-    dunit_t multiplier;
-    unit_t divisor;
-    unsigned char shift;
-    bool notpo2;
-    bool nooverflow;
-
-    UDM(unit_t d);
-};
-
+struct UDM;
 struct string_t;
 struct bitref_t;
+
 struct number_t: public _base_number_t  // bignum class
 {
     number_t() {}
@@ -441,6 +455,17 @@ template <class T> struct _utype_ref_t: public number_t
     }
 };
 
+struct UDM   // Unit Divisor to Multiplier
+{
+    dunit_t multiplier;
+    unit_t divisor;
+    unsigned char shift;
+    bool notpo2;
+    bool nooverflow;
+
+    UDM(unit_t d);
+};
+
 /** common functions*/
 int cmp(const number_t& a, const number_t& b);
 int cmp_abs(const number_t& a, const number_t& b);
@@ -476,14 +501,6 @@ void mod_unit(const number_t& a, const UDM&, number_t& res);
 void bit_and_unit(const number_t& a, unit_t x, number_t& res);
 void bit_or_unit(const number_t& a, unit_t x, number_t& res);
 void bit_xor_unit(const number_t& a, unit_t x, number_t& res);
-
-unit_t random_unit();
-void set_random_seed(size_t seed);
-void random(size_t bits, number_t& n);
-
-bool prime_test_roughly(const number_t& n);
-void prime_next_roughly(const number_t& n, number_t& res);
-void prime_prev_roughly(const number_t& n, number_t& res);
 
 int max_base();
 inline int min_base() { return 2; }
@@ -1109,12 +1126,6 @@ struct bitref_t
         return v;
     }
 };
-
-/** complex functions*/
-void __pom(unit_t a, const number_t& b, const number_t& c, number_t& res);
-void __pom(const number_t& a, const number_t& b, const number_t& c, number_t& res);
-bool __MR_witness(unit_t b, const number_t& n, const number_t& nd1, const number_t& u, size_t t);
-bool __prime_test_roughly(const number_t& n);
 
 /** inner functions */
 void __mul(const unit_t* x, slen_t lx, const unit_t* y, slen_t ly, number_t& res);

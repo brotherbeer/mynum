@@ -140,6 +140,9 @@ struct number_t: public _base_number_t  // bignum class
     number_t& sub(const number_t&);
     number_t& mul(const number_t&);
     number_t& kmul(const number_t&);
+    number_t& sqr();
+    number_t& ksqr();
+    number_t& pow(size_t);
     number_t& div(const number_t&);
     number_t& div(const number_t&, number_t&);
     number_t& mod(const number_t&);
@@ -149,10 +152,6 @@ struct number_t: public _base_number_t  // bignum class
     number_t& bit_and(const number_t&);
     number_t& bit_xor(const number_t&);
     number_t& bit_not();
-    number_t& sqr();
-    number_t& ksqr();
-    number_t& pow(size_t);
-    number_t& pom(const number_t&, const number_t&);
 
     void add_unit(unit_t);
     void sub_unit(unit_t);
@@ -476,15 +475,14 @@ void add(const number_t& a, const number_t& b, number_t& res);
 void sub(const number_t& a, const number_t& b, number_t& res);
 void mul(const number_t& a, const number_t& b, number_t& res);
 void sqr(const number_t& a, number_t& res);
-void ksqr(const number_t& a, number_t& res);
 void kmul(const number_t& a, const number_t& b, number_t& res);
+void ksqr(const number_t& a, number_t& res);
+void pow(const number_t& a, size_t b, number_t& res);
 void shr(const number_t& a, size_t b, number_t& res);
 void shl(const number_t& a, size_t b, number_t& res);
-void pow(const number_t& a, size_t b, number_t& res);
 int  div(const number_t& a, const number_t& b, number_t& q, number_t& r);
 int  div(const number_t& a, const number_t& b, number_t& q);
 int  mod(const number_t& a, const number_t& b, number_t& r);
-int  pom(const number_t& a, const number_t& b, const number_t& c, number_t& res);
 void bit_and(const number_t& a, const number_t& b, number_t& res);
 void bit_or(const number_t& a, const number_t& b, number_t& res);
 void bit_xor(const number_t& a, const number_t& b, number_t& res);
@@ -704,22 +702,6 @@ inline number_t& set_neg(number_t& a)                          { a.len = -a.len;
 inline number_t& set_sign(number_t& a, int sign)               { set_abs(a); if (sign < 0) a.len = -a.len; return a; }
 inline number_t abs(const number_t& a)                         { number_t res; abs(a, res); return res; }
 inline number_t neg(const number_t& a)                         { number_t res; neg(a, res); return res; }
-inline number_t add(const number_t& a, const number_t& b)      { number_t res; add(a, b, res); return res; }
-inline number_t sub(const number_t& a, const number_t& b)      { number_t res; sub(a, b, res); return res; }
-inline number_t mul(const number_t& a, const number_t& b)      { number_t res; mul(a, b, res); return res; }
-inline number_t sqr(const number_t& a)                         { number_t res; sqr(a, res); return res; }
-inline number_t ksqr(const number_t& a)                        { number_t res; ksqr(a, res); return res; }
-inline number_t kmul(const number_t& a, const number_t& b)     { number_t res; kmul(a, b, res); return res; }
-inline number_t div(const number_t& a, const number_t& b)      { number_t res, dummy; div(a, b, res, dummy); return res; }
-inline number_t mod(const number_t& a, const number_t& b)      { number_t res, dummy; div(a, b, dummy, res); return res; }
-inline number_t shr(const number_t& a, size_t b)               { number_t res; shr(a, b, res); return res; }
-inline number_t shl(const number_t& a, size_t b)               { number_t res; shl(a, b, res); return res; }
-inline number_t pow(const number_t& a, size_t b)               { number_t res; pow(a, b, res); return res; }
-inline number_t pom(const number_t& a, const number_t& b, const number_t& c) { number_t res; pom(a, b, c, res); return res; }
-inline number_t bit_and(const number_t& a, const number_t& b)  { number_t res; bit_and(a, b, res); return res; }
-inline number_t bit_or(const number_t& a, const number_t& b)   { number_t res; bit_or(a, b, res); return res; }
-inline number_t bit_xor(const number_t& a, const number_t& b)  { number_t res; bit_xor(a, b, res); return res; }
-inline number_t bit_not(const number_t& a)                     { number_t res; bit_not(a, res); return res; }
 
 inline int sign(const number_t& a)                             { return (a.len >> (sizeof(slen_t) * 8 - 1)) | 1; }
 inline int sign(const number_t& a, const number_t& b)          { return ((a.len ^ b.len) >> (sizeof(slen_t) * 8 - 1)) | 1; }
@@ -746,7 +728,6 @@ inline number_t& number_t::bit_not()                  { mynum::bit_not(*this, *t
 inline number_t& number_t::sqr()                      { mynum::sqr(*this, *this); return *this; }
 inline number_t& number_t::ksqr()                     { mynum::ksqr(*this, *this); return *this; }
 inline number_t& number_t::pow(size_t x)              { mynum::pow(*this, x, *this); return *this; }
-inline number_t& number_t::pom(const number_t& x, const number_t& y) { mynum::pom(*this, x, y, *this); return *this; }
 
 inline number_t& number_t::add(int x)                     { add_sword(x); return *this; }
 inline number_t& number_t::add(unsigned int x)            { add_word(x); return *this; }

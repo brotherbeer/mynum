@@ -1149,14 +1149,14 @@ void test_add()
     }
     {
         NN a("-123456789"), b("123456789"), c("123456789");
-        assert(add(b, a).is_zero());
-        assert(add(a, b).is_zero());
-        assert(add(a, c).is_zero());
+        assert(b + a == 0);
+        assert(a + b == 0);
+        assert(a + c == 0);
         NN d("-123456789"), e("1234"), f("1234567890000"), g;
-        assert(eq(add(d, e), NN("-123455555")));
-        assert(eq(add(d, f), NN("1234444433211")));
-        assert(eq(add(d, g), d));
-        assert(eq(add(g, d), d));
+        assert(eq(d + e, NN("-123455555")));
+        assert(eq(d + f, NN("1234444433211")));
+        assert(eq(d + g, d));
+        assert(eq(g + d, d));
     }
     {
         NN a("45634532785322123456"), b("674576854378");
@@ -1216,24 +1216,24 @@ void test_sub()
         a.sub(b); assert(eq(a, NN("567821896988087687911110816207110711082876879884")));
     }{
         NN a("123456"), b("-1");
-        assert(eq(sub(a, b), 123457));
-        assert(eq(sub(b, a), -123457));
-        assert(eq(sub(a, a), 0));
-        assert(eq(sub(b, b), 0));
+        assert(eq(a - b, 123457));
+        assert(eq(b - a, -123457));
+        assert(eq(a - a, 0));
+        assert(eq(b - b, 0));
 
         NN c("-123456"), d("-1234567");
-        assert(eq(sub(c, d), 1111111));
-        assert(eq(sub(d, c), -1111111));
+        assert(eq(c - d, 1111111));
+        assert(eq(d - c, -1111111));
 
         NN e, f("-1234567");
-        assert(eq(sub(e, f), 1234567));
-        assert(eq(sub(f, e), -1234567));
-        assert(eq(sub(f, f), 0));
-        assert(eq(sub(e, e), 0));
+        assert(eq(e - f, 1234567));
+        assert(eq(f - e, -1234567));
+        assert(eq(f - f, 0));
+        assert(eq(e - e, 0));
 
         NN g("-12345678901234567890");
         NN h("-12345678901234567890");
-        assert(eq(sub(g, h), 0));
+        assert(eq(g - h, 0));
     }{
         NN a("123456"), b("-1"), c;
         sub(a, b, c);
@@ -1243,10 +1243,10 @@ void test_sub()
         assert(eq(d, 246914));
     }{
         NN a("123456"), b("2342947290847209");
-        assert(eq(sub(a, b), NN("-2342947290723753")));
+        assert(eq(a - b, NN("-2342947290723753")));
         NN c("0"), d("2342947290847209"), e("-2342947290847209");
-        assert(eq(sub(c, d), NN("-2342947290847209")));
-        assert(eq(sub(c, e), d));
+        assert(eq(c - d, NN("-2342947290847209")));
+        assert(eq(c - e, d));
     }{
         NN a("123456");
         a -= 456;
@@ -1701,10 +1701,6 @@ void test_pom()
         NN a(1), b(0), c(1), res;
         pom(a, b, c, res);
         assert(eq(res, 0));
-    }{
-        NN a(123), b(1000), c(126), res;
-        a.pom(b, c);
-        assert(eq(a, 81));
     }{
         NN a(0), b(0), c(1), res;
         pom(a, b, c, res);

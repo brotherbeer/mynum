@@ -8,21 +8,6 @@
 
 namespace mynum {
 
-void pow(const number_t& a, size_t b, number_t& res)
-{
-    number_t A(a);
-    res.set_one();
-    while (b != 0)
-    {
-        if (b & 1)
-        {
-            res.kmul(A);
-        }
-        A.ksqr();
-        b >>= 1;
-    }
-}
-
 int pom(const number_t& a, const number_t& b, const number_t& c, number_t& res)
 {
     if (!c.is_zero() && !b.is_neg())
@@ -72,6 +57,12 @@ bool RNG::gen_bytes(void* vp, size_t n)
     }
     return true;
 }
+
+XORSP_t::XORSP_t(): s0((state_t)time(NULL)), s1(s0)
+{}
+
+XORSP_t::XORSP_t(word_t seed): s0(seed), s1(s0)
+{}
 
 bool XORSP_t::gen_bytes(void* vp, size_t n)
 {

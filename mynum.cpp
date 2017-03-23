@@ -3381,6 +3381,21 @@ void ksqr(const number_t& u, number_t& res)
     __trim_leading_zeros(res.dat, res.len);
 }
 
+void pow(const number_t& a, size_t b, number_t& res)
+{
+    number_t A(a);
+    res.set_one();
+    while (b != 0)
+    {
+        if (b & 1)
+        {
+            res.kmul(A);
+        }
+        A.ksqr();
+        b >>= 1;
+    }
+}
+
 int div(const number_t& a, const number_t& b, number_t& q, number_t& r)
 {
     if (!b.is_zero())

@@ -69,6 +69,7 @@ void test_xor_small();
 void test_basic_type_conversion();
 void test_prime();
 void test_rand();
+void test_gcd();
 
 void test_detail()
 {
@@ -113,6 +114,7 @@ void test_detail()
     test_basic_type_conversion();
     test_prime();
     test_rand();
+	test_gcd();
 }
 
 int main(int argc, char* argv[])
@@ -3314,6 +3316,16 @@ void test_basic_type_conversion()
     }
 }
 
+NN P0("45911199988959465183765912664616310275170336168741130658429954235029908138159");
+NN P1("508190217928689643391431714479630954760588436314498312387");
+NN P2("31014988937155224150507473922242319516571301238077219986238457411462445796248223968880796017062334043955589096371253");
+NN P3("8383555565944093718593764739391348007500133036883716486541747654183165780298639280109467165637722729505821991519140806588490972868342490983723572462953557");
+NN P4("12176636605415159766183139392179042866360930144701428894112485055697496902343");
+NN P5("447244349315675241584289123648301582947729383084658295377308841751961879127566706835744292360131");
+NN P6("79824420962299636329402026765963393147");
+NN P7("65483798648195834568457280759866283769638818002805615004721489355954670347813");
+NN P8("12697125487235487234542523908753461770189653496751023887959238045623489523489719");
+
 void test_prime()
 {
     {
@@ -3335,6 +3347,13 @@ void test_prime()
         assert(prime_test_roughly(54503));
         assert(prime_test_roughly(54517));
         assert(prime_test_roughly(54521));
+
+		assert(prime_test_roughly(P0));
+		assert(prime_test_roughly(P1));
+		assert(prime_test_roughly(P2));
+		assert(!prime_test_roughly(P0 - 2));
+		assert(!prime_test_roughly(P1 - 2));
+		assert(!prime_test_roughly(P2 - 2));
     }{
         NN next;
         prime_next_roughly(-8, next); assert(next == 2);
@@ -3387,6 +3406,40 @@ void test_rand()
             assert(a.bits_count() == 16);
         }
     }
+}
+
+void test_gcd()
+{
+	{
+		NN res;
+		gcd(2, 1, res); assert(res == 1);
+		gcd(2, 2, res); assert(res == 2);
+		gcd(3, 4, res); assert(res == 1);
+		gcd(7, 3, res); assert(res == 1);
+		gcd(1024, 2, res); assert(res == 2);
+	}{
+		NN a(19937), b(19937), c(19937), g;
+		a.pow(3), b.pow(7);
+		gcd(a, b, g); assert(g == a);
+		gcd(b, c, g); assert(g == 19937);
+		c.mul(54521);
+		gcd(b, c, g); assert(g == 19937);
+	}{
+		NN a("12697125487235487234542523908753461770189653496751023887959238045623489523489712");
+		NN b("845724375209348564239023485239084752349085723465735409865349087634987289347592368"), g;
+		gcd(a, b, g); assert(g == 48);
+		b.assign(P3);
+		gcd(a, b, g); assert(g == 1);
+	}{
+		NN a(P3), b(P4), g;
+		gcd(a, b, g); assert(g == 1);
+		a.mul(P5); b.mul(P5);
+		gcd(a, b, g); assert(g == P5);
+		a.mul(P6); b.mul(P6);
+		gcd(a, b, g); assert(g == P5 * P6);
+		a.mul(P7); b.mul(P7);
+		gcd(a, b, g); assert(g == P5 * P6 * P7);
+	}
 }
 
 bool chance(int n)

@@ -8,6 +8,20 @@
 
 namespace mynum {
 
+void gcd(const number_t& a, const number_t& b, number_t& res)
+{
+	if (!a.is_zero() && !b.is_zero())
+	{
+		number_t tmp(b);
+		res.assign(a);
+		__EUCLID(res, tmp);
+	}
+	else
+	{
+		res.set_zero();
+	}
+}
+
 int pom(const number_t& a, const number_t& b, const number_t& c, number_t& res)
 {
     if (!c.is_zero() && !b.is_neg())
@@ -319,6 +333,22 @@ void prime_prev_roughly(const number_t& n, number_t& res)
     }
 }
 
+void __EUCLID(number_t& a, number_t& b)
+{
+	assert(!a.is_zero() && !b.is_zero());
+
+	number_t tmp;
+	if (cmp(a, b) < 0)
+	{
+		swap(a, b);
+	}
+	while (!b.is_zero())
+	{
+		mod(a, b, tmp);
+		a.steal(b);
+		b.steal(tmp);
+	}
+}
 
 void __pom(unit_t a, const number_t& b, const number_t& c, number_t& res)
 {

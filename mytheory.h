@@ -143,7 +143,7 @@ struct SRG_t: public RNG
 
     word_t gen();
 
-    bool gen_bytes(byte_t* p, size_t n);
+    bool gen_bytes(void* p, size_t n);
 
     bool valid() const;
 };

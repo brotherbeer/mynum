@@ -1,9 +1,10 @@
-#include <ctime>
-#include <cassert>
-#include <iostream>
-#if defined(_MSC_VER)
+#if defined(_WIN32)
 #include <windows.h>
+#else
+#include <cstdio>
+#include <sys/time.h>
 #endif
+#include <cassert>
 #include "mytheory.h"
 
 
@@ -75,19 +76,37 @@ bool RNG::gen_bytes(void* vp, size_t n)
     return true;
 }
 
-#if defined(_MSC_VER)
-word_t get_seed()
+#if defined(_WIN32)
+unsigned long long __get_seed()
 {
-    static word_t n = 1;
-
-    ULONGLONG x;
     LARGE_INTEGER PerfCnt;
     DWORD tid = GetCurrentThreadId();
     DWORD pid = GetCurrentProcessId();
-    QueryPerformanceCounter(&PerfCnt);
-    PerfCnt.HighPart ^= tid;
-    PerfCnt.HighPart ^= pid;
-    x = PerfCnt.QuadPart * n++;
+    if (QueryPerformanceCounter(&PerfCnt))
+    {
+        PerfCnt.HighPart ^= tid;
+        PerfCnt.HighPart ^= pid;
+        return PerfCnt.QuadPart;
+    }
+    return 1;
+}
+#else
+unsigned long long __get_seed()
+{
+    struct timeval tv;
+    if (gettimeofday(&tv, NULL) == 0)
+    {
+        return tv.tv_usec;
+    }
+    return 1;
+}
+#endif
+
+word_t get_seed()
+{
+    static word_t n = 1;
+    unsigned long long x = __get_seed() * n++;
+
     x ^= x << 16;
     x ^= x << 31;
     x ^= x >> 7;
@@ -98,14 +117,6 @@ word_t get_seed()
     }
     return n;
 }
-#else
-word_t get_seed()
-{
-    static word_t n = 1;
-
-    return n++;
-}
-#endif
 
 XORSP_t::XORSP_t(): s0(get_seed()), s1(s0)
 {}
@@ -158,6 +169,8 @@ bool XORSP_t::gen_bytes(void* vp, size_t n)
     return true;
 }
 
+#if defined(_WIN32)
+
 SRG_t::SRG_t()
 {
     if (!CryptAcquireContext((HCRYPTPROV*)&handle, NULL, NULL, PROV_RSA_FULL, CRYPT_VERIFYCONTEXT))
@@ -184,10 +197,45 @@ word_t SRG_t::gen()
     return 0;
 }
 
-bool SRG_t::gen_bytes(byte_t* p, size_t n)
+bool SRG_t::gen_bytes(void* p, size_t n)
 {
-    return CryptGenRandom((HCRYPTPROV)handle, (DWORD)n, p) == TRUE;   
+    return CryptGenRandom((HCRYPTPROV)handle, (DWORD)n, (BYTE*)p) == TRUE;   
 }
+
+#else
+
+SRG_t::SRG_t(): handle((word_t)fopen("/dev/urandom", "rb"))
+{}
+
+SRG_t::~SRG_t()
+{
+    if (handle)
+    {
+        fclose((FILE*)handle);
+    }
+}
+
+word_t SRG_t::gen()
+{
+    if (handle)
+    {
+        word_t x;
+        fread(&x, sizeof(x), 1, (FILE*)handle);
+        return x;
+    }
+    return 0;
+}
+
+bool SRG_t::gen_bytes(void* p, size_t n)
+{
+    if (handle)
+    {
+        return fread(p, 1, n, (FILE*)handle) == n;
+    }
+    return false;
+}
+
+#endif
 
 bool SRG_t::valid() const
 {

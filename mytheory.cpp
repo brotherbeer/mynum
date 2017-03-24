@@ -1,5 +1,6 @@
 #include <ctime>
 #include <cassert>
+#include <iostream>
 #if defined(_MSC_VER)
 #include <windows.h>
 #endif
@@ -10,16 +11,18 @@ namespace mynum {
 
 void gcd(const number_t& a, const number_t& b, number_t& res)
 {
-	if (!a.is_zero() && !b.is_zero())
-	{
-		number_t tmp(b);
-		res.assign(a);
-		__EUCLID(res, tmp);
-	}
-	else
-	{
-		res.set_zero();
-	}
+    if (!a.is_zero() && !b.is_zero())
+    {
+        number_t tmp(b);
+        res.assign(a);
+        res.set_abs();
+        tmp.set_abs();
+        __EUCLID(res, tmp);
+    }
+    else
+    {
+        res.set_zero();
+    }
 }
 
 int pom(const number_t& a, const number_t& b, const number_t& c, number_t& res)
@@ -72,7 +75,39 @@ bool RNG::gen_bytes(void* vp, size_t n)
     return true;
 }
 
-XORSP_t::XORSP_t(): s0((state_t)time(NULL)), s1(s0)
+#if defined(_MSC_VER)
+word_t get_seed()
+{
+    static word_t n = 1;
+
+    ULONGLONG x;
+    LARGE_INTEGER PerfCnt;
+    DWORD tid = GetCurrentThreadId();
+    DWORD pid = GetCurrentProcessId();
+    QueryPerformanceCounter(&PerfCnt);
+    PerfCnt.HighPart ^= tid;
+    PerfCnt.HighPart ^= pid;
+    x = PerfCnt.QuadPart * n++;
+    x ^= x << 16;
+    x ^= x << 31;
+    x ^= x >> 7;
+    x ^= x << 17;
+    if (x)
+    {
+        return (x * 0x2545F4914F6CDD3B) & WORDMAX;
+    }
+    return n;
+}
+#else
+word_t get_seed()
+{
+    static word_t n = 1;
+
+    return n++;
+}
+#endif
+
+XORSP_t::XORSP_t(): s0(get_seed()), s1(s0)
 {}
 
 XORSP_t::XORSP_t(word_t seed): s0(seed), s1(s0)
@@ -159,7 +194,7 @@ bool SRG_t::valid() const
     return handle != 0;
 }
 
-static LCG_t default_rng((word_t)time(NULL));
+static LCG_t default_rng;
 static RNG* p_default_rng = &default_rng;
 
 RNG& get_default_RNG()
@@ -335,19 +370,19 @@ void prime_prev_roughly(const number_t& n, number_t& res)
 
 void __EUCLID(number_t& a, number_t& b)
 {
-	assert(!a.is_zero() && !b.is_zero());
+    assert(a.is_pos() && b.is_pos());
 
-	number_t tmp;
-	if (cmp(a, b) < 0)
-	{
-		swap(a, b);
-	}
-	while (!b.is_zero())
-	{
-		mod(a, b, tmp);
-		a.steal(b);
-		b.steal(tmp);
-	}
+    number_t tmp;
+    if (cmp(a, b) < 0)
+    {
+        swap(a, b);
+    }
+    while (!b.is_zero())
+    {
+        mod(a, b, tmp);
+        a.steal(b);
+        b.steal(tmp);
+    }
 }
 
 void __pom(unit_t a, const number_t& b, const number_t& c, number_t& res)

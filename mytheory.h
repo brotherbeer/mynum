@@ -6,7 +6,7 @@
 namespace mynum {
 
 void gcd(const number_t& a, const number_t& b, number_t& res);
-void gcdext(const number_t& a, const number_t& b, number_t& x, number_t& y, number_t& res);
+void gcdext(const number_t& a, const number_t& b, number_t& x, number_t& y, number_t& g);
 
 int pom(const number_t& a, const number_t& b, const number_t& c, number_t& res);
 
@@ -23,6 +23,8 @@ struct RNG;
 
 RNG& get_default_RNG();
 void set_default_RNG(RNG& rng);
+
+word_t get_seed();
 
 unit_t rand_unit();
 unit_t rand_unit(RNG& rng);
@@ -50,7 +52,7 @@ template <word_t A, word_t C> struct _LCG_t: public RNG
 {
     word_t seed;
 
-    _LCG_t(): seed((word_t)time(NULL))
+    _LCG_t(): seed(get_seed())
     {}
 
     _LCG_t(word_t s): seed(s)

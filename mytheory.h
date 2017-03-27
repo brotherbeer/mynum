@@ -150,6 +150,7 @@ struct SRG_t: public RNG
 
 /** inner functions */
 void __EUCLID(number_t& a, number_t& b);
+void __extended_EUCLID(number_t& a, number_t& b, number_t& c, number_t& d, number_t& g);
 void __pom(unit_t a, const number_t& b, const number_t& c, number_t& res);
 void __pom(const number_t& a, const number_t& b, const number_t& c, number_t& res);
 bool __MR_witness_unit(unit_t b, const number_t& n, const number_t& nd1, const number_t& u, size_t t);

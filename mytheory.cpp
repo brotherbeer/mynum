@@ -20,10 +20,22 @@ void gcd(const number_t& a, const number_t& b, number_t& res)
         tmp.set_abs();
         __EUCLID(res, tmp);
     }
-    else
+    else if (a.is_zero() && !b.is_zero())
     {
-        res.set_zero();
+        res.assign(b);
     }
+    else if (b.is_zero() && !a.is_zero())
+    {
+        res.assign(a);
+    }
+}
+
+void gcdext(const number_t& a, const number_t& b, number_t& x, number_t& y, number_t& g)
+{
+    number_t aa(a), bb(b);
+    aa.set_abs();
+    bb.set_abs();
+    __extended_EUCLID(aa, bb, x, y, g);
 }
 
 int pom(const number_t& a, const number_t& b, const number_t& c, number_t& res)
@@ -431,7 +443,32 @@ void __EUCLID(number_t& a, number_t& b)
         a.steal(b);
         b.steal(tmp);
     }
+    // now, a is the GCD
 }
+
+void __extended_EUCLID(number_t& a, number_t& b, number_t& c, number_t& d, number_t& g)
+{
+    assert(a.is_pos() && b.is_pos());
+
+    number_t prevx(1), x;    number_t prevy, y(1);    number_t q, r, t0, t1;
+
+    while (!b.is_zero())
+    {
+        div(a, b, q, r);
+
+        t0 = x;
+        kmul(q, x, t1);
+        sub(prevx, t1, x);
+        prevx = t0;
+        
+        t0 = y;
+        kmul(q, y, t1);
+        sub(prevy, t1, y);
+        prevy = t0;
+
+        a = b;
+        b = r;
+    }    g.steal(a);    c.steal(prevx);    d.steal(prevy);}
 
 void __pom(unit_t a, const number_t& b, const number_t& c, number_t& res)
 {

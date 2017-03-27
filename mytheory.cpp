@@ -32,10 +32,25 @@ void gcd(const number_t& a, const number_t& b, number_t& res)
 
 void gcdext(const number_t& a, const number_t& b, number_t& x, number_t& y, number_t& g)
 {
-    number_t aa(a), bb(b);
-    aa.set_abs();
-    bb.set_abs();
-    __extended_EUCLID(aa, bb, x, y, g);
+    if (!a.is_zero() && !b.is_zero())
+    {
+        number_t aa(a), bb(b);
+        aa.set_abs();
+        bb.set_abs();
+        __extended_EUCLID(aa, bb, x, y, g);
+    }
+    else if (a.is_zero() && !b.is_zero())
+    {
+        g.assign(b);
+        x.set_zero();
+        y.set_one();
+    }
+    else if (b.is_zero() && !a.is_zero())
+    {
+        g.assign(a);
+        x.set_one();
+        y.set_zero();
+    }
 }
 
 int pom(const number_t& a, const number_t& b, const number_t& c, number_t& res)
@@ -450,25 +465,25 @@ void __extended_EUCLID(number_t& a, number_t& b, number_t& c, number_t& d, numbe
 {
     assert(a.is_pos() && b.is_pos());
 
-    number_t prevx(1), x;    number_t prevy, y(1);    number_t q, r, t0, t1;
+    number_t px(1), py;    number_t x, y(1);    number_t q, r, t0, t1;
 
     while (!b.is_zero())
     {
         div(a, b, q, r);
 
-        t0 = x;
-        kmul(q, x, t1);
-        sub(prevx, t1, x);
-        prevx = t0;
+        t0.steal(x);
+        kmul(q, t0, t1);
+        sub(px, t1, x);
+        px.steal(t0);
         
-        t0 = y;
-        kmul(q, y, t1);
-        sub(prevy, t1, y);
-        prevy = t0;
+        t0.steal(y);
+        kmul(q, t0, t1);
+        sub(py, t1, y);
+        py.steal(t0);
 
-        a = b;
-        b = r;
-    }    g.steal(a);    c.steal(prevx);    d.steal(prevy);}
+        a.steal(b);
+        b.steal(r);
+    }    g.steal(a);    c.steal(px);    d.steal(py);}
 
 void __pom(unit_t a, const number_t& b, const number_t& c, number_t& res)
 {

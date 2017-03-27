@@ -6,6 +6,7 @@
 #include <map>
 #include <fstream>
 #include <cassert>
+#include <windows.h>
 #include "mynum.h"
 #include "myoperators.h"
 #include "mytheory.h"
@@ -3417,6 +3418,8 @@ void test_gcd()
 		gcd(3, 4, res); assert(res == 1);
 		gcd(7, 3, res); assert(res == 1);
 		gcd(1024, 2, res); assert(res == 2);
+        gcd(1024, 0, res); assert(res == 1024);
+        gcd(0, 2, res); assert(res == 2);
 	}{
 		NN a(19937), b(19937), c(19937), g;
 		a.pow(3), b.pow(7);
@@ -3439,7 +3442,32 @@ void test_gcd()
 		gcd(a, b, g); assert(g == P5 * P6);
 		a.mul(P7); b.mul(P7);
 		gcd(a, b, g); assert(g == P5 * P6 * P7);
-	}
+    }{
+        NN x, y, g;
+        gcdext(49, 14, x, y, g);
+        assert(g == 7);
+        assert(49 * x + 14 * y == g);
+        gcdext(14, 49, x, y, g);
+        assert(14 * x + 49 * y == g);
+
+        gcdext(0, 1, x, y, g);
+        assert(g == 1);
+        assert(y == 1);
+
+        gcdext(1, 0, x, y, g);
+        assert(g == 1);
+        assert(x == 1);
+    }{
+        NN a(P3), b(P4), x, y, g;
+        gcdext(a, b, x, y, g); assert(g == 1);
+        assert(a * x + b * y == g);
+        a.mul(P5); b.mul(P5);
+        gcdext(a, b, x, y, g); assert(g == P5);
+        assert(a * x + b * y == g);
+        a.mul(P6); b.mul(P6);
+        gcdext(a, b, x, y, g); assert(g == P5 * P6);
+        assert(a * x + b * y == g);
+    }
 }
 
 bool chance(int n)

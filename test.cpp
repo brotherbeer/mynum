@@ -3332,15 +3332,12 @@ void test_prime()
     {
         assert(!prime_test_roughly(0));
         assert(!prime_test_roughly(1));
-
         assert(prime_test_roughly(2));
         assert(prime_test_roughly(3));
         assert(!prime_test_roughly(4));
         assert(prime_test_roughly(5));
-
         assert(prime_test_roughly(233));
         assert(prime_test_roughly(239));
-
         assert(!prime_test_roughly(561)); // Carmichael
         assert(!prime_test_roughly(1105));
         assert(!prime_test_roughly(1729));
@@ -3372,6 +3369,18 @@ void test_prime()
         prime_prev_roughly(239, prev); assert(prev == 233);
         prime_prev_roughly(983, prev); assert(prev == 977);
         prime_prev_roughly(74093, prev); assert(prev == 74077);
+    }{
+        assert(!MR_prime_test(-1, 3));
+        assert(!MR_prime_test(0, 3));
+        assert(!MR_prime_test(1, 3));
+        assert(MR_prime_test(2, 16));
+        assert(MR_prime_test(3, 16));
+        assert(!MR_prime_test(4, 16));
+        assert(MR_prime_test(5, 16));
+        assert(MR_prime_test(7, 16));
+        assert(MR_prime_test(P0, 4));
+        assert(MR_prime_test(P1, 4));
+        assert(!MR_prime_test(P0*P1, 4));
     }
 }
 
@@ -3385,26 +3394,6 @@ void test_rand()
             assert(a.bits_count() <= 113);
             assert(rand(128, a));
             assert(a.bits_count() <= 128);
-        }
-    }{
-        SRG_t srg;
-        assert(srg.valid());
-        NN a;
-        for (int i = 0; i < 16; i++)
-        {
-            assert(rand(141, a, srg));
-            assert(a.bits_count() <= 141);
-            assert(rand(32, a, srg));
-            assert(a.bits_count() <= 32);
-        }
-    }{
-        NN a;
-        for (int i = 0; i < 16; i++)
-        {
-            assert(rand(127, a, true));
-            assert(a.bits_count() == 127);
-            assert(rand(16, a, true));
-            assert(a.bits_count() == 16);
         }
     }
 }
@@ -3428,7 +3417,7 @@ void test_gcd()
 		c.mul(54521);
 		gcd(b, c, g); assert(g == 19937);
 	}{
-		NN a("12697125487235487234542523908753461770189653496751023887959238045623489523489712");
+		NN a("-12697125487235487234542523908753461770189653496751023887959238045623489523489712");
 		NN b("845724375209348564239023485239084752349085723465735409865349087634987289347592368"), g;
 		gcd(a, b, g); assert(g == 48);
 		b.assign(P3);
@@ -3453,7 +3442,6 @@ void test_gcd()
         gcdext(0, 1, x, y, g);
         assert(g == 1);
         assert(y == 1);
-
         gcdext(1, 0, x, y, g);
         assert(g == 1);
         assert(x == 1);

@@ -156,14 +156,14 @@ struct number_t: public _base_number_t  // bignum class
     void add_unit(unit_t);
     void sub_unit(unit_t);
     void mul_unit(unit_t);
-    unit_t div_unit(unit_t);
-    unit_t div_unit(const UDM&);
     void mod_unit(unit_t);
     void mod_unit(const UDM&);
     void bit_and_unit(unit_t);
     void bit_or_unit(unit_t);
     void bit_xor_unit(unit_t);
 
+    unit_t div_unit(unit_t);
+    unit_t div_unit(const UDM&);
     unit_t absrem_unit(unit_t) const;
     unit_t absrem_unit(const UDM&) const;
 
@@ -255,9 +255,6 @@ struct number_t: public _base_number_t  // bignum class
     bool is_po2() const;
     bool is_pos() const  { return len > 0; }
     bool is_zero() const { return len == 0; }
-
-    bool eq_unit(unit_t x) const { return len == 1 && dat[0] == x;}
-    bool gt_unit(unit_t x) const { return len > 1 || (len == 1 && dat[0] > x); }
 
     string_t& to_bin_string(string_t&) const;
     string_t& to_oct_string(string_t&) const;

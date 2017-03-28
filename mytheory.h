@@ -18,7 +18,7 @@ bool MR_prime_test(const number_t& n, size_t times);
 
 struct RNG;
 
-RNG& get_default_RNG();
+RNG& default_RNG();
 void set_default_RNG(RNG& rng);
 
 word_t get_seed();
@@ -28,8 +28,8 @@ unit_t rand_unit(RNG& rng);
 word_t rand_word();
 word_t rand_word(RNG& rng);
 
-bool rand(size_t maxbits, number_t& n, bool holdmsb = false);
-bool rand(size_t maxbits, number_t& n, RNG& rng, bool holdmsb = false);
+bool rand(size_t maxbits, number_t& n);
+bool rand(size_t maxbits, RNG& rng, number_t& n);
 bool rand(size_t bits, string_t& s, const string_t& chars, RNG& rng);
 
 struct RNG  // random number generator interface

@@ -272,7 +272,7 @@ word_t get_seed()
 static XORSP_t default_rng;
 static RNG* p_default_rng = &default_rng;
 
-RNG& get_default_RNG()
+RNG& default_RNG()
 {
     return *p_default_rng;
 }
@@ -302,18 +302,15 @@ word_t rand_word(RNG& rng)
     return rng.gen();
 }
 
-bool rand(size_t maxbits, number_t& n, bool holdmsb)
+bool rand(size_t maxbits, number_t& n)
 {
-    return rand(maxbits, n, *p_default_rng, holdmsb);
+    return rand(maxbits, *p_default_rng, n);
 }
 
-bool rand(size_t maxbits, number_t& n, RNG& rng, bool holdmsb)
+bool rand(size_t maxbits, RNG& rng, number_t& n)
 {
-    size_t bits, m, l;
-
-    bits = holdmsb? maxbits: rng.gen() % (maxbits + 1);
-    m = bits % UNITBITS;
-    l = bits / UNITBITS + (m != 0);
+    size_t m = maxbits % UNITBITS;
+    size_t l = maxbits / UNITBITS + (m != 0);
 
     n.clear();
     n.reserve(l);
@@ -322,10 +319,6 @@ bool rand(size_t maxbits, number_t& n, RNG& rng, bool holdmsb)
         if (m)
         {
             n.dat[l - 1] &= UNITMAX >> (UNITBITS - m);
-        }
-        if (holdmsb && bits)
-        {
-            n.bit_set_one(bits - 1);
         }
         __trim_leading_zeros(n.dat, l);
         n.len = l;
@@ -409,7 +402,7 @@ bool prime_test_roughly(const number_t& n)
 
 void prime_next_roughly(const number_t& n, number_t& res)
 {
-    if (n.gt_unit(1))
+    if (gt(n, 1))
     {
         number_t m(n);
         m.add_unit(n.is_even()? 1: 2);
@@ -427,7 +420,7 @@ void prime_next_roughly(const number_t& n, number_t& res)
 
 void prime_prev_roughly(const number_t& n, number_t& res)
 {
-    if (n.gt_unit(3))
+    if (gt(n, 3))
     {
         number_t m(n);
         m.sub_unit(n.is_even()? 1: 2);
@@ -437,7 +430,7 @@ void prime_prev_roughly(const number_t& n, number_t& res)
         }
         res.steal(m);
     }
-    else if (n.eq_unit(3))
+    else if (eq(n, 3))
     {
         res.assign(2);
     }
@@ -445,19 +438,22 @@ void prime_prev_roughly(const number_t& n, number_t& res)
 
 bool MR_prime_test(const number_t & n, size_t times)
 {
-    size_t bits, tz;
-    if (n.gt_unit(3) && n.is_odd())
+    if (gt(n, 3) && n.is_odd())
     {
+        size_t nb, rb, tz;
         number_t nd1(n), u, base;
+
         nd1--;
         tz = nd1.tzbits_count();
+        nb = n.bits_count();
         u.assign(nd1, tz, nd1.bits_count());
-        bits = n.bits_count() - 1;
+
         while (times--)
         {
             do
             {
-                rand(bits, base);
+                rb = rand_word();
+                rand(rb % nb, base);
             }
             while (base.is_zero() || base.is_one());
 
@@ -468,7 +464,7 @@ bool MR_prime_test(const number_t & n, size_t times)
         }
         return true;
     }
-    else if(n.eq_unit(2) || n.eq_unit(3))
+    else if(eq(n, 2) || eq(n, 3))
     {
         return true;
     }
@@ -574,6 +570,9 @@ void __pom(const number_t& a, const number_t& b, const number_t& c, number_t& re
 
 bool __MR_witness(const number_t& b, const number_t& n, const number_t& nd1, const number_t& u, size_t t)
 {
+    assert(lt(b, n));
+    assert(!b.is_zero() && !b.is_one());
+
     bool cond;
     number_t x;
 

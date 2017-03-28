@@ -251,9 +251,13 @@ struct number_t: public _base_number_t  // bignum class
     bool is_neg_one() const  { return len == -1 && dat[0] == 1; }
     bool is_odd() const;
     bool is_one() const  { return len == 1 && dat[0] == 1; }
+    bool is_two() const { return len == 1 && dat[0] == 2; }
     bool is_po2() const;
     bool is_pos() const  { return len > 0; }
     bool is_zero() const { return len == 0; }
+
+    bool eq_unit(unit_t x) const { return len == 1 && dat[0] == x;}
+    bool gt_unit(unit_t x) const { return len > 1 || (len == 1 && dat[0] > x); }
 
     string_t& to_bin_string(string_t&) const;
     string_t& to_oct_string(string_t&) const;
@@ -396,7 +400,6 @@ protected:
     slen_t __abs_sub_unit(unit_t);
     slen_t __abs_add_word(word_t);
     slen_t __abs_sub_word(word_t);
-    slen_t __bits_reserve(slen_t);
     void __copy(const number_t&);
     void __construct_add(unit_t);
     void __construct_mul(unit_t);

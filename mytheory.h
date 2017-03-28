@@ -4,7 +4,7 @@
 
 
 namespace mynum {
-
+    
 void gcd(const number_t& a, const number_t& b, number_t& res);
 void gcdext(const number_t& a, const number_t& b, number_t& x, number_t& y, number_t& g);
 
@@ -15,9 +15,6 @@ void prime_next_roughly(const number_t& n, number_t& res);
 void prime_prev_roughly(const number_t& n, number_t& res);
 
 bool MR_prime_test(const number_t& n, size_t times);
-
-void prime_next(const number_t& n, number_t& res, size_t MR_test_times);
-void prime_prev(const number_t& n, number_t& res, size_t MR_test_times);
 
 struct RNG;
 
@@ -31,8 +28,8 @@ unit_t rand_unit(RNG& rng);
 word_t rand_word();
 word_t rand_word(RNG& rng);
 
-bool rand(size_t bits, number_t& n, bool holdmsb = false);
-bool rand(size_t bits, number_t& n, RNG& rng, bool holdmsb = false);
+bool rand(size_t maxbits, number_t& n, bool holdmsb = false);
+bool rand(size_t maxbits, number_t& n, RNG& rng, bool holdmsb = false);
 bool rand(size_t bits, string_t& s, const string_t& chars, RNG& rng);
 
 struct RNG  // random number generator interface
@@ -101,7 +98,11 @@ template <word_t A, word_t C> struct _LCG_t: public RNG
     }
 };
 
+#if UNITBITS == 16
 typedef _LCG_t<0x9d832a31, 0x11> LCG_t;
+#else
+typedef _LCG_t<0x5851f42d4c957f2d, 0x1> LCG_t;
+#endif
 
 // Vigna, Sebastiano (April 2014). "Further scramblings of Marsaglia's xorshift generators"
 // http://vigna.di.unimi.it/ftp/papers/xorshiftplus.pdf
@@ -133,13 +134,13 @@ struct XORSP_t: public RNG   // xor shift plus
     }
 };
 
-struct SRG_t: public RNG
+struct SRNG_t: public RNG
 {
     word_t handle;
 
-    SRG_t();
+    SRNG_t();
 
-    ~SRG_t();
+    ~SRNG_t();
 
     word_t gen();
 
@@ -151,8 +152,8 @@ struct SRG_t: public RNG
 /** inner functions */
 void __EUCLID(number_t& a, number_t& b);
 void __extended_EUCLID(number_t& a, number_t& b, number_t& c, number_t& d, number_t& g);
-void __pom(unit_t a, const number_t& b, const number_t& c, number_t& res);
+void __pom_unit(unit_t a, const number_t& b, const number_t& c, number_t& res);
 void __pom(const number_t& a, const number_t& b, const number_t& c, number_t& res);
 bool __MR_witness_unit(unit_t b, const number_t& n, const number_t& nd1, const number_t& u, size_t t);
-
+bool __MR_witness(const number_t& b, const number_t& n, const number_t& nd1, const number_t& u, size_t t);
 }

@@ -23,10 +23,12 @@ void gcd(const number_t& a, const number_t& b, number_t& res)
     else if (a.is_zero() && !b.is_zero())
     {
         res.assign(b);
+        res.set_abs();
     }
     else if (b.is_zero() && !a.is_zero())
     {
         res.assign(a);
+        res.set_abs();
     }
 }
 
@@ -103,48 +105,6 @@ bool RNG::gen_bytes(void* vp, size_t n)
     return true;
 }
 
-#if defined(_WIN32)
-unsigned long long __get_seed()
-{
-    LARGE_INTEGER PerfCnt;
-    DWORD tid = GetCurrentThreadId();
-    DWORD pid = GetCurrentProcessId();
-    if (QueryPerformanceCounter(&PerfCnt))
-    {
-        PerfCnt.HighPart ^= tid;
-        PerfCnt.HighPart ^= pid;
-        return PerfCnt.QuadPart;
-    }
-    return 1;
-}
-#else
-unsigned long long __get_seed()
-{
-    struct timeval tv;
-    if (gettimeofday(&tv, NULL) == 0)
-    {
-        return tv.tv_usec;
-    }
-    return 1;
-}
-#endif
-
-word_t get_seed()
-{
-    static word_t n = 1;
-    unsigned long long x = __get_seed() * n++;
-
-    x ^= x << 16;
-    x ^= x << 31;
-    x ^= x >> 7;
-    x ^= x << 17;
-    if (x)
-    {
-        return (x * 0x2545F4914F6CDD3B) & WORDMAX;
-    }
-    return n;
-}
-
 XORSP_t::XORSP_t(): s0(get_seed()), s1(s0)
 {}
 
@@ -198,7 +158,21 @@ bool XORSP_t::gen_bytes(void* vp, size_t n)
 
 #if defined(_WIN32)
 
-SRG_t::SRG_t()
+unsigned long long __get_seed()
+{
+    LARGE_INTEGER PerfCnt;
+    DWORD tid = GetCurrentThreadId();
+    DWORD pid = GetCurrentProcessId();
+    if (QueryPerformanceCounter(&PerfCnt))
+    {
+        PerfCnt.HighPart ^= tid;
+        PerfCnt.HighPart ^= pid;
+        return PerfCnt.QuadPart;
+    }
+    return 1;
+}
+
+SRNG_t::SRNG_t()
 {
     if (!CryptAcquireContext((HCRYPTPROV*)&handle, NULL, NULL, PROV_RSA_FULL, CRYPT_VERIFYCONTEXT))
     {
@@ -206,7 +180,7 @@ SRG_t::SRG_t()
     }
 }
 
-SRG_t::~SRG_t()
+SRNG_t::~SRNG_t()
 {
     if (handle)
     {
@@ -214,7 +188,7 @@ SRG_t::~SRG_t()
     }
 }
 
-word_t SRG_t::gen()
+word_t SRNG_t::gen()
 {
     word_t x;
     if (CryptGenRandom((HCRYPTPROV)handle, sizeof(x), (BYTE*)&x))
@@ -224,17 +198,27 @@ word_t SRG_t::gen()
     return 0;
 }
 
-bool SRG_t::gen_bytes(void* p, size_t n)
+bool SRNG_t::gen_bytes(void* p, size_t n)
 {
     return CryptGenRandom((HCRYPTPROV)handle, (DWORD)n, (BYTE*)p) == TRUE;   
 }
 
 #else
 
-SRG_t::SRG_t(): handle((word_t)fopen("/dev/urandom", "rb"))
+unsigned long long __get_seed()
+{
+    struct timeval tv;
+    if (gettimeofday(&tv, NULL) == 0)
+    {
+        return tv.tv_usec;
+    }
+    return 1;
+}
+
+SRNG_t::SRNG_t(): handle((word_t)fopen("/dev/urandom", "rb"))
 {}
 
-SRG_t::~SRG_t()
+SRNG_t::~SRNG_t()
 {
     if (handle)
     {
@@ -242,7 +226,7 @@ SRG_t::~SRG_t()
     }
 }
 
-word_t SRG_t::gen()
+word_t SRNG_t::gen()
 {
     if (handle)
     {
@@ -253,7 +237,7 @@ word_t SRG_t::gen()
     return 0;
 }
 
-bool SRG_t::gen_bytes(void* p, size_t n)
+bool SRNG_t::gen_bytes(void* p, size_t n)
 {
     if (handle)
     {
@@ -264,12 +248,28 @@ bool SRG_t::gen_bytes(void* p, size_t n)
 
 #endif
 
-bool SRG_t::valid() const
+bool SRNG_t::valid() const
 {
     return handle != 0;
 }
 
-static LCG_t default_rng;
+word_t get_seed()
+{
+    static word_t n = 1;
+    unsigned long long x = __get_seed() * n++;
+
+    x ^= x << 16;
+    x ^= x << 31;
+    x ^= x >> 7;
+    x ^= x << 17;
+    if (x)
+    {
+        return (x * 0x2545F4914F6CDD3B) & WORDMAX;
+    }
+    return n;
+}
+
+static XORSP_t default_rng;
 static RNG* p_default_rng = &default_rng;
 
 RNG& get_default_RNG()
@@ -302,34 +302,34 @@ word_t rand_word(RNG& rng)
     return rng.gen();
 }
 
-bool rand(size_t bits, number_t& n, bool holdmsb)
+bool rand(size_t maxbits, number_t& n, bool holdmsb)
 {
-    return rand(bits, n, *p_default_rng, holdmsb);
+    return rand(maxbits, n, *p_default_rng, holdmsb);
 }
 
-bool rand(size_t bits, number_t& n, RNG& rng, bool holdmsb)
+bool rand(size_t maxbits, number_t& n, RNG& rng, bool holdmsb)
 {
-    size_t m = bits % UNITBITS;
-    size_t l = bits / UNITBITS + (m != 0);
+    size_t bits, m, l;
 
-    if (l)
+    bits = holdmsb? maxbits: rng.gen() % (maxbits + 1);
+    m = bits % UNITBITS;
+    l = bits / UNITBITS + (m != 0);
+
+    n.clear();
+    n.reserve(l);
+    if (rng.gen_bytes(n.dat, l * sizeof(unit_t)))
     {
-        n.clear();
-        n.reserve(l);
-        if (rng.gen_bytes(n.dat, l * sizeof(unit_t)))
+        if (m)
         {
-            if (m)
-            {
-                n.dat[l - 1] &= UNITMAX >> (UNITBITS - m);
-            }
-            if (holdmsb)
-            {
-                n.bit_set_one(bits - 1);
-            }
-            __trim_leading_zeros(n.dat, l);
-            n.len = l;
-            return true;
+            n.dat[l - 1] &= UNITMAX >> (UNITBITS - m);
         }
+        if (holdmsb && bits)
+        {
+            n.bit_set_one(bits - 1);
+        }
+        __trim_leading_zeros(n.dat, l);
+        n.len = l;
+        return true;
     }
     return false;
 }
@@ -400,7 +400,7 @@ bool prime_test_roughly(const number_t& n)
     {
         return __prime_test_roughly(n);
     }
-    else if (eq(n, 2))
+    else if (n.is_two())
     {
         return true;
     }
@@ -409,7 +409,7 @@ bool prime_test_roughly(const number_t& n)
 
 void prime_next_roughly(const number_t& n, number_t& res)
 {
-    if (gt(n, 1))
+    if (n.gt_unit(1))
     {
         number_t m(n);
         m.add_unit(n.is_even()? 1: 2);
@@ -427,7 +427,7 @@ void prime_next_roughly(const number_t& n, number_t& res)
 
 void prime_prev_roughly(const number_t& n, number_t& res)
 {
-    if (gt(n, 3))
+    if (n.gt_unit(3))
     {
         number_t m(n);
         m.sub_unit(n.is_even()? 1: 2);
@@ -437,10 +437,42 @@ void prime_prev_roughly(const number_t& n, number_t& res)
         }
         res.steal(m);
     }
-    else if (eq(n, 3))
+    else if (n.eq_unit(3))
     {
         res.assign(2);
     }
+}
+
+bool MR_prime_test(const number_t & n, size_t times)
+{
+    size_t bits, tz;
+    if (n.gt_unit(3) && n.is_odd())
+    {
+        number_t nd1(n), u, base;
+        nd1--;
+        tz = nd1.tzbits_count();
+        u.assign(nd1, tz, nd1.bits_count());
+        bits = n.bits_count() - 1;
+        while (times--)
+        {
+            do
+            {
+                rand(bits, base);
+            }
+            while (base.is_zero() || base.is_one());
+
+            if (__MR_witness(base, n, nd1, u, tz))
+            {
+                return false;
+            }
+        }
+        return true;
+    }
+    else if(n.eq_unit(2) || n.eq_unit(3))
+    {
+        return true;
+    }
+    return false;
 }
 
 void __EUCLID(number_t& a, number_t& b)
@@ -465,7 +497,9 @@ void __extended_EUCLID(number_t& a, number_t& b, number_t& c, number_t& d, numbe
 {
     assert(a.is_pos() && b.is_pos());
 
-    number_t px(1), py;    number_t x, y(1);    number_t q, r, t0, t1;
+    number_t px(1), py;
+    number_t x, y(1);
+    number_t q, r, t0, t1;
 
     while (!b.is_zero())
     {
@@ -483,9 +517,13 @@ void __extended_EUCLID(number_t& a, number_t& b, number_t& c, number_t& d, numbe
 
         a.steal(b);
         b.steal(r);
-    }    g.steal(a);    c.steal(px);    d.steal(py);}
+    }
+    g.steal(a);
+    c.steal(px);
+    d.steal(py);
+}
 
-void __pom(unit_t a, const number_t& b, const number_t& c, number_t& res)
+void __pom_unit(unit_t a, const number_t& b, const number_t& c, number_t& res)
 {
     assert(a && b.is_pos() && !c.is_zero());
 
@@ -534,12 +572,35 @@ void __pom(const number_t& a, const number_t& b, const number_t& c, number_t& re
     res.steal(r);
 }
 
-bool __MR_witness_unit(unit_t b, const number_t& n, const number_t& nd1, const number_t& u, size_t t)
+bool __MR_witness(const number_t& b, const number_t& n, const number_t& nd1, const number_t& u, size_t t)
 {
     bool cond;
     number_t x;
 
     __pom(b, u, n, x);
+    for (size_t i = 1; i <= t; i++)
+    {
+        cond = !x.is_one() && neq(x, nd1);
+        x.ksqr();
+        x.mod(n);
+        if (x.is_one() && cond)
+        {
+            return true;
+        }
+    }
+    if (!x.is_one())
+    {
+        return true;
+    }
+    return false;
+}
+
+bool __MR_witness_unit(unit_t b, const number_t& n, const number_t& nd1, const number_t& u, size_t t)
+{
+    bool cond;
+    number_t x;
+
+    __pom_unit(b, u, n, x);
     for (size_t i = 1; i <= t; i++)
     {
         cond = !x.is_one() && neq(x, nd1);

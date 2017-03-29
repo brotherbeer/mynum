@@ -66,10 +66,10 @@ template <word_t A, word_t C> struct _LCG_t: public RNG
         word_t *pw, *pwe;
         byte_t *p = (byte_t*)vp, *pe;
 
-        for (; n && ((word_t)p & (sizeof(word_t) - 1)) != 0; n--, p++)
+        for (; n && ((word_t)p & (sizeof(word_t) - 1)) != 0; n--)
         {
             seed = A * seed + C;
-            *p = seed & 0xff;
+            *p++ = byte_t((seed & 0xff00) >> 8);
         }
 
         pe = p + n;
@@ -80,14 +80,14 @@ template <word_t A, word_t C> struct _LCG_t: public RNG
             while (pw != pwe)
             {
                 seed = A * seed + C;
-                *pw++ = seed;
+                *pw++ = seed ^ (seed >> UNITBITS);
             }
             p = (byte_t*)pw;
         }
         while (p != pe)
         {
             seed = A * seed + C;
-            *p++ = seed & 0xff;
+            *p++ = byte_t((seed & 0xff00) >> 8);
         }
         return true;
     }

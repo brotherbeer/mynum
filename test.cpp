@@ -3384,18 +3384,50 @@ void test_prime()
     }
 }
 
+void __test_rand(RNG& rng)
+{
+    NN a;
+    size_t times = 128;
+    size_t n0 = 0, n1 = 0, n2 = 0, n3 = 0, n4 = 0;
+    for (size_t i = 0; i < times; i++)
+    {
+        assert(rand(0, rng, a));
+        assert(a.bits_count() == 0);
+
+        assert(rand(1, rng, a));
+        assert(a.bits_count() <= 1);
+        if (a.bits_count() == 1) n0++;
+
+        assert(rand(7, rng, a));
+        assert(a.bits_count() <= 7);
+        if (a.bits_count() == 7) n1++;
+
+        assert(rand(16, rng, a));
+        assert(a.bits_count() <= 16);
+        if (a.bits_count() == 16) n2++;
+
+        assert(rand(128, rng, a));
+        assert(a.bits_count() <= 128);
+        if (a.bits_count() == 128) n3++;
+
+        assert(rand(233, rng, a));
+        assert(a.bits_count() <= 233);
+        if (a.bits_count() == 233) n4++;
+
+    }
+    assert(n0 < times && n0 > 1);
+    assert(n1 < times && n1 > 1);
+    assert(n2 < times && n2 > 1);
+    assert(n3 < times && n3 > 1);
+    assert(n4 < times && n4 > 1);
+}
+
+
 void test_rand()
 {
-    {
-        NN a;
-        for (int i = 0; i < 16; i++)
-        {
-            assert(rand(113, a));
-            assert(a.bits_count() <= 113);
-            assert(rand(128, a));
-            assert(a.bits_count() <= 128);
-        }
-    }
+    __test_rand(LCG_t());
+    __test_rand(XORSP_t());
+    __test_rand(SRNG_t());
 }
 
 void test_gcd()

@@ -24,15 +24,15 @@ void set_default_RNG(RNG& rng);
 word_t get_seed();
 
 unit_t rand_unit();
-unit_t rand_unit(RNG& rng);
 word_t rand_word();
-word_t rand_word(RNG& rng);
 
 bool rand(size_t maxbits, number_t& n);
 bool rand(size_t maxbits, RNG& rng, number_t& n);
 bool rand(size_t bits, string_t& s, const string_t& chars, RNG& rng);
 
-struct RNG  // random number generator interface
+inline bool algined(void* p) { return ((word_t)p & (sizeof(word_t) - 1)) == 0; }
+
+struct RNG  // Random Number Generator
 {
     virtual word_t gen() = 0;
 
@@ -45,7 +45,8 @@ struct RNG  // random number generator interface
     virtual ~RNG() {}
 };
 
-template <word_t A, word_t C> struct _LCG_t: public RNG
+template <word_t A, word_t C>
+struct _LCG_t: public RNG  // Linear Congruential Generator
 {
     word_t seed;
 
@@ -57,37 +58,26 @@ template <word_t A, word_t C> struct _LCG_t: public RNG
 
     word_t gen()
     {
-        return seed = A * seed + C;  // M = 1 << WORDBITS
+        return seed = A * seed + C;
     }
 
     bool gen_bytes(void* vp, size_t n)
     {
-        size_t nw;
-        word_t *pw, *pwe;
-        byte_t *p = (byte_t*)vp, *pe;
-
-        for (; n && ((word_t)p & (sizeof(word_t) - 1)) != 0; n--)
+        byte_t* p = (byte_t*)vp;
+        byte_t* e = p + n;
+        for (; !algined(p) && n; n--)
         {
-            seed = A * seed + C;
-            *p++ = byte_t((seed & 0xff00) >> 8);
+            *p++ = (seed = A * seed + C) & 0xff;
         }
-
-        pe = p + n;
-        if ((nw = n / sizeof(word_t)))
+        word_t* w = (word_t*)p;
+        word_t* we = w + n / sizeof(word_t);
+        while (w != we)
         {
-            pw = (word_t*)p;
-            pwe = pw + nw;
-            while (pw != pwe)
-            {
-                seed = A * seed + C;
-                *pw++ = seed ^ (seed >> UNITBITS);
-            }
-            p = (byte_t*)pw;
+            *w++ = seed = A * seed + C;
         }
-        while (p != pe)
+        for (p = (byte_t*)w; p != e; p++)
         {
-            seed = A * seed + C;
-            *p++ = byte_t((seed & 0xff00) >> 8);
+            *p = (seed = A * seed + C) & 0xff;
         }
         return true;
     }
@@ -98,16 +88,59 @@ template <word_t A, word_t C> struct _LCG_t: public RNG
     }
 };
 
+template <word_t A, word_t C>
+struct _XLCG_t: public _LCG_t<A, C>
+{
+    _XLCG_t(): _LCG_t<A, C>()
+    {}
+
+    _XLCG_t(word_t s): _LCG_t<A, C>(s)
+    {}
+
+    word_t gen()
+    {
+        seed = A * seed + C;
+        return seed ^ (seed >> UNITBITS);
+    }
+
+    bool gen_bytes(void* vp, size_t n)
+    {
+        byte_t* p = (byte_t*)vp;
+        byte_t* e = p + n;
+
+        for (; !algined(p) && n; n--)
+        {
+            seed = A * seed + C;
+            *p++ = (seed >>= UNITBITS) & 0xff;
+        }
+        word_t* w = (word_t*)p;
+        word_t* we = w + n / sizeof(word_t);
+        while (w != we)
+        {
+            seed = A * seed + C;
+            *w++ = seed ^ (seed >> UNITBITS);
+        }
+        for (p = (byte_t*)w; p != e; p++)
+        {
+            seed = A * seed + C;
+            *p = (seed >>= UNITBITS) & 0xff;
+        }
+        return true;
+    }
+};
+
 #if UNITBITS == 16
 typedef _LCG_t<0x9d832a31, 0x11> LCG_t;
+typedef _XLCG_t<0x9d832a31, 0x11> XLCG_t;
 #else
-typedef _LCG_t<0x5851f42d4c957f2d, 0x1> LCG_t;
+typedef _LCG_t<0x5851f42d4c957f2d, 0x11> LCG_t;
+typedef _XLCG_t<0x5851f42d4c957f2d, 0x11> XLCG_t;
 #endif
 
 // Vigna, Sebastiano (April 2014). "Further scramblings of Marsaglia's xorshift generators"
 // http://vigna.di.unimi.it/ftp/papers/xorshiftplus.pdf
 
-struct XORSP_t: public RNG   // xor shift plus
+struct XORSP_t: public RNG  // XOR Shift Plus generator
 {
     typedef unsigned long long state_t;
 
@@ -134,13 +167,13 @@ struct XORSP_t: public RNG   // xor shift plus
     }
 };
 
-struct SRNG_t: public RNG
+struct CRNG_t: public RNG  // Cryptographical RNG
 {
     word_t handle;
 
-    SRNG_t();
+    CRNG_t();
 
-    ~SRNG_t();
+    ~CRNG_t();
 
     word_t gen();
 

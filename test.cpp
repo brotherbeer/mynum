@@ -3330,6 +3330,8 @@ NN P8("1269712548723548723454252390875346177018965349675102388795923804562348952
 void test_prime()
 {
     {
+        assert(!prime_test_roughly(-2));
+        assert(!prime_test_roughly(-1));
         assert(!prime_test_roughly(0));
         assert(!prime_test_roughly(1));
         assert(prime_test_roughly(2));
@@ -3341,35 +3343,47 @@ void test_prime()
         assert(!prime_test_roughly(561)); // Carmichael
         assert(!prime_test_roughly(1105));
         assert(!prime_test_roughly(1729));
-        assert(prime_test_roughly(19937)); // prime
-        assert(prime_test_roughly(54503));
-        assert(prime_test_roughly(54517));
-        assert(prime_test_roughly(54521));
+        assert(prime_test_roughly(54503)); // prime
 
 		assert(prime_test_roughly(P0));
 		assert(prime_test_roughly(P1));
-		assert(prime_test_roughly(P2));
 		assert(!prime_test_roughly(P0 - 2));
 		assert(!prime_test_roughly(P1 - 2));
-		assert(!prime_test_roughly(P2 - 2));
     }{
         NN next;
         prime_next_roughly(-8, next); assert(next == 2);
+        prime_next_roughly(-1, next); assert(next == 2);
         prime_next_roughly(0, next); assert(next == 2);
         prime_next_roughly(1, next); assert(next == 2);
         prime_next_roughly(2, next); assert(next == 3);
         prime_next_roughly(3, next); assert(next == 5);
+        prime_next_roughly(8, next); assert(next == 11);
+        prime_next_roughly(232, next); assert(next == 233);
         prime_next_roughly(233, next); assert(next == 239);
         prime_next_roughly(239, next); assert(next == 241);
         prime_next_roughly(74093, next); assert(next == 74099);
+        next = 3;
+        prime_next_roughly(next, next); assert(next == 5);
+        next = 7314076133279565663;
+        prime_next_roughly(next, next); assert(next == 7314076133279565667);
     }{
         NN prev;
+        prime_prev_roughly(-2, prev); // should not crash or be endless loop
+        prime_prev_roughly(-1, prev);
+        prime_prev_roughly(0, prev);
+        prime_prev_roughly(1, prev);
+        prime_prev_roughly(2, prev);
         prime_prev_roughly(3, prev); assert(prev == 2);
         prime_prev_roughly(4, prev); assert(prev == 3);
-        prime_prev_roughly(239, prev); assert(prev == 233);
+        prime_prev_roughly(238, prev); assert(prev == 233);
         prime_prev_roughly(983, prev); assert(prev == 977);
-        prime_prev_roughly(74093, prev); assert(prev == 74077);
+        prime_prev_roughly(74092, prev); assert(prev == 74077);
+        prev = 3;
+        prime_prev_roughly(prev, prev); assert(prev == 2);
+        prev = 7314076133279565669;
+        prime_prev_roughly(prev, prev); assert(prev == 7314076133279565667);
     }{
+        assert(!MR_prime_test(-2, 3));
         assert(!MR_prime_test(-1, 3));
         assert(!MR_prime_test(0, 3));
         assert(!MR_prime_test(1, 3));
@@ -3377,7 +3391,11 @@ void test_prime()
         assert(MR_prime_test(3, 16));
         assert(!MR_prime_test(4, 16));
         assert(MR_prime_test(5, 16));
+        assert(!MR_prime_test(6, 16));
         assert(MR_prime_test(7, 16));
+        assert(!MR_prime_test(8, 16));
+        assert(!MR_prime_test(9, 16));
+        assert(MR_prime_test(11, 16));
         assert(MR_prime_test(P0, 4));
         assert(MR_prime_test(P1, 4));
         assert(!MR_prime_test(P0*P1, 4));
@@ -3415,19 +3433,47 @@ void __test_rand(RNG& rng)
         if (a.bits_count() == 233) n4++;
 
     }
-    assert(n0 < times && n0 > 1);
-    assert(n1 < times && n1 > 1);
-    assert(n2 < times && n2 > 1);
-    assert(n3 < times && n3 > 1);
-    assert(n4 < times && n4 > 1);
+    assert(n0 < times && 3 * n0 > times);
+    assert(n1 < times && 3 * n1 > times);
+    assert(n2 < times && 3 * n2 > times);
+    assert(n3 < times && 3 * n3 > times);
+    assert(n4 < times && 3 * n4 > times);
 }
-
 
 void test_rand()
 {
-    __test_rand(LCG_t());
-    __test_rand(XORSP_t());
-    __test_rand(SRNG_t());
+    byte_t buf1[3], buf2[32], buf3[37];
+    {
+        LCG_t lcg;
+        assert(lcg.valid());
+        assert(lcg.gen_bytes(buf1 + 1, 2));
+        assert(lcg.gen_bytes(buf2 + 1, 31));
+        assert(lcg.gen_bytes(buf3 + 1, 36));
+    }{
+        XLCG_t xlcg;
+        assert(xlcg.valid());
+        assert(xlcg.gen_bytes(buf1 + 1, 2));
+        assert(xlcg.gen_bytes(buf2 + 1, 31));
+        assert(xlcg.gen_bytes(buf3 + 1, 36));
+    }{
+        XORSP_t xorsp;
+        assert(xorsp.valid());
+        assert(xorsp.gen_bytes(buf1 + 1, 2));
+        assert(xorsp.gen_bytes(buf2 + 1, 31));
+        assert(xorsp.gen_bytes(buf3 + 1, 36));
+    }{
+        CRNG_t crng;
+        assert(crng.valid());
+        assert(crng.gen_bytes(buf1 + 1, 2));
+        assert(crng.gen_bytes(buf2 + 1, 31));
+        assert(crng.gen_bytes(buf3 + 1, 36));
+    }{
+        __test_rand(LCG_t());
+        __test_rand(XLCG_t());
+        __test_rand(XORSP_t());
+        __test_rand(CRNG_t());
+    }
+    buf1[0] = buf2[0] = buf3[37] = 0;
 }
 
 void test_gcd()

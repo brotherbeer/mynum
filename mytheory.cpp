@@ -78,29 +78,17 @@ int pom(const number_t& a, const number_t& b, const number_t& c, number_t& res)
 
 bool RNG::gen_bytes(void* vp, size_t n)
 {
-    size_t nw;
-    word_t *pw, *pwe;
-    byte_t *p = (byte_t*)vp, *pe;
-
-    for (; n && ((word_t)p & (sizeof(word_t) - 1)) != 0; n--, p++)
+    byte_t* p = (byte_t*)vp;
+    byte_t* e = p + n;
+    word_t* w = (word_t*)p;
+    word_t* we = w + n / sizeof(word_t);
+    while (w != we)
+    {
+        *w++ = gen();
+    }
+    for (p = (byte_t*)w; p != e; p++)
     {
         *p = gen() & 0xff;
-    }
-
-    pe = p + n;
-    if ((nw = n / sizeof(word_t)))
-    {
-        pw = (word_t*)p;
-        pwe = pw + nw;
-        while (pw != pwe)
-        {
-            *pw++ = gen();
-        }
-        p = (byte_t*)pw;
-    }
-    while (p != pe)
-    {
-        *p++ = gen() & 0xff;
     }
     return true;
 }
@@ -113,12 +101,10 @@ XORSP_t::XORSP_t(word_t seed): s0(seed), s1(s0)
 
 bool XORSP_t::gen_bytes(void* vp, size_t n)
 {
-    size_t nw;
-    word_t *pw, *pwe;
-    byte_t *p = (byte_t*)vp, *pe;
     state_t x, y;
+    byte_t *p = (byte_t*)vp, *e = p + n;
 
-    for (; n && ((word_t)p & (sizeof(word_t) - 1)) != 0; n--, p++)
+    for (; !algined(p) && n; n--, p++)
     {
         x = s0;
         y = s1;
@@ -127,31 +113,25 @@ bool XORSP_t::gen_bytes(void* vp, size_t n)
         s1 = x ^ y ^ (x >> 17) ^ (y >> 26);
         *p = (s1 + y) & 0xff;
     }
-
-    pe = p + n;
-    if ((nw = n / sizeof(word_t)))
-    {
-        pw = (word_t*)p;
-        pwe = pw + nw;
-        while (pw != pwe)
-        {
-            x = s0;
-            y = s1;
-            s0 = y;
-            x ^= x << 23;
-            s1 = x ^ y ^ (x >> 17) ^ (y >> 26);
-            *pw++ = word_t(s1 + y);
-        }
-        p = (byte_t*)pw;
-    }
-    while (p != pe)
+    word_t* w = (word_t*)p;
+    word_t* we = w + n / sizeof(word_t);
+    while (w != we)
     {
         x = s0;
         y = s1;
         s0 = y;
         x ^= x << 23;
         s1 = x ^ y ^ (x >> 17) ^ (y >> 26);
-        *p++ = (s1 + y) & 0xff;
+        *w++ = word_t(s1 + y);
+    }
+    for (p = (byte_t*)w; p != e; p++)
+    {
+        x = s0;
+        y = s1;
+        s0 = y;
+        x ^= x << 23;
+        s1 = x ^ y ^ (x >> 17) ^ (y >> 26);
+        *p = (s1 + y) & 0xff;
     }
     return true;
 }
@@ -172,7 +152,7 @@ unsigned long long __get_seed()
     return 1;
 }
 
-SRNG_t::SRNG_t()
+CRNG_t::CRNG_t()
 {
     if (!CryptAcquireContext((HCRYPTPROV*)&handle, NULL, NULL, PROV_RSA_FULL, CRYPT_VERIFYCONTEXT))
     {
@@ -180,7 +160,7 @@ SRNG_t::SRNG_t()
     }
 }
 
-SRNG_t::~SRNG_t()
+CRNG_t::~CRNG_t()
 {
     if (handle)
     {
@@ -188,7 +168,7 @@ SRNG_t::~SRNG_t()
     }
 }
 
-word_t SRNG_t::gen()
+word_t CRNG_t::gen()
 {
     word_t x;
     if (CryptGenRandom((HCRYPTPROV)handle, sizeof(x), (BYTE*)&x))
@@ -198,7 +178,7 @@ word_t SRNG_t::gen()
     return 0;
 }
 
-bool SRNG_t::gen_bytes(void* p, size_t n)
+bool CRNG_t::gen_bytes(void* p, size_t n)
 {
     return CryptGenRandom((HCRYPTPROV)handle, (DWORD)n, (BYTE*)p) == TRUE;   
 }
@@ -215,10 +195,10 @@ unsigned long long __get_seed()
     return 1;
 }
 
-SRNG_t::SRNG_t(): handle((word_t)fopen("/dev/urandom", "rb"))
+CRNG_t::CRNG_t(): handle((word_t)fopen("/dev/urandom", "rb"))
 {}
 
-SRNG_t::~SRNG_t()
+CRNG_t::~CRNG_t()
 {
     if (handle)
     {
@@ -226,7 +206,7 @@ SRNG_t::~SRNG_t()
     }
 }
 
-word_t SRNG_t::gen()
+word_t CRNG_t::gen()
 {
     if (handle)
     {
@@ -237,7 +217,7 @@ word_t SRNG_t::gen()
     return 0;
 }
 
-bool SRNG_t::gen_bytes(void* p, size_t n)
+bool CRNG_t::gen_bytes(void* p, size_t n)
 {
     if (handle)
     {
@@ -248,7 +228,7 @@ bool SRNG_t::gen_bytes(void* p, size_t n)
 
 #endif
 
-bool SRNG_t::valid() const
+bool CRNG_t::valid() const
 {
     return handle != 0;
 }
@@ -287,19 +267,9 @@ unit_t rand_unit()
     return p_default_rng->gen() & UNITMAX;
 }
 
-unit_t rand_unit(RNG& rng)
-{
-    return rng.gen() & UNITMAX;
-}
-
 word_t rand_word()
 {
     return p_default_rng->gen();
-}
-
-word_t rand_word(RNG& rng)
-{
-    return rng.gen();
 }
 
 bool rand(size_t maxbits, number_t& n)

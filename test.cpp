@@ -6,8 +6,6 @@
 #include <map>
 #include <fstream>
 #include <cassert>
-#include <windows.h>
-#include "mynum.h"
 #include "myoperators.h"
 #include "mytheory.h"
 
@@ -120,6 +118,19 @@ void test_detail()
 
 int main(int argc, char* argv[])
 {
+    //LCG_t lcg;
+    //number_t n, a;
+    //for (int i = 0; i < 32; i++)
+    //{
+    //    rand(1, lcg, a);
+    //    if (a)
+    //    {
+    //        n++;
+    //    }
+    //}
+    //std::cout << n << std::endl;
+    //return 0;
+
     assert(min_base() == 2);
     assert(max_base() == 36);
 
@@ -3431,7 +3442,6 @@ void __test_rand(RNG& rng)
         assert(rand(233, rng, a));
         assert(a.bits_count() <= 233);
         if (a.bits_count() == 233) n4++;
-
     }
     assert(n0 < times && 3 * n0 > times);
     assert(n1 < times && 3 * n1 > times);
@@ -3468,12 +3478,18 @@ void test_rand()
         assert(crng.gen_bytes(buf2 + 1, 31));
         assert(crng.gen_bytes(buf3 + 1, 36));
     }{
-        __test_rand(LCG_t());
-        __test_rand(XLCG_t());
-        __test_rand(XORSP_t());
-        __test_rand(CRNG_t());
+        LCG_t lcg;
+        XLCG_t xlcg;
+        XORSP_t xorsp;
+        CRNG_t crng;
+
+        __test_rand(lcg);
+        __test_rand(xlcg);
+        __test_rand(xorsp);
+        __test_rand(crng);
     }
-    buf1[0] = buf2[0] = buf3[37] = 0;
+    // avoid compile warning for release mode
+    buf1[0] = buf2[0] = buf3[0] = 0;
 }
 
 void test_gcd()

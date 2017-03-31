@@ -75,9 +75,13 @@ struct _LCG_t: public RNG  // Linear Congruential Generator
         {
             *w++ = seed = A * seed + C;
         }
-        for (p = (byte_t*)w; p != e; p++)
+        if ((p = (byte_t*)w) != e)
         {
-            *p = (seed = A * seed + C) & 0xff;
+            word_t x = seed = A * seed + C;
+            while (p != e)
+            {
+                *p++ = (x >>= 8) & 0xff;
+            }
         }
         return true;
     }
@@ -89,12 +93,14 @@ struct _LCG_t: public RNG  // Linear Congruential Generator
 };
 
 template <word_t A, word_t C>
-struct _XLCG_t: public _LCG_t<A, C>
+struct _XLCG_t: public RNG
 {
-    _XLCG_t(): _LCG_t<A, C>()
+    word_t seed;
+
+    _XLCG_t(): seed(get_seed())
     {}
 
-    _XLCG_t(word_t s): _LCG_t<A, C>(s)
+    _XLCG_t(word_t s): seed(s)
     {}
 
     word_t gen()
@@ -125,6 +131,11 @@ struct _XLCG_t: public _LCG_t<A, C>
             seed = A * seed + C;
             *p = (seed >>= UNITBITS) & 0xff;
         }
+        return true;
+    }
+
+    bool valid() const
+    {
         return true;
     }
 };

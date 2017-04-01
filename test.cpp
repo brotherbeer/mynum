@@ -72,8 +72,6 @@ void test_gcd();
 
 void test_detail()
 {
-    srand((unsigned int)time(NULL));
-
     test_construct();
     test_assign();
     test_copy();
@@ -170,10 +168,6 @@ int main(int argc, char* argv[])
 }
 
 typedef number_t NN;
-
-bool chance(int n);
-void random(NN& a);
-void create_big(NN& x, int size);
 
 void test_construct()
 {
@@ -888,24 +882,23 @@ void test_sqr()
 void test_kmul()
 {
     {
-        NN a("123456789"), b("123456789"), c;
-        kmul(a, b, c);
-        assert(eq(c, NN("15241578750190521")));
-    }
-    {
-        NN a("123456789645345454433565"), b("12345678912344577345"), c, d;
-        kmul(a, b, c);
-        mul(a, b, d);
-        assert(eq(c, d));
-    }
-    {
+        NN res;
+        kmul(0, 0, res); assert(res == 0);
+        kmul(1, 1, res); assert(res == 1);
+        kmul(0, 1, res); assert(res == 0);
+        kmul(1, 0, res); assert(res == 0);
+        kmul(-1, 2, res); assert(res == -2);
+        kmul(-2, -2, res); assert(res == 4);
+    }{
         NN a, b, c, d;
-        for (int i = 0; i < 15; i++)
+        for (int i = 0; i < 32; i++)
         {
-            create_big(a, 150);
-            create_big(b, 150);
-            kmul(a, b, c);
-            mul(a, b, d);
+            rand(rand_word() % 512, a);
+            rand(rand_word() % 512, b);
+            if (chance(16)) a.set_neg();
+            if (chance(16)) b.set_neg();
+            mul(a, b, c);
+            kmul(a, b, d);
             assert(eq(c, d));
             if (i & 1)
             {
@@ -929,8 +922,7 @@ void test_ksqr()
         assert(eq(res, NN("15241578750190521")));
         ksqr(b, res);
         assert(res.is_zero());
-    }
-    {
+    }{
         NN a("16158503039417698314384037344878694324680742803587455484472260145626181232823105094609582067234949516440380598200430713907558648260168592343606325063405368414664799634798770137573188975647227632527500574967342497869185120677904929055092794689043588162497814115391580237240765753927314957610808555481953218839399468746177681961280635985777116657480297919651011778729062233777172196274269454168545630726130747048979353490487284178367280004761561058965043465792519393822714983002996704343992871425325657995590580009663274930698402305145290537250908528951674988824793651618050147449672523224061216263968385221040105652224");
         NN c, d;
         ksqr(a, c);
@@ -940,12 +932,11 @@ void test_ksqr()
         a.set_neg();
         ksqr(a, d);
         assert(eq(c, d));
-    }
-    {
+    }{
         NN a, c, d;
-        for (int i = 0; i < 15; i++)
+        for (int i = 0; i < 32; i++)
         {
-            create_big(a, 150);
+            rand(256, a);
             ksqr(a, c);
             sqr(a, d);
             assert(eq(c, d));
@@ -1425,16 +1416,17 @@ void test_div()
         b.assign("231412341234123412341234123412412");
         div(a, b, b, a); assert(b == 0); assert(a = NN("1234123412412341234124"));
     }
-    for (int i = 0; i < 2000; i++)
+    for (int i = 0; i < 256;)
     {
         NN a, b, q, r;
-        create_big(a, rand() % 100);
-        create_big(b, rand() % 100);
-        if (chance(10)) a.neg();
-        if (chance(10)) b.neg();
+        rand(rand_word() % 256, a);
+        rand(rand_word() % 100, b);
+        if (chance(10)) a.set_neg();
+        if (chance(10)) b.set_neg();
         if (div(a, b, q, r))
         {
             assert(b.mul(q).add(r) == a);
+            i++;
         }
     }
 }
@@ -3416,9 +3408,9 @@ void test_prime()
 void __test_rand(RNG& rng)
 {
     NN a;
-    size_t times = 128;
-    size_t n0 = 0, n1 = 0, n2 = 0, n3 = 0, n4 = 0;
-    for (size_t i = 0; i < times; i++)
+    int times = 256;
+    int n0 = 0, n1 = 0, n2 = 0, n3 = 0, n4 = 0;
+    for (int i = 0; i < times; i++)
     {
         assert(rand(0, rng, a));
         assert(a.bits_count() == 0);
@@ -3448,6 +3440,22 @@ void __test_rand(RNG& rng)
     assert(n2 < times && 3 * n2 > times);
     assert(n3 < times && 3 * n3 > times);
     assert(n4 < times && 3 * n4 > times);
+
+    int n, N = 0;
+    for (int i = 0; i < times; i++)
+    {
+        n = 0;
+        for (int j = 0; j < times; j++)
+        {
+            if (rng.chance(8))
+            {
+                n++;
+            }
+        }
+        N += n;
+    }
+    int d = N / times - times / 8;
+    assert(d < 3 && d > -3);
 }
 
 void test_rand()
@@ -3487,6 +3495,7 @@ void test_rand()
         __test_rand(xlcg);
         __test_rand(xorsp);
         __test_rand(crng);
+    }{
     }
     // avoid compile warning for release mode
     buf1[0] = buf2[0] = buf3[0] = 0;
@@ -3496,13 +3505,17 @@ void test_gcd()
 {
 	{
 		NN res;
+        assert(!gcd(0, 0, res));  // (0, 0) is illegal
+        gcd(0, 1, res); assert(res == 1);
+        gcd(2, 0, res); assert(res == 2);
+        gcd(1, 1, res); assert(res == 1);
 		gcd(2, 1, res); assert(res == 1);
 		gcd(2, 2, res); assert(res == 2);
 		gcd(3, 4, res); assert(res == 1);
-		gcd(7, 3, res); assert(res == 1);
-		gcd(1024, 2, res); assert(res == 2);
-        gcd(1024, 0, res); assert(res == 1024);
-        gcd(0, 2, res); assert(res == 2);
+		gcd(7, -3, res); assert(res == 1);
+        gcd(21, 33, res); assert(res == 3);
+        gcd(21, 77, res); assert(res == 7);
+		gcd(-1024, 512, res); assert(res == 512);
 	}{
 		NN a(19937), b(19937), c(19937), g;
 		a.pow(3), b.pow(7);
@@ -3529,9 +3542,12 @@ void test_gcd()
         NN x, y, g;
         gcdext(49, 14, x, y, g);
         assert(g == 7);
-        assert(49 * x + 14 * y == g);
+        assert(x == 1);
+        assert(y == -3);
         gcdext(14, 49, x, y, g);
-        assert(14 * x + 49 * y == g);
+        assert(g == 7);
+        assert(x == -3);
+        assert(y == 1);
 
         gcdext(0, 1, x, y, g);
         assert(g == 1);
@@ -3541,41 +3557,27 @@ void test_gcd()
         assert(x == 1);
     }{
         NN a(P3), b(P4), x, y, g;
-        gcdext(a, b, x, y, g); assert(g == 1);
-        assert(a * x + b * y == g);
+        gcdext(a, b, x, y, g); assert(g == 1); assert(a * x + b * y == g);
         a.mul(P5); b.mul(P5);
-        gcdext(a, b, x, y, g); assert(g == P5);
-        assert(a * x + b * y == g);
+        gcdext(a, b, x, y, g); assert(g == P5); assert(a * x + b * y == g);
         a.mul(P6); b.mul(P6);
-        gcdext(a, b, x, y, g); assert(g == P5 * P6);
-        assert(a * x + b * y == g);
-    }
-}
-
-bool chance(int n)
-{
-    return rand() % n == 1;
-}
-
-void random(number_t& a)
-{
-    if (a.len)
-    {
-        int i = 0;
-        while (i < a.len)
+        gcdext(a, b, x, y, g); assert(g == P5 * P6); assert(a * x + b * y == g);
+    }{
+        CRNG_t rng;
+        NN a, b, x, y, g;
+        size_t n = 0;
+        for (int i = 0; i < 64; )
         {
-            a.dat[i++] = (unit_t)rand();
-        }
-        if (a.dat[a.len - 1] == 0)
-        {
-            a.dat[a.len - 1] = 1;
+            rand(rng.gen() % 256, rng, a);
+            rand(rng.gen() % 256, rng, b);
+            if (rng.chance(8)) a.set_neg();
+            if (rng.chance(8)) b.set_neg();
+            if (a && b)
+            {
+                gcdext(a, b, x, y, g);
+                assert(g > 0 && a * x + b * y == g);
+                i++;
+            }
         }
     }
-}
-
-void create_big(NN& x, int size)
-{
-    x.set_zero();
-    x.bit_set_one(size * sizeof(unit_t) * 8);
-    random(x);
 }

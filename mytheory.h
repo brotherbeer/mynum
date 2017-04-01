@@ -5,7 +5,7 @@
 
 namespace mynum {
     
-void gcd(const number_t& a, const number_t& b, number_t& res);
+int gcd(const number_t& a, const number_t& b, number_t& res);
 void gcdext(const number_t& a, const number_t& b, number_t& x, number_t& y, number_t& g);
 
 int pom(const number_t& a, const number_t& b, const number_t& c, number_t& res);
@@ -25,6 +25,7 @@ word_t get_seed();
 
 unit_t rand_unit();
 word_t rand_word();
+bool chance(size_t);
 
 bool rand(size_t maxbits, number_t& n);
 bool rand(size_t maxbits, RNG& rng, number_t& n);
@@ -43,6 +44,8 @@ struct RNG  // Random Number Generator
     word_t operator () () { return gen(); }
 
     virtual ~RNG() {}
+
+    bool chance(size_t x) { return x && (gen() % x == 1); }
 };
 
 template <word_t A, word_t C>
@@ -200,4 +203,5 @@ void __pom_unit(unit_t a, const number_t& b, const number_t& c, number_t& res);
 void __pom(const number_t& a, const number_t& b, const number_t& c, number_t& res);
 bool __MR_witness_unit(unit_t b, const number_t& n, const number_t& nd1, const number_t& u, size_t t);
 bool __MR_witness(const number_t& b, const number_t& n, const number_t& nd1, const number_t& u, size_t t);
+
 }

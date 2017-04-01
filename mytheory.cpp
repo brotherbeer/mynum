@@ -10,7 +10,7 @@
 
 namespace mynum {
 
-void gcd(const number_t& a, const number_t& b, number_t& res)
+int gcd(const number_t& a, const number_t& b, number_t& res)
 {
     if (!a.is_zero() && !b.is_zero())
     {
@@ -30,6 +30,11 @@ void gcd(const number_t& a, const number_t& b, number_t& res)
         res.assign(a);
         res.set_abs();
     }
+    else
+    {
+        return 0;
+    }
+    return 1;
 }
 
 void gcdext(const number_t& a, const number_t& b, number_t& x, number_t& y, number_t& g)
@@ -43,15 +48,24 @@ void gcdext(const number_t& a, const number_t& b, number_t& x, number_t& y, numb
     }
     else if (a.is_zero() && !b.is_zero())
     {
-        g.assign(b);
+        abs(b, g);
         x.set_zero();
         y.set_one();
     }
     else if (b.is_zero() && !a.is_zero())
     {
-        g.assign(a);
+        abs(a, g);
         x.set_one();
         y.set_zero();
+    }
+
+    if (a.is_neg())
+    {
+        x.set_neg();
+    }
+    if (b.is_neg())
+    {
+        y.set_neg();
     }
 }
 
@@ -265,6 +279,11 @@ void set_default_RNG(RNG& rng)
 unit_t rand_unit()
 {
     return p_default_rng->gen() & UNITMAX;
+}
+
+bool chance(size_t x)
+{
+    return p_default_rng->chance(x);
 }
 
 word_t rand_word()

@@ -69,6 +69,7 @@ void test_basic_type_conversion();
 void test_prime();
 void test_rand();
 void test_gcd();
+void test_inv();
 
 void test_detail()
 {
@@ -112,6 +113,7 @@ void test_detail()
     test_prime();
     test_rand();
 	test_gcd();
+    test_inv();
 }
 
 int main(int argc, char* argv[])
@@ -3408,7 +3410,7 @@ void test_prime()
 void __test_rand(RNG& rng)
 {
     NN a;
-    int times = 256;
+    int times = 128;
     int n0 = 0, n1 = 0, n2 = 0, n3 = 0, n4 = 0;
     for (int i = 0; i < times; i++)
     {
@@ -3555,6 +3557,10 @@ void test_gcd()
         gcdext(1, 0, x, y, g);
         assert(g == 1);
         assert(x == 1);
+        gcdext(1, 1, x, y, g);
+        assert(g == 1);
+        assert(x == 0);
+        assert(y == 1);
     }{
         NN a(P3), b(P4), x, y, g;
         gcdext(a, b, x, y, g); assert(g == 1); assert(a * x + b * y == g);
@@ -3579,5 +3585,25 @@ void test_gcd()
                 i++;
             }
         }
+    }
+}
+
+void test_inv()
+{
+    {
+        NN x;
+        assert(!inv(1, 0, x));
+        assert(!inv(1, 1, x));
+        assert(!inv(3, 3, x));
+        assert(!inv(1024, 768, x));
+        inv(2, 3, x); assert(x == 2);
+        inv(3, 2, x); assert(x == 1);
+        inv(3, 7, x); assert(x == 5);
+        inv(4, 21, x); assert(x == 16);
+    }{
+        NN x;
+        inv(P1, P2, x); assert(x * P1 % P2 == 1);
+        inv(P2, P3, x); assert(x * P2 % P3 == 1);
+        inv(P3, P4, x); assert(x * P3 % P4 == 1);
     }
 }

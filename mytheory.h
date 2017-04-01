@@ -6,15 +6,16 @@
 namespace mynum {
     
 int gcd(const number_t& a, const number_t& b, number_t& res);
-void gcdext(const number_t& a, const number_t& b, number_t& x, number_t& y, number_t& g);
+int gcdext(const number_t& a, const number_t& b, number_t& x, number_t& y, number_t& g);
 
 int pom(const number_t& a, const number_t& b, const number_t& c, number_t& res);
 
 bool prime_test_roughly(const number_t& n);
 void prime_next_roughly(const number_t& n, number_t& res);
 void prime_prev_roughly(const number_t& n, number_t& res);
-
 bool MR_prime_test(const number_t& n, size_t times);
+
+int inv(const number_t& a, const number_t& m, number_t& res);  // Modular multiplicative inverse
 
 struct RNG;
 
@@ -198,7 +199,7 @@ struct CRNG_t: public RNG  // Cryptographical RNG
 
 /** inner functions */
 void __EUCLID(number_t& a, number_t& b);
-void __extended_EUCLID(number_t& a, number_t& b, number_t& c, number_t& d, number_t& g);
+void __EUCLIDext(number_t& a, number_t& b, number_t& c, number_t& d);
 void __pom_unit(unit_t a, const number_t& b, const number_t& c, number_t& res);
 void __pom(const number_t& a, const number_t& b, const number_t& c, number_t& res);
 bool __MR_witness_unit(unit_t b, const number_t& n, const number_t& nd1, const number_t& u, size_t t);

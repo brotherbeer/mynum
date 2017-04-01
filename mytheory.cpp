@@ -37,14 +37,15 @@ int gcd(const number_t& a, const number_t& b, number_t& res)
     return 1;
 }
 
-void gcdext(const number_t& a, const number_t& b, number_t& x, number_t& y, number_t& g)
+int gcdext(const number_t& a, const number_t& b, number_t& x, number_t& y, number_t& g)
 {
     if (!a.is_zero() && !b.is_zero())
     {
-        number_t aa(a), bb(b);
-        aa.set_abs();
-        bb.set_abs();
-        __extended_EUCLID(aa, bb, x, y, g);
+        number_t b1(b);
+        g.assign(a);
+        g.set_abs();
+        b1.set_abs();
+        __EUCLIDext(g, b1, x, y);
     }
     else if (a.is_zero() && !b.is_zero())
     {
@@ -58,6 +59,10 @@ void gcdext(const number_t& a, const number_t& b, number_t& x, number_t& y, numb
         x.set_one();
         y.set_zero();
     }
+    else
+    {
+        return 0;
+    }
 
     if (a.is_neg())
     {
@@ -67,6 +72,7 @@ void gcdext(const number_t& a, const number_t& b, number_t& x, number_t& y, numb
     {
         y.set_neg();
     }
+    return 1;
 }
 
 int pom(const number_t& a, const number_t& b, const number_t& c, number_t& res)
@@ -460,6 +466,41 @@ bool MR_prime_test(const number_t & n, size_t times)
     return false;
 }
 
+int inv(const number_t& a, const number_t& m, number_t& res)
+{
+    if (a.is_pos() && gt(m, 1))
+    {
+        number_t x, &px = res;
+        number_t u(a), v(m);
+        number_t q, r, t0, t1;
+
+        px.set_one();
+        while (!v.is_zero())
+        {
+            div(u, v, q, r);
+
+            t0.steal(x);
+            kmul(q, t0, t1);
+            sub(px, t1, x);
+            px.steal(t0);
+
+            u.steal(v);
+            v.steal(r);
+        }
+
+        if (u.is_one())
+        {
+            px.mod(m);
+            if (px.is_neg())
+            {
+                px.add(m);
+            }
+            return 1;
+        }
+    }
+    return 0;
+}
+
 void __EUCLID(number_t& a, number_t& b)
 {
     assert(a.is_pos() && b.is_pos());
@@ -475,17 +516,18 @@ void __EUCLID(number_t& a, number_t& b)
         a.steal(b);
         b.steal(tmp);
     }
-    // now, a is the GCD
 }
 
-void __extended_EUCLID(number_t& a, number_t& b, number_t& c, number_t& d, number_t& g)
+void __EUCLIDext(number_t& a, number_t& b, number_t& c, number_t& d)
 {
     assert(a.is_pos() && b.is_pos());
 
-    number_t px(1), py;
     number_t x, y(1);
     number_t q, r, t0, t1;
+    number_t &px = c, &py = d;
 
+    px.set_one();
+    py.set_zero();
     while (!b.is_zero())
     {
         div(a, b, q, r);
@@ -494,7 +536,7 @@ void __extended_EUCLID(number_t& a, number_t& b, number_t& c, number_t& d, numbe
         kmul(q, t0, t1);
         sub(px, t1, x);
         px.steal(t0);
-        
+
         t0.steal(y);
         kmul(q, t0, t1);
         sub(py, t1, y);
@@ -503,9 +545,6 @@ void __extended_EUCLID(number_t& a, number_t& b, number_t& c, number_t& d, numbe
         a.steal(b);
         b.steal(r);
     }
-    g.steal(a);
-    c.steal(px);
-    d.steal(py);
 }
 
 void __pom_unit(unit_t a, const number_t& b, const number_t& c, number_t& res)

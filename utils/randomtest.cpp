@@ -1,4 +1,5 @@
 #include "myoperators.h"
+#include "mytheory.h"
 
 #include <ctime>
 #include <cstdlib>
@@ -738,22 +739,17 @@ size_t __random_test_all(ifstream& in)
     return n;
 }
 
-void random(number_t& a);
-void create_big(number_t& x, int size);
-
 size_t __random_test_kmul(size_t N)
 {
     size_t n = N;
-    srand((unsigned int)time(NULL));
-
     number_t a, b, r1, r2;
-    int i1, i2;
+
     while (n--)
     {
-        create_big(a, i1 = rand() % 16000);
-        create_big(b, i2 = rand() % 16000);
-        kmul(a, b, r1);
-        mul(a, b, r2);
+        rand(rand_word() % 16000, a);
+        rand(rand_word() % 16000, b);
+        mul(a, b, r1);
+        kmul(a, b, r2);
         if (r1 != r2)
         {
             cout << "KMUL ERROR!!" << endl;
@@ -766,14 +762,13 @@ size_t __random_test_kmul(size_t N)
 size_t __random_test_ksqr(size_t N)
 {
     size_t n = N;
-    srand((unsigned int)time(NULL));
-
     number_t a, r1, r2;
+
     while (n--)
     {
-        create_big(a, rand() % 16000);
-        ksqr(a, r1);
-        sqr(a, r2);
+        rand(rand() % 16000, a);
+        sqr(a, r1);
+        ksqr(a, r2);
         if (r1 != r2)
         {
             cout << "KSQR ERROR!!" << endl;
@@ -788,12 +783,11 @@ size_t __test_sqr_and_mul_performace(size_t N)
     clock_t t0, t1, t2;
     clock_t T0 = 0, T1 = 0;
     size_t n = N;
-    srand((unsigned int)time(NULL));
-
     number_t a, r1, r2;
+
     while (n--)
     {
-        create_big(a, 1 + rand() % 2000);
+        rand(1 + rand_word() % 2000, a);
         t0 = clock();
         sqr(a, r1);
         t1 = clock();
@@ -841,7 +835,7 @@ void test_performance()
     t2 = clock();
     if (r1 != r2)
     {
-        std::cout << "M1257787 * M1398269 kmul result not equal to mul result" << std::endl;
+        cout << "M1257787 * M1398269 kmul result not equal to mul result" << endl;
         abort();
     }
     cout << "M1257787 * M1398269 kmul time: " << double(t1 - t0) / CLOCKS_PER_SEC << "s mul time: " << double(t2 - t1) / CLOCKS_PER_SEC << "s" << endl;

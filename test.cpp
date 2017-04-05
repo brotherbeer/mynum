@@ -70,6 +70,7 @@ void test_prime();
 void test_rand();
 void test_gcd();
 void test_inv();
+void test_rsa();
 
 void test_detail()
 {
@@ -112,8 +113,9 @@ void test_detail()
     test_basic_type_conversion();
     test_prime();
     test_rand();
-	test_gcd();
+    test_gcd();
     test_inv();
+    test_rsa();
 }
 
 int main(int argc, char* argv[])
@@ -3605,5 +3607,53 @@ void test_inv()
         inv(P1, P2, x); assert(x * P1 % P2 == 1);
         inv(P2, P3, x); assert(x * P2 % P3 == 1);
         inv(P3, P4, x); assert(x * P3 % P4 == 1);
+    }
+}
+
+void random_prime(size_t bits, RNG& rng, NN& out)
+{
+    while (1)
+    {
+        rand(bits, rng, out);
+        prime_next_roughly(out, out);
+        if (out.bits_count() > 2 * bits / 3 && MR_prime_test(out, 16))
+        {
+            break;
+        }
+    }
+}
+
+void __test_rsa(const NN& message)
+{
+    CRNG_t crng;
+    NN p, q, n, phi, e, d;
+    NN encrypted, decrypted;
+
+    random_prime(128, crng, p);
+    random_prime(128, crng, q);
+    random_prime(32, crng, e);
+
+    n = p * q;
+    phi = (p - 1) * (q - 1);
+    assert(inv(e, phi, d));
+
+    assert(pom(message, e, n, encrypted));
+    assert(pom(encrypted, d, n, decrypted));
+
+    assert(encrypted != message);
+    assert(decrypted == message);
+}
+
+void test_rsa()
+{
+    NN message;
+    for (int i = 0; i < 32;)
+    {
+        rand(64, message);
+        if (message.bits_count() > 2)
+        {
+            __test_rsa(message);
+            i++;
+        }
     }
 }

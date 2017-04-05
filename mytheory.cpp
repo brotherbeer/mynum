@@ -322,7 +322,7 @@ bool rand(size_t maxbits, RNG& rng, number_t& n)
     return false;
 }
 
-bool rand(size_t bits, string_t& s, const string_t& chars, RNG& rng)
+bool rand(size_t bits, const string_t& chars, RNG& rng, string_t& s)
 {
     if (bits)
     {
@@ -518,13 +518,12 @@ void __EUCLID(number_t& a, number_t& b)
     }
 }
 
-void __EUCLIDext(number_t& a, number_t& b, number_t& c, number_t& d)
+void __EUCLIDext(number_t& a, number_t& b, number_t& px, number_t& py)
 {
     assert(a.is_pos() && b.is_pos());
 
     number_t x, y(1);
     number_t q, r, t0, t1;
-    number_t &px = c, &py = d;
 
     px.set_one();
     py.set_zero();

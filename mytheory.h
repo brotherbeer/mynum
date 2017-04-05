@@ -30,7 +30,7 @@ bool chance(size_t);
 
 bool rand(size_t maxbits, number_t& n);
 bool rand(size_t maxbits, RNG& rng, number_t& n);
-bool rand(size_t bits, string_t& s, const string_t& chars, RNG& rng);
+bool rand(size_t bits, const string_t& chars, RNG& rng, string_t& s);
 
 inline bool algined(void* p) { return ((word_t)p & (sizeof(word_t) - 1)) == 0; }
 

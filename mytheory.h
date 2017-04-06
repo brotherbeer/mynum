@@ -4,7 +4,7 @@
 
 
 namespace mynum {
-    
+
 int gcd(const number_t& a, const number_t& b, number_t& res);
 int gcdext(const number_t& a, const number_t& b, number_t& x, number_t& y, number_t& g);
 
@@ -30,7 +30,10 @@ bool chance(size_t);
 
 bool rand(size_t maxbits, number_t& n);
 bool rand(size_t maxbits, RNG& rng, number_t& n);
-bool rand(size_t bits, const string_t& chars, RNG& rng, string_t& s);
+bool rand(size_t maxbits, bool holdmsb, number_t& n);
+bool rand(size_t maxbits, RNG& rng, bool holdmsb, number_t& n);
+bool rand(size_t length, const string_t& chars, string_t& s);
+bool rand(size_t length, const string_t& chars, RNG& rng, string_t& s);
 
 inline bool algined(void* p) { return ((word_t)p & (sizeof(word_t) - 1)) == 0; }
 

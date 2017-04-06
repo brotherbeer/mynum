@@ -133,6 +133,22 @@ int main(int argc, char* argv[])
     //std::cout << n << std::endl;
     //return 0;
 
+    number_t a("7259504305753871641747925991349080204140385379085270640550110861735201368141303668857422714190575687571196998660687573018767856162919638615345565447108911543485719594431320221549621957942809459869347758856894836613777181029779728116770872213641399771660425839847517351189722062432285877336931890788217840582114145868289173911520217786841160198602085388436878264438925370473190258945984776397654469488636270616929942601179569111666174505432394359176890314876631769586360350947808529598181994740962773424506236274274828564337256746129326277253985203081567641640035428566946599679488463990024657240866017398488927441801");
+
+    a.ksqr();
+
+    std::cout << a.bits_count() << std::endl;
+
+    clock_t t0 = clock();
+    prime_next_roughly(a, a);
+    clock_t t1 = clock();
+
+    std::cout << a << std::endl;
+    std::cout << t1 - t0 << std::endl;
+
+    return 0;
+
+
     assert(min_base() == 2);
     assert(max_base() == 36);
 
@@ -3494,12 +3510,34 @@ void test_rand()
         XLCG_t xlcg;
         XORSP_t xorsp;
         CRNG_t crng;
+        NN n;
+
+        assert(rand(0, lcg, true, n));
+        assert(rand(0, xlcg, true, n));
+        assert(rand(0, xorsp, true, n));
+        assert(rand(0, crng, true, n));
+        assert(rand(1, lcg, true, n));
+        assert(rand(1, xlcg, true, n));
+        assert(rand(1, xorsp, true, n));
+        assert(rand(1, crng, true, n));
+        assert(rand(64, lcg, true, n));
+        assert(rand(64, xlcg, true, n));
+        assert(rand(64, xorsp, true, n));
+        assert(rand(64, crng, true, n));
+        assert(rand(129, lcg, true, n));
+        assert(rand(129, xlcg, true, n));
+        assert(rand(129, xorsp, true, n));
+        assert(rand(129, crng, true, n));
+    }{
+        LCG_t lcg;
+        XLCG_t xlcg;
+        XORSP_t xorsp;
+        CRNG_t crng;
 
         __test_rand(lcg);
         __test_rand(xlcg);
         __test_rand(xorsp);
         __test_rand(crng);
-    }{
     }
     // avoid compile warning for release mode
     buf1[0] = buf2[0] = buf3[0] = 0;
@@ -3631,11 +3669,11 @@ void __test_rsa(const NN& message)
 
     random_prime(128, crng, p);
     random_prime(128, crng, q);
-    random_prime(32, crng, e);
+    random_prime(32, crng, e);  //<e, n> the public key
 
     n = p * q;
     phi = (p - 1) * (q - 1);
-    assert(inv(e, phi, d));
+    assert(inv(e, phi, d));  //<d, n> the private key
 
     assert(pom(message, e, n, encrypted));
     assert(pom(encrypted, d, n, decrypted));

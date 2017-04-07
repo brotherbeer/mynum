@@ -71,6 +71,8 @@ void test_rand();
 void test_gcd();
 void test_inv();
 void test_rsa();
+void test_jacobi();
+void test_lcm();
 
 void test_detail()
 {
@@ -116,39 +118,12 @@ void test_detail()
     test_gcd();
     test_inv();
     test_rsa();
+    test_jacobi();
+    test_lcm();
 }
 
 int main(int argc, char* argv[])
 {
-    //LCG_t lcg;
-    //number_t n, a;
-    //for (int i = 0; i < 32; i++)
-    //{
-    //    rand(1, lcg, a);
-    //    if (a)
-    //    {
-    //        n++;
-    //    }
-    //}
-    //std::cout << n << std::endl;
-    //return 0;
-
-    number_t a("7259504305753871641747925991349080204140385379085270640550110861735201368141303668857422714190575687571196998660687573018767856162919638615345565447108911543485719594431320221549621957942809459869347758856894836613777181029779728116770872213641399771660425839847517351189722062432285877336931890788217840582114145868289173911520217786841160198602085388436878264438925370473190258945984776397654469488636270616929942601179569111666174505432394359176890314876631769586360350947808529598181994740962773424506236274274828564337256746129326277253985203081567641640035428566946599679488463990024657240866017398488927441801");
-
-    a.ksqr();
-
-    std::cout << a.bits_count() << std::endl;
-
-    clock_t t0 = clock();
-    prime_next_roughly(a, a);
-    clock_t t1 = clock();
-
-    std::cout << a << std::endl;
-    std::cout << t1 - t0 << std::endl;
-
-    return 0;
-
-
     assert(min_base() == 2);
     assert(max_base() == 36);
 
@@ -1860,11 +1835,11 @@ void test_bits()
         NN a("111", 2);
         for (int i = 0; i < 43; i++)
         {
-            assert(a.tzbits_count() == i);
+            assert(a.tz_count() == i);
             assert(a.bits_count() == i + 3);
             a.shl(1); 
         }
-        NN b; assert(b.tzbits_count() == 0);
+        NN b; assert(b.tz_count() == 0);
     }{
         NN a;
         a[1] = a[3] = a[5] = a[7] = a[9] = 1; a[9] = 0; assert(a == 170);
@@ -1882,6 +1857,17 @@ void test_bits()
         a.bit_set(64, 1); assert(a(16) == "-180000001fffffffe");
         a.bit_set(65, 1); assert(a(16) == "-380000001fffffffe");
         a.bit_set(0, 1); assert(a(16) == "-380000001ffffffff");
+    }{
+        assert(NN(0).pop_count() == 0);
+        assert(NN(1).pop_count() == 1);
+        assert(NN(2).pop_count() == 1);
+        assert(NN(3).pop_count() == 2);
+        assert(NN(4).pop_count() == 1);
+        assert(NN(0xff).pop_count() == 8);
+        assert(NN(0xffff).pop_count() == 16);
+        assert(NN(0xffffffff).pop_count() == 32);
+        assert((NN(0xffffffff)+1).pop_count() == 1);
+        assert((NN(0xffffffff)+2).pop_count() == 2);
     }
 }
 
@@ -3048,17 +3034,20 @@ void test_div_small()
         a.assign(0); a.div_sword(-1234); assert(a == 0);
         a.assign(1); a.div_sword(-1234); assert(a == 0);
         a.assign(437454245000ULL);
+        assert(!a.absrem_unit(1));
         assert(!a.absrem_unit(50));
         assert(a.absrem_unit(12) == 8);
         assert(!a.absrem_unit(20));
         assert(a.absrem_unit(12345) == 10010);
         assert(!a.absrem_unit(5));
+
         a.set_zero();
         assert(a.absrem_unit(12) == 0);
         assert(a.absrem_unit(12345) == 0);
         a.release();
         assert(a.absrem_unit(12) == 0);
         assert(a.absrem_unit(12345) == 0);
+        assert(a.absrem_unit(UDM(1)) == 0);
         assert(a.absrem_unit(UDM(12)) == 0);
         assert(a.absrem_unit(UDM(12345)) == 0);
     }{
@@ -3142,7 +3131,7 @@ void test_mod_small()
         a.mod_word(3); assert(a == 0);
         a.mod_sword(33399); assert(a == 0);
 
-        a.mod_unit(0);
+        a.mod_unit(0);  // don't crash
         a.mod(123456);
         mod(a, int(0), a);
         a.mod(long(0));
@@ -3154,6 +3143,7 @@ void test_mod_small()
         NN a("335456123445434567097887489567346758"), b;
         mod_unit(b, UDM(1), b); assert(b == 0);
         mod_unit(a, UDM(3), b); assert(b == 2);
+        mod_unit(a, UDM(4), b); assert(b == 2);
         mod_unit(a, UDM(377), b); assert(b == 114);
         mod_unit(a, UDM(1024), b); assert(b == 70);
         mod_unit(a, UDM(32768), b); assert(b == 20550);
@@ -3694,4 +3684,32 @@ void test_rsa()
             i++;
         }
     }
+}
+
+void test_jacobi()
+{
+    assert(jacobi(1, 1) == 1);
+    assert(jacobi(2, 1) == 1);
+    assert(jacobi(1, 3) == 1);
+    assert(jacobi(7, 7) == 0);
+    assert(jacobi(13, 5) == -1);
+    assert(jacobi(29, 3) == -1);
+    assert(jacobi(28, 7) == 0);
+    assert(jacobi(5, 13) == -1);
+    assert(jacobi(19, 31) == 1);
+    assert(jacobi(30, 57) == 0);
+    assert(jacobi(30, 59) == -1);
+    assert(jacobi(1001, 9907) == -1);
+}
+
+void test_lcm()
+{
+    NN res;
+    lcm(0, 0, res); assert(res == 0);
+    lcm(1, 1, res); assert(res == 1);
+    lcm(1, 0, res); assert(res == 0);
+    lcm(4, 2, res); assert(res == 4);
+    lcm(3, 6, res); assert(res == 6);
+    lcm(45, 30, res); assert(res == 90);
+    lcm(P0, P1, res); assert(res == P0 * P1);
 }

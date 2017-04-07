@@ -10,7 +10,6 @@
  */
 
 #include <cmath>
-#include <cstdlib>
 #include <cctype>
 #include <cstring>
 #include <cassert>
@@ -125,6 +124,7 @@ static __force_inline(int) __char_digit(char c);
 static __force_inline(bool) __char_digit_valid(char c, int base);
 static __force_inline(slen_t) __vbits_count(unit_t x);
 static __force_inline(slen_t) __tzbits_count(unit_t x);
+static __force_inline(slen_t) __pop_count(unit_t x);
 static __force_inline(dunit_t) __mul_dunit_high(dunit_t x, dunit_t y);
 static __force_inline(dunit_t) __mul_add_dunit(dunit_t x, dunit_t y, dunit_t z, dunit_t* low);
 static __force_inline(dunit_t) __qunit_by_dunit(dunit_t h, dunit_t l, dunit_t d, dunit_t* r);
@@ -1036,13 +1036,11 @@ size_t number_t::bits_count() const
     return 0;
 }
 
-size_t number_t::tzbits_count() const
+size_t number_t::tz_count() const
 {
     if (len)
     {
-        slen_t l = __abs(len);
-        unit_t* p = dat, *e = p + l;
-
+        unit_t* p = dat, *e = p + __abs(len);
         while (p != e && !*p)
         {
             p++;
@@ -1050,6 +1048,18 @@ size_t number_t::tzbits_count() const
         return __tzbits_count(*p) + (p - dat) * UNITBITS;
     }
     return 0;
+}
+
+size_t number_t::pop_count() const
+{
+    size_t cnt = 0;
+    unit_t* p = dat, *e = p + __abs(len);
+
+    while (p != e)
+    {
+        cnt += __pop_count(*p++);
+    }  
+    return cnt;
 }
 
 bool number_t::is_po2() const
@@ -4545,6 +4555,12 @@ __force_inline(dunit_t) __original_div_4by2(dunit_t h, dunit_t l, dunit_t d, dun
 
 #if defined(__GNUC__) && !defined(NO_INTRINSIC)
 
+#if UNITBITS == 16
+typedef unsigned long long __qunit_t;
+#elif UNITBITS == 32
+typedef __uint128_t __qunit_t;
+#endif
+
 slen_t __vbits_count(unit_t x)
 {
     assert(x != 0);
@@ -4559,12 +4575,6 @@ slen_t __tzbits_count(unit_t x)
     return __builtin_ctz(x);
 }
 
-#if UNITBITS == 16
-typedef unsigned long long __qunit_t;
-#elif UNITBITS == 32
-typedef __uint128_t __qunit_t;
-#endif
-
 dunit_t __mul_dunit_high(dunit_t x, dunit_t y)
 {
     __qunit_t m = __qunit_t(x) * y;
@@ -4578,9 +4588,30 @@ dunit_t __mul_add_dunit(dunit_t x, dunit_t y, dunit_t z, dunit_t* l)
     return m >> DUNITBITS;
 }
 
+dunit_t __qunit_by_dunit(dunit_t h, dunit_t l, dunit_t d, dunit_t* r)
+{
+    assert(h < d);
+
+    __qunit_t qunit = __qunit_t(h) << DUNITBITS | l;
+    dunit_t q = dunit_t(qunit / d);
+    *r = dunit_t(qunit % d);
+    return q;
+}
+
+dunit_t __qunit_mod_dunit(dunit_t h, dunit_t l, dunit_t d)
+{
+    assert(h < d);
+
+    __qunit_t qunit = __qunit_t(h) << DUNITBITS | l;
+    return dunit_t(qunit % d);
+}
+
+slen_t __pop_count(unit_t x)
+{
+    return __builtin_popcount(x);
+}
+
 #elif defined(_MSC_VER) && !defined(NO_INTRINSIC)
-#pragma intrinsic(_BitScanReverse)
-#pragma intrinsic(_BitScanForward)
 
 slen_t __vbits_count(unit_t x)
 {
@@ -4601,7 +4632,6 @@ slen_t __tzbits_count(unit_t x)
 }
 
 #if UNITBITS == 16
-#pragma intrinsic(__emulu)
 
 dunit_t __mul_dunit_high(dunit_t x, dunit_t y)
 {
@@ -4617,7 +4647,6 @@ dunit_t __mul_add_dunit(dunit_t x, dunit_t y, dunit_t z, dunit_t* l)
 }
 
 #elif UNITBITS == 32
-#pragma intrinsic(_umul128)
 
 dunit_t __mul_dunit_high(dunit_t x, dunit_t y)
 {
@@ -4715,27 +4744,7 @@ dunit_t __mul_add_dunit(dunit_t x, dunit_t y, dunit_t z, dunit_t* l)
 
 #endif
 
-#if defined(__GNUC__) && !defined(NO_INTRINSIC)
-
-dunit_t __qunit_by_dunit(dunit_t h, dunit_t l, dunit_t d, dunit_t* r)
-{
-    assert(h < d);
-
-    __qunit_t qunit = __qunit_t(h) << DUNITBITS | l;
-    dunit_t q = dunit_t(qunit / d);
-    *r = dunit_t(qunit % d);
-    return q;
-}
-
-dunit_t __qunit_mod_dunit(dunit_t h, dunit_t l, dunit_t d)
-{
-    assert(h < d);
-
-    __qunit_t qunit = __qunit_t(h) << DUNITBITS | l;
-    return dunit_t(qunit % d);
-}
-
-#else
+#if !defined(__GNUC__) || defined(NO_INTRINSIC)
 
 dunit_t __qunit_by_dunit(dunit_t h, dunit_t l, dunit_t d, dunit_t* r)
 {
@@ -4752,6 +4761,31 @@ dunit_t __qunit_mod_dunit(dunit_t h, dunit_t l, dunit_t d)
     __original_div_4by2(h, l, d, &r);
     return r;
 }
+
+#if UNITBITS == 32
+
+slen_t __pop_count(unit_t x)
+{
+    x = ((x >> 1) & 0x55555555) + (x & 0x55555555);
+    x = ((x >> 2) & 0x33333333) + (x & 0x33333333);
+    x = ((x >> 4) & 0x0f0f0f0f) + (x & 0x0f0f0f0f);
+    x = ((x >> 8) & 0x00ff00ff) + (x & 0x00ff00ff);
+    x = (x >> 16) + (x & 0x0000ffff);
+    return x;
+}
+
+#elif UNITBITS == 16
+
+slen_t __pop_count(unit_t x)
+{
+    x = ((x >> 1) & 0x5555) + (x & 0x5555);
+    x = ((x >> 2) & 0x3333) + (x & 0x3333);
+    x = ((x >> 4) & 0x0f0f) + (x & 0x0f0f);
+    x = (x >> 8) + (x & 0x00ff);
+    return x;
+}
+
+#endif
 
 #endif
 

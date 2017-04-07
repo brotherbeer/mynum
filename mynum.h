@@ -238,8 +238,10 @@ struct number_t: public _base_number_t  // bignum class
     void bit_set(size_t, bool v = 1);
     void bit_set_one(size_t);
     void bit_set_zero(size_t);
+    size_t tz_count() const;
+    size_t pop_count() const;
     size_t bits_count() const;
-    size_t tzbits_count() const;
+
     void bits_reserve(size_t);
 
     number_t& halve();

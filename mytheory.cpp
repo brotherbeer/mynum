@@ -10,6 +10,34 @@
 
 namespace mynum {
 
+int jacobi(const number_t& a, const number_t& b)
+{
+    unit_t m;
+    int t = 1, z;
+    size_t tz;
+    number_t u(a), v(b);
+    UDM u8(8), u4(4);
+
+    while (!u.is_zero())
+    {
+        m = v.absrem_unit(u8);
+        z = m == 3 || m == 5? -1: 1;
+        tz = u.tz_count();
+        if (tz & 1)
+        {
+            t *= z;
+        }
+        u.shr(tz);
+        if (u.absrem_unit(u4) == 3 && v.absrem_unit(u4) == 3)
+        {
+            t = -t;
+        }
+        swap(u, v);
+        u.mod(v);
+    }
+    return v.is_one()? t: 0; 
+}
+
 int gcd(const number_t& a, const number_t& b, number_t& res)
 {
     if (!a.is_zero() && !b.is_zero())
@@ -73,6 +101,20 @@ int gcdext(const number_t& a, const number_t& b, number_t& x, number_t& y, numbe
         y.set_neg();
     }
     return 1;
+}
+
+void lcm(const number_t& a, const number_t&b, number_t& res)
+{
+    number_t g;
+    if (gcd(a, b, g))
+    {
+        kmul(a, b, res);
+        res.div(g);
+    }
+    else
+    {
+        res.set_zero();
+    }
 }
 
 int pom(const number_t& a, const number_t& b, const number_t& c, number_t& res)
@@ -428,7 +470,7 @@ bool __prime_test_roughly(const number_t& n)
 
         number_t nd1(n), u, fm;
         nd1--;
-        size_t t = nd1.tzbits_count();
+        size_t t = nd1.tz_count();
         u.assign(nd1, t, nd1.bits_count());
 
         if (__MR_witness_unit(2, n, nd1, u, t)) return false;
@@ -504,7 +546,7 @@ bool MR_prime_test(const number_t & n, size_t times)
         number_t nd1(n), u, base;
 
         nd1--;
-        tz = nd1.tzbits_count();
+        tz = nd1.tz_count();
         nb = n.bits_count();
         u.assign(nd1, tz, nd1.bits_count());
 

@@ -5,8 +5,11 @@
 
 namespace mynum {
 
+int jacobi(const number_t& a, const number_t& m);
+
 int gcd(const number_t& a, const number_t& b, number_t& res);
 int gcdext(const number_t& a, const number_t& b, number_t& x, number_t& y, number_t& g);
+void lcm(const number_t& a, const number_t&b, number_t& res);
 
 int pom(const number_t& a, const number_t& b, const number_t& c, number_t& res);
 

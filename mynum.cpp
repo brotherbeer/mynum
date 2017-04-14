@@ -967,6 +967,76 @@ void number_t::bit_xor_sword(sword_t x)
     }
 }
 
+number_t& number_t::bit_remove(size_t bpos, size_t epos)
+{
+    int d1, d2, l = __abs(len);
+    unit_t *p, *q, *e = dat + l, m1, m2, over;
+
+    p = dat + bpos / UNITBITS;
+    q = dat + epos / UNITBITS;
+    if (q > e)
+    {
+        q = e;
+        epos = bits_count();
+    }
+    if (dat && bpos < epos)
+    {
+        m1 = bpos % UNITBITS;
+        m2 = epos % UNITBITS;
+        if (p != q)
+        {
+            if (m1)
+            {
+                d1 = UNITBITS - m1;
+                d2 = UNITBITS - m2;
+                *p &= UNITMAX >> d1;
+                if (d1 >= d2)
+                {
+                    __shr_core(q, e - q, d1 - d2);
+                    *q &= UNITMAX << (UNITBITS - d1);
+                    *p++ |= *q++;
+                }
+                else
+                {
+                    over = __shr_core(q, e - q, d1 + UNITBITS - d2);
+                    over >>= UNITBITS - d2;
+                    *p++ |= over << (UNITBITS - d1);
+                }
+            }
+            else
+            {
+                __shr_core(q, e - q, m2);
+            }
+            while (q != e)
+            {
+                *p++ = *q++;
+            }
+            l = p - dat;
+        }
+        else
+        {
+            unit_t t0, t1, d = epos - bpos;
+            over = 0;
+            if (p != dat + l)
+            {
+                over = __shr_core(p + 1, e - p - 1, d);
+            }
+            t0 = *p & (UNITMAX << m2);
+            t1 = *p & (UNITMAX >> (UNITBITS - m1));
+            over <<= UNITBITS - d;
+            *p = over | (t0 >> d | t1);
+        }
+        __trim_leading_zeros(dat, l);
+        len = l * __sign(len);
+    }
+    return *this;
+}
+
+number_t& number_t::bit_insert(const number_t& bits, size_t bpos)
+{
+    return *this;
+}
+
 bool number_t::bit_at(size_t x) const
 {
     slen_t i = x / UNITBITS;

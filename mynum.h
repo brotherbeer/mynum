@@ -152,6 +152,8 @@ struct number_t: public _base_number_t  // bignum class
     number_t& bit_and(const number_t&);
     number_t& bit_xor(const number_t&);
     number_t& bit_not();
+    number_t& bit_remove(size_t bpos, size_t epos);
+    number_t& bit_insert(const number_t& bits, size_t bpos);
 
     void add_unit(unit_t);
     void sub_unit(unit_t);

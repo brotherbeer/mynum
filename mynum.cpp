@@ -1075,13 +1075,16 @@ void number_t::bit_set_one(size_t x)
 
 void number_t::bit_set_zero(size_t x)
 {
+    slen_t l = __abs(len);
     slen_t i = x / UNITBITS;
     slen_t r = x % UNITBITS;
 
-    if (i < __abs(len))
+    if (i < l)
     {
         dat[i] &= ~((unit_t)1 << r);
     }
+    __trim_leading_zeros(dat, l);
+    len = l * __sign(len);
 }
 
 void number_t::bit_set(size_t x, bool v)

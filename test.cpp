@@ -2003,6 +2003,9 @@ void test_bits()
         a.bit_set(64, 1); assert(a(16) == "-180000001fffffffe");
         a.bit_set(65, 1); assert(a(16) == "-380000001fffffffe");
         a.bit_set(0, 1); assert(a(16) == "-380000001ffffffff");
+
+        a.assign("1ffffffffffffffff", 16);
+        a.bit_set(64, 0); assert(a == 0xffffffffffffffff);
     }{
         assert(NN(0).pop_count() == 0);
         assert(NN(1).pop_count() == 1);

@@ -1082,9 +1082,9 @@ void number_t::bit_set_zero(size_t x)
     if (i < l)
     {
         dat[i] &= ~((unit_t)1 << r);
+        __trim_leading_zeros(dat, l);
+        len = l * __sign(len);
     }
-    __trim_leading_zeros(dat, l);
-    len = l * __sign(len);
 }
 
 void number_t::bit_set(size_t x, bool v)

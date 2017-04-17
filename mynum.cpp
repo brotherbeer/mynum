@@ -1087,6 +1087,56 @@ void number_t::bit_set_zero(size_t x)
     }
 }
 
+void number_t::bit_set_one(size_t bpos, size_t epos)
+{
+    unit_t *pb, *pe, *tmp;
+    slen_t l, ub, rb, ue, re;
+
+    if (bpos < epos)
+    {
+        l = __abs(len);
+        ub = bpos / UNITBITS;
+        rb = bpos % UNITBITS;
+        ue = epos / UNITBITS;
+        re = epos % UNITBITS;
+
+        if (ue >= cap)
+        {
+            tmp = __allocate_units(ue + 1, &cap);
+            __copy_units(tmp, dat, l);
+            __deallocate_units(dat);
+            dat = tmp;
+        }
+        __set_units_zero(dat + l, cap - l);
+        pb = dat + ub;
+        pe = dat + ue;
+        if (pb != pe)
+        {
+            *pb++ |= UNITMAX << rb;
+            while (pb != pe)
+            {
+                *pb++ = UNITMAX;
+            }
+            *pe |= UNITMAX >> (UNITBITS - re);    
+        }
+        else
+        {
+            *pb |= (UNITMAX << rb) & (UNITMAX >> (UNITBITS - re));
+        }
+        if (ue + 1 > l)
+        {
+            l = ue + 1;
+        }
+        __trim_leading_zeros(dat, l);
+        len = l * __sign(len);
+    }
+}
+
+void number_t::bit_set_zero(size_t bpos, size_t epos)
+{
+
+}
+
 void number_t::bit_set(size_t x, bool v)
 {
     if (v)

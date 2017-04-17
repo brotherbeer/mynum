@@ -1732,6 +1732,7 @@ void test_bit_remove()
         TEST_BIT_REMOVE(48, 50, "1100100101011111011111000000001101001001010111110");
         TEST_BIT_REMOVE(48, 51, "100100101011111011111000000001101001001010111110");
         TEST_BIT_REMOVE(48, 52, "100100101011111011111000000001101001001010111110");
+        TEST_BIT_REMOVE(50, 51, "1100100101011111011111000000001101001001010111110");
         TEST_BIT_REMOVE(0, 51, "0");
     }{
         NN a;
@@ -1749,6 +1750,7 @@ void test_bit_remove()
         TEST_BIT_REMOVE(16, 48, "10010010101111101111100000000110");
         TEST_BIT_REMOVE(16, 51, "10010010101111111100000000110");
         TEST_BIT_REMOVE(16, 64, "1111100000000110");
+        TEST_BIT_REMOVE(63, 64, "1001010111110111110000000011010010010101111101111100000000110");
         TEST_BIT_REMOVE(0, 16, "100100101011111011111000000001101001001010111110");
         TEST_BIT_REMOVE(0, 17, "10010010101111101111100000000110100100101011111");
         TEST_BIT_REMOVE(0, 31, "100100101011111011111000000001101");
@@ -1946,6 +1948,22 @@ void test_bits()
         //--a[8]--;
         x = a[1] + a[2] - a[3] * a[4];
         assert(x == 1);
+    }{
+        NN a;
+        a.bit_set_one(127);  assert(a == NN("80000000000000000000000000000000", 16));
+        a.bit_set_one(128);  assert(a == NN("180000000000000000000000000000000", 16));
+        a.bit_set_one(5, 39); assert(a == NN("180000000000000000000007fffffffe0", 16));
+        a.release(); a.bit_set_one(3, 33); assert(a(2) == "111111111111111111111111111111000");
+        a.release(); a.bit_set_one(0, 128); assert(a == NN("ffffffffffffffffffffffffffffffff", 16));
+        a.bit_set_one(0, 129); assert(a == NN("1ffffffffffffffffffffffffffffffff", 16));
+        a.set_zero(); a.bit_set_one(8, 15); assert(a == 0x7f00);
+        a.bit_set_one(0, 1); assert(a == 0x7f01);
+        a.bit_set_one(3, 4); assert(a == 0x7f09);
+        a.set_zero(); a.bit_set_one(8, 16); assert(a == 0xff00);
+        a.set_zero(); a.bit_set_one(16, 32); assert(a == 0xffff0000);
+        a.set_zero(); a.bit_set_one(16, 31); assert(a == 0x7fff0000);
+        a.set_zero(); a.bit_set_one(39, 61); assert(a == 0x1fffff8000000000);
+        a.set_zero(); a.bit_set_one(39, 63); assert(a == 0x7fffff8000000000);
     }{
         NN a(0x123FFabcdefULL); //100100011 1111111110101011 1100110111101111
         const NN& ref = a;

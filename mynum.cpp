@@ -2571,6 +2571,23 @@ bool string_t::ends_with(size_t pos, const char* p, size_t l, bool ic) const
     return false;
 }
 
+string_t& string_t::reverse(size_t bpos, size_t epos)
+{
+    if (epos > len)
+    {
+        epos = len;
+    }
+    char* p = dat + bpos;
+    char* e = dat + epos - 1, tmp;
+    if (dat) while (e > p)
+    {
+        tmp = *p;
+        *p++ = *e;
+        *e-- = tmp;
+    }
+    return *this;
+}
+
 void string_t::take(char* p, size_t l)
 {
     release();

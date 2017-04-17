@@ -924,6 +924,10 @@ struct string_t
     bool contains(char c) const { return _try_strchr(dat, c) != NULL; }
     bool contains(const char* p) const { return _try_strstr(dat, p) != NULL; }
 
+    string_t& reverse() { return reverse(0, size_t(-1)); }
+    string_t& reverse(size_t bpos, size_t epos);
+
+    size_t end_pos() const { return len; }
     size_t last_pos() const { return len - 1; }
     size_t pos_not_chars(size_t pos, const char*) const;
     size_t rpos_not_chars(size_t pos, const char*) const;

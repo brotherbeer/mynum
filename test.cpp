@@ -67,6 +67,7 @@ void test_string_assignment();
 void test_string_reserve();
 void test_string_insert();
 void test_string_remove();
+void test_string_reverse();
 void test_string_strip();
 void test_string_find();
 void test_string_load();
@@ -2366,6 +2367,28 @@ void test_string_remove()
     }
 }
 
+void test_string_reverse()
+{
+    {
+        string_t s; s.reverse(); assert(s == "");
+        string_t t("1"); t.reverse(); assert(t == "1");
+        string_t u("12"); u.reverse(); assert(u == "21");
+        string_t v("123"); v.reverse(); assert(v == "321");
+        string_t w("1234"); w.reverse(); assert(w == "4321");
+    }{
+        string_t a;
+        a.reverse(0, 0); assert(a == ""); a.reverse(0, 1); assert(a == "");
+        a.assign("1"); a.reverse(0, 1); assert(a == "1");
+        a.assign("12"); a.reverse(0, 1); assert(a == "12");
+        a.assign("12"); a.reverse(1, 2); assert(a == "12");
+        a.assign("12"); a.reverse(0, 2); assert(a == "21");
+        a.assign("123"); a.reverse(0, 2); assert(a == "213");
+        a.assign("123"); a.reverse(0, 3); assert(a == "321");
+        a.assign("1234"); a.reverse(0, 10); assert(a == "4321");
+        a.assign("1234"); a.reverse(1, 4); assert(a == "1432");
+    }
+}
+
 void test_string_strip()
 {
     {
@@ -2762,6 +2785,7 @@ void test_string()
     test_string_reserve();
     test_string_insert();
     test_string_remove();
+    test_string_reverse();
     test_string_strip();
     test_string_find();
     test_string_load();

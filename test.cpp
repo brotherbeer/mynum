@@ -1966,6 +1966,22 @@ void test_bits()
         a.set_zero(); a.bit_set_one(39, 61); assert(a == 0x1fffff8000000000);
         a.set_zero(); a.bit_set_one(39, 63); assert(a == 0x7fffff8000000000);
     }{
+        NN a;
+        a.assign("ffffffffffffffffffffffffffffffff", 16);
+        a.bit_set_zero(127, 128);  assert(a == NN("7fffffffffffffffffffffffffffffff", 16));
+        a.bit_set_zero(0, 1);  assert(a == NN("7ffffffffffffffffffffffffffffffe", 16));
+        a.bit_set_zero(5, 39); assert(a == NN("7fffffffffffffffffffff800000001e", 16));
+        a.assign("ffffffffffffffffffffffffffffffff", 16);
+        a.bit_set_zero(32, 64); assert(a == NN("ffffffffffffffff00000000ffffffff", 16));
+        a.bit_set_zero(64, 128); assert(a == 0xffffffff);
+        a.bit_set_zero(0, 32); assert(a == 0);
+        a.bit_set_zero(0, 3200); assert(a == 0);
+        a.assign("11011111111111110011010101100001111111111111111", 2);
+        a.bit_set_zero(43, 47); assert(a(2) == "1111111111110011010101100001111111111111111");
+        a.bit_set_zero(11, 15); assert(a(2) == "1111111111110011010101100001000011111111111");
+        a.bit_set_zero(1, 42); assert(a(2) == "1000000000000000000000000000000000000000001");
+        a.bit_set_zero(1, 43); assert(a == 1);
+    }{
         NN a(0x123FFabcdefULL); //100100011 1111111110101011 1100110111101111
         const NN& ref = a;
         assert(a.bits_count() == 41);

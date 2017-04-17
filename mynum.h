@@ -236,12 +236,14 @@ struct number_t: public _base_number_t  // bignum class
     number_t& bit_xor(long long x);
     number_t& bit_xor(unsigned long long x);
 
-    bool bit_at(size_t) const;
-    void bit_set(size_t, bool v = 1);
-    void bit_set_one(size_t);
-    void bit_set_zero(size_t);
-    void bit_set_one(size_t, size_t);
-    void bit_set_zero(size_t, size_t);
+    bool bit_at(size_t pos) const;
+    void bit_set(size_t pos) { bit_set_one(pos); }
+    void bit_set(size_t pos, bool v);
+    void bit_set(size_t pos, size_t, bool v);
+    void bit_set_one(size_t pos);
+    void bit_set_zero(size_t pos);
+    void bit_set_one(size_t bpos, size_t epos);
+    void bit_set_zero(size_t bpos, size_t epos);
 
     size_t tz_count() const;
     size_t pop_count() const;

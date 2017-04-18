@@ -1087,115 +1087,112 @@ void number_t::bit_set_zero(size_t x)
     }
 }
 
-void number_t::bit_set_one(size_t bpos, size_t epos)
+void number_t::bit_set_flip(size_t x)
 {
-    unit_t *pb, *pe, *tmp;
-    slen_t l, ub, rb, ue, re;
+    slen_t l = __abs(len);
+    slen_t i = x / UNITBITS;
+    slen_t r = x % UNITBITS;
 
-    if (bpos < epos)
+    if (i < l)
     {
-        l = __abs(len);
-        ub = bpos / UNITBITS;
-        rb = bpos % UNITBITS;
-        ue = epos / UNITBITS;
-        re = epos % UNITBITS;
-        if (ue >= cap)
-        {
-            tmp = __allocate_units(ue + 1, &cap);
-            __copy_units(tmp, dat, l);
-            __deallocate_units(dat);
-            dat = tmp;
-        }
-        __set_units_zero(dat + l, cap - l);
-        pb = dat + ub;
-        pe = dat + ue;
-        if (pb != pe)
-        {
-            *pb++ |= UNITMAX << rb;
-            while (pb != pe)
-            {
-                *pb++ = UNITMAX;
-            }
-            *pe |= UNITMAX >> (UNITBITS - re);
-        }
-        else
-        {
-            *pb |= (UNITMAX << rb) & (UNITMAX >> (UNITBITS - re));
-        }
-        if (ue + 1 > l)
-        {
-            l = ue + 1;
-        }
+        dat[i] ^= (unit_t)1 << r;
         __trim_leading_zeros(dat, l);
         len = l * __sign(len);
     }
-}
-
-void number_t::bit_set_zero(size_t bpos, size_t epos)
-{
-    unit_t *pb, *pe, *tmp;
-    slen_t l, ub, rb, ue, re;
-
-    if (bpos < epos)
-    {
-        l = __abs(len);
-        ub = bpos / UNITBITS;
-        rb = bpos % UNITBITS;
-        ue = epos / UNITBITS;
-        re = epos % UNITBITS;
-        if (ue >= cap)
-        {
-            tmp = __allocate_units(ue + 1, &cap);
-            __copy_units(tmp, dat, l);
-            __deallocate_units(dat);
-            dat = tmp;
-        }
-        __set_units_zero(dat + l, cap - l);
-        pb = dat + ub;
-        pe = dat + ue;
-        if (pb != pe)
-        {
-            *pb++ &= ~(UNITMAX << rb);
-            while (pb != pe)
-            {
-                *pb++ = 0;
-            }
-            *pe &= ~(UNITMAX >> (UNITBITS - re));
-        }
-        else
-        {
-            *pb &= ~((UNITMAX << rb) & (UNITMAX >> (UNITBITS - re)));
-        }
-        if (ue + 1 > l)
-        {
-            l = ue + 1;
-        }
-        __trim_leading_zeros(dat, l);
-        len = l * __sign(len);
-    }
-}
-
-void number_t::bit_set(size_t x, bool v)
-{
-    if (v)
+    else
     {
         bit_set_one(x);
     }
-    else
+}
+
+void number_t::bit_set(size_t x, int v)
+{
+    if (v > 0)
+    {
+        bit_set_one(x);
+    }
+    else if (v == 0)
     {
         bit_set_zero(x);
     }
-}
-
-void number_t::bit_set(size_t bpos, size_t epos, bool v)
-{
-    if (v)
-    {
-        bit_set_one(bpos, epos);
-    }
     else
     {
-        bit_set_zero(bpos, epos);
+        bit_set_flip(x);
+    }
+}
+
+void number_t::bit_set(size_t bpos, size_t epos, int v)
+{
+    if (bpos < epos)
+    {
+        slen_t l = __abs(len);
+        slen_t ub = bpos / UNITBITS, rb = bpos % UNITBITS;
+        slen_t ue = epos / UNITBITS, re = epos % UNITBITS;
+
+        if (ue >= cap)
+        {
+            unit_t* tmp = __allocate_units(ue + 1, &cap);
+            __copy_units(tmp, dat, l);
+            __deallocate_units(dat);
+            dat = tmp;
+        }
+        __set_units_zero(dat + l, cap - l);
+        unit_t* pb = dat + ub;
+        unit_t* pe = dat + ue;
+
+        if (pb != pe)
+        {
+            if (v > 0)
+            {
+                *pb++ |= UNITMAX << rb;
+                while (pb != pe)
+                {
+                    *pb++ = UNITMAX;
+                }
+                *pe |= UNITMAX >> (UNITBITS - re);
+            }
+            else if (v == 0)
+            {
+                *pb++ &= ~(UNITMAX << rb);
+                while (pb != pe)
+                {
+                    *pb++ = 0;
+                }
+                *pe &= ~(UNITMAX >> (UNITBITS - re));
+            }
+            else
+            {
+                *pb++ ^= UNITMAX << rb;
+                while (pb != pe)
+                {
+                    *pb++ = ~*pb;
+                }
+                *pe ^= UNITMAX >> (UNITBITS - re);
+            }
+        }
+        else
+        {
+            unit_t mask = (UNITMAX << rb) & (UNITMAX >> (UNITBITS - re));
+            if (v > 0)
+            {
+                *pb |= mask;
+            }
+            else if (v == 0)
+            {
+                *pb &= ~mask;
+            }
+            else
+            {
+                *pb ^= mask;
+            }
+        }
+
+        if (ue + 1 > l)
+        {
+            l = ue + 1;
+        }
+        __trim_leading_zeros(dat, l);
+        len = l * __sign(len);
     }
 }
 

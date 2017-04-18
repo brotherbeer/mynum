@@ -237,13 +237,19 @@ struct number_t: public _base_number_t  // bignum class
     number_t& bit_xor(unsigned long long x);
 
     bool bit_at(size_t pos) const;
-    void bit_set(size_t pos) { bit_set_one(pos); }
-    void bit_set(size_t pos, bool v);
-    void bit_set(size_t pos, size_t, bool v);
+
     void bit_set_one(size_t pos);
     void bit_set_zero(size_t pos);
+    void bit_set_flip(size_t pos);
     void bit_set_one(size_t bpos, size_t epos);
     void bit_set_zero(size_t bpos, size_t epos);
+    void bit_set_flip(size_t bpos, size_t epos);
+
+    void bit_set(size_t pos, int v);
+    void bit_set(size_t bpos, size_t epos, int v);
+
+    void bit_insert(size_t pos, size_t size, bool v);
+    void bit_insert(size_t pos, const number_t& bits);
 
     size_t tz_count() const;
     size_t pop_count() const;
@@ -734,6 +740,9 @@ inline number_t& number_t::bit_or(const number_t& x)  { mynum::bit_or(*this, x, 
 inline number_t& number_t::bit_and(const number_t& x) { mynum::bit_and(*this, x, *this); return *this; }
 inline number_t& number_t::bit_xor(const number_t& x) { mynum::bit_xor(*this, x, *this); return *this; }
 inline number_t& number_t::bit_not()                  { mynum::bit_not(*this, *this); return *this; }
+inline void number_t::bit_set_one(size_t bpos, size_t epos)  { bit_set(bpos, epos, 1); }
+inline void number_t::bit_set_zero(size_t bpos, size_t epos) { bit_set(bpos, epos, 0); }
+inline void number_t::bit_set_flip(size_t bpos, size_t epos) { bit_set(bpos, epos, -1); }
 inline number_t& number_t::sqr()                      { mynum::sqr(*this, *this); return *this; }
 inline number_t& number_t::ksqr()                     { mynum::ksqr(*this, *this); return *this; }
 inline number_t& number_t::pow(size_t x)              { mynum::pow(*this, x, *this); return *this; }

@@ -1580,6 +1580,16 @@ void test_or()
         NN a; a.bit_or_word(0xabcdef11); assert(a == 0xabcdef11);
         NN b(0xef11); b.bit_or_word(0xabcd0000); assert(b == 0xabcdef11);
     }
+    for (int i = 0; i < 128; i++)
+    {
+        NN a, b, res;
+        size_t abits = rand_unit() % 256;
+        size_t bbits = rand_unit() % 256;
+        size_t shift = rand_unit() % 256;
+        rand(abits, a); rand(bbits, b);
+        bit_shift_or(a, b, shift, res);
+        assert((a | (b << shift)) == res);
+    }
 }
 
 void test_xor()
@@ -1612,6 +1622,16 @@ void test_xor()
     }{
         NN a(0xabcdef11); a.bit_xor_word(0xabcdef11); assert(a == 0);
         NN b(0xabcd0000); b.bit_xor_word(0xabcdef11); assert(b == 0xef11);
+    }
+    for (int i = 0; i < 128; i++)
+    {
+        NN a, b, res;
+        size_t abits = rand_unit() % 256;
+        size_t bbits = rand_unit() % 256;
+        size_t shift = rand_unit() % 256;
+        rand(abits, a); rand(bbits, b);
+        bit_shift_xor(a, b, shift, res);
+        assert((a ^ (b << shift)) == res);
     }
 }
 

@@ -20,9 +20,8 @@ bool MR_prime_test(const number_t& n, size_t times);
 
 int inv(const number_t& a, const number_t& m, number_t& res);  // Modular multiplicative inverse
 
-void bit_and_ext(const number_t& a, const number_t& b, size_t bpos, number_t& res);
-void bit_or_ext(const number_t& a, const number_t& b, size_t bpos, number_t& res);
-void bit_xor_ext(const number_t& a, const number_t& b, size_t bpos, number_t& res);
+void bit_shift_or(const number_t& a, const number_t& b, size_t shift, number_t& res);
+void bit_shift_xor(const number_t& a, const number_t& b, size_t shift, number_t& res);
 
 struct RNG;
 

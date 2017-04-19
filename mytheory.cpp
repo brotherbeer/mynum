@@ -349,8 +349,7 @@ bool rand(size_t maxbits, RNG& rng, number_t& n)
     size_t m = maxbits % UNITBITS;
     size_t l = maxbits / UNITBITS + (m != 0);
 
-    n.clear();
-    n.reserve(l);
+    n.clear_and_reserve(l);
     if (rng.gen_bytes(n.dat, l * sizeof(unit_t)))
     {
         if (m)
@@ -481,7 +480,7 @@ bool __prime_test_roughly(const number_t& n)
     else
     {
         e = p + __SMALL_SIZE;
-        while (p != e) if (n.dat[0] == *p++)
+        while (p != e) if (*n.dat == *p++)
         {
             return true;
         }
@@ -608,6 +607,51 @@ int inv(const number_t& a, const number_t& m, number_t& res)
     return 0;
 }
 
+template <class OP>
+void __bit_shift_op(const number_t& a, const number_t& b, size_t shift, OP& op, number_t& res)
+{
+    res.assign(a);
+    if (shift + b.bits_count() > res.bits_count())
+    {
+        res.bits_reserve(shift + b.bits_count());
+        res.fill_unused_capacity(0);
+    }
+
+    const unit_t *pb = b.dat, *be = b.unit_end();
+    unit_t *pr = res.dat + shift / UNITBITS, *re = res.unit_end();
+    dunit_t dunit, carry = 0;
+    size_t sh = shift % UNITBITS, lr = res.unit_count();
+
+    for (; pb != be; pb++, pr++)
+    {
+        dunit = (dunit_t)*pb << sh;
+        op(*pr, (carry | dunit) & UNITMAX);
+        carry = dunit >> UNITBITS;
+    }
+    if (carry)
+    {
+        op(*pr++, carry);
+    }
+    if (pr > re)
+    {
+        lr = pr - res.dat;
+    }
+    __trim_leading_zeros(res.dat, lr);
+    res.len = lr * sign(res);
+}
+
+void bit_shift_or(const number_t& a, const number_t& b, size_t shift, number_t& res)
+{
+    struct{ void operator () (unit_t& a, dunit_t b) { a |= b; }} op;
+    __bit_shift_op(a, b, shift, op, res);
+}
+
+void bit_shift_xor(const number_t& a, const number_t& b, size_t shift, number_t& res)
+{
+    struct{ void operator () (unit_t& a, dunit_t b) { a ^= b; }} op;
+    __bit_shift_op(a, b, shift, op, res);
+}
+
 void __EUCLID(number_t& a, number_t& b)
 {
     assert(a.is_pos() && b.is_pos());
@@ -658,8 +702,9 @@ void __pom_unit(unit_t a, const number_t& b, const number_t& c, number_t& res)
     assert(a && b.is_pos() && !c.is_zero());
 
     number_t r(1);
-    unit_t* p = b.dat + b.len - 1;
-    unit_t* e = b.dat - 1, i, i0 = 1 << (UNITBITS - 1);
+    const unit_t* p = b.unit_last();
+    const unit_t* e = b.unit_rend();
+    unit_t i, i0 = 1 << (UNITBITS - 1);
 
     for (; p != e; p--)
     {
@@ -682,8 +727,9 @@ void __pom(const number_t& a, const number_t& b, const number_t& c, number_t& re
     assert(a.len && b.is_pos() && !c.is_zero());
 
     number_t r(1), m(a);
-    unit_t *p = b.dat + b.len - 1;
-    unit_t *e = b.dat - 1, i, i0 = 1 << (UNITBITS - 1);
+    const unit_t *p = b.unit_last();
+    const unit_t *e = b.unit_rend();
+    unit_t i, i0 = 1 << (UNITBITS - 1);
 
     m.mod(c);
     for (; p != e; p--)

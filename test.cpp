@@ -3803,32 +3803,32 @@ void test_gcd()
 		gcd(a, b, g); assert(g == P5 * P6 * P7);
     }{
         NN x, y, g;
-        gcdext(49, 14, x, y, g);
+        gcd_ext(49, 14, x, y, g);
         assert(g == 7);
         assert(x == 1);
         assert(y == -3);
-        gcdext(14, 49, x, y, g);
+        gcd_ext(14, 49, x, y, g);
         assert(g == 7);
         assert(x == -3);
         assert(y == 1);
 
-        gcdext(0, 1, x, y, g);
+        gcd_ext(0, 1, x, y, g);
         assert(g == 1);
         assert(y == 1);
-        gcdext(1, 0, x, y, g);
+        gcd_ext(1, 0, x, y, g);
         assert(g == 1);
         assert(x == 1);
-        gcdext(1, 1, x, y, g);
+        gcd_ext(1, 1, x, y, g);
         assert(g == 1);
         assert(x == 0);
         assert(y == 1);
     }{
         NN a(P3), b(P4), x, y, g;
-        gcdext(a, b, x, y, g); assert(g == 1); assert(a * x + b * y == g);
+        gcd_ext(a, b, x, y, g); assert(g == 1); assert(a * x + b * y == g);
         a.mul(P5); b.mul(P5);
-        gcdext(a, b, x, y, g); assert(g == P5); assert(a * x + b * y == g);
+        gcd_ext(a, b, x, y, g); assert(g == P5); assert(a * x + b * y == g);
         a.mul(P6); b.mul(P6);
-        gcdext(a, b, x, y, g); assert(g == P5 * P6); assert(a * x + b * y == g);
+        gcd_ext(a, b, x, y, g); assert(g == P5 * P6); assert(a * x + b * y == g);
     }{
         CRNG_t rng;
         NN a, b, x, y, g;
@@ -3840,7 +3840,7 @@ void test_gcd()
             if (rng.chance(8)) b.set_neg();
             if (a && b)
             {
-                gcdext(a, b, x, y, g);
+                gcd_ext(a, b, x, y, g);
                 assert(g > 0 && a * x + b * y == g);
                 i++;
             }

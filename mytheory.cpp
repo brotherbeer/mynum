@@ -65,7 +65,7 @@ int gcd(const number_t& a, const number_t& b, number_t& res)
     return 1;
 }
 
-int gcdext(const number_t& a, const number_t& b, number_t& x, number_t& y, number_t& g)
+int gcd_ext(const number_t& a, const number_t& b, number_t& x, number_t& y, number_t& g)
 {
     if (!a.is_zero() && !b.is_zero())
     {

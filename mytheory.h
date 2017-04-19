@@ -8,7 +8,7 @@ namespace mynum {
 int jacobi(const number_t& a, const number_t& m);
 
 int gcd(const number_t& a, const number_t& b, number_t& res);
-int gcdext(const number_t& a, const number_t& b, number_t& x, number_t& y, number_t& g);
+int gcd_ext(const number_t& a, const number_t& b, number_t& x, number_t& y, number_t& g);
 void lcm(const number_t& a, const number_t&b, number_t& res);
 
 int pom(const number_t& a, const number_t& b, const number_t& c, number_t& res);
@@ -19,6 +19,10 @@ void prime_prev_roughly(const number_t& n, number_t& res);
 bool MR_prime_test(const number_t& n, size_t times);
 
 int inv(const number_t& a, const number_t& m, number_t& res);  // Modular multiplicative inverse
+
+void bit_and_ext(const number_t& a, const number_t& b, size_t bpos, number_t& res);
+void bit_or_ext(const number_t& a, const number_t& b, size_t bpos, number_t& res);
+void bit_xor_ext(const number_t& a, const number_t& b, size_t bpos, number_t& res);
 
 struct RNG;
 

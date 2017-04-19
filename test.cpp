@@ -1718,7 +1718,7 @@ void test_bit_remove()
 #define TEST_BIT_REMOVE(x, y, res) load(a, s, 2); a.bit_remove(x, y); assert(a(2) == res);
     {
         NN a;
-        string_t s = "101 1001001010111110 1111100000000110 1001001010111110";
+        string_t s = "101 1001001010111110 1111100000000110 1001001010111110";  // 51 bits
         TEST_BIT_REMOVE(0, 1, "10110010010101111101111100000000110100100101011111");
         TEST_BIT_REMOVE(4, 13, "101100100101011111011111000000001101001110");
         TEST_BIT_REMOVE(0, 15, "101100100101011111011111000000001101");
@@ -1735,6 +1735,7 @@ void test_bit_remove()
         TEST_BIT_REMOVE(48, 52, "100100101011111011111000000001101001001010111110");
         TEST_BIT_REMOVE(50, 51, "1100100101011111011111000000001101001001010111110");
         TEST_BIT_REMOVE(0, 51, "0");
+        TEST_BIT_REMOVE(37, 66, "1111011111000000001101001001010111110");
     }{
         NN a;
         string_t s = "1001001010111110 1111100000000110 1001001010111110 1111100000000110";
@@ -2001,6 +2002,30 @@ void test_bits()
         a.bit_set_flip(62); assert(a == 0);
         a.bit_set_flip(62, 64); assert(a == 0xc000000000000000);
         a.bit_set_flip(61, 64); assert(a == 0x2000000000000000);
+    }{
+        NN a;
+        a.assign("1111111111111", 2); a.bit_insert(0, 1, 0); assert(a(2) == "11111111111110");
+        a.assign("1111111111111", 2); a.bit_insert(3, 7, 0); assert(a(2) == "11111111110000000111");
+        a.assign("1111111111111", 2); a.bit_insert(13, 1, 1); assert(a(2) == "11111111111111");
+        a.assign("1111111111111", 2); a.bit_insert(13, 1, 0); assert(a(2) == "1111111111111");
+        a.assign("1111111111111", 2); a.bit_insert(14, 16, 0); assert(a(2) == "1111111111111");
+        a.assign("1111111111111", 2); a.bit_insert(14, 1, 1); assert(a(2) == "101111111111111");
+        a.assign("1111111111111", 2); a.bit_insert(7, 16, 0); assert(a(2) == "11111100000000000000001111111");
+        a.assign("1111111111111", 2); a.bit_insert(7, 32, 0); assert(a(2) == "111111000000000000000000000000000000001111111");
+        a.assign("1111111111111", 2); a.bit_insert(7, 39, 0); assert(a(2) == "1111110000000000000000000000000000000000000001111111");
+        a.assign("1111111111111", 2); a.bit_insert(16, 32, 0); assert(a(2) == "1111111111111");
+        a.assign("1111111111111", 2); a.bit_insert(15, 32, 1); assert(a(2) == "11111111111111111111111111111111001111111111111");
+        a.assign("1111111111111", 2); a.bit_insert(16, 32, 1); assert(a(2) == "111111111111111111111111111111110001111111111111");
+        a.assign("1111111111111", 2); a.bit_insert(17, 32, 1); assert(a(2) == "1111111111111111111111111111111100001111111111111");
+        a.assign("1111111111111", 2); a.bit_insert(31, 32, 1); assert(a(2) == "111111111111111111111111111111110000000000000000001111111111111");
+        a.assign("1111111111111", 2); a.bit_insert(32, 32, 1); assert(a(2) == "1111111111111111111111111111111100000000000000000001111111111111");
+        a.assign("1111111111111", 2); a.bit_insert(33, 32, 1); assert(a(2) == "11111111111111111111111111111111000000000000000000001111111111111");
+        a.release(); a.bit_insert(0, 1, 0); assert(a == 0);
+        a.release(); a.bit_insert(0, 1, 1); assert(a == 1);
+        a.release(); a.bit_insert(32, 1, 1); assert(a == 0x100000000);
+        a.release(); a.bit_insert(17, 9, 1); assert(a(2) == "11111111100000000000000000");
+        a.set_zero(); a.bit_insert(63, 1, 1); assert(a == 0x8000000000000000);
+        a.set_zero(); a.bit_insert(17, 9, 1); assert(a(2) == "11111111100000000000000000");
     }{
         NN a(0x123FFabcdefULL); // 100100011 1111111110101011 1100110111101111
         const NN& ref = a;
@@ -3739,7 +3764,14 @@ void test_gcd()
         assert(!gcd(0, 0, res));  // (0, 0) is illegal
         gcd(0, 1, res); assert(res == 1);
         gcd(2, 0, res); assert(res == 2);
+        gcd(0, P1, res); assert(res == P1);
+        gcd(P1, 0, res); assert(res == P1);
         gcd(1, 1, res); assert(res == 1);
+        gcd(1, P1, res); assert(res == 1);
+        gcd(P1, 1, res); assert(res == 1);
+        gcd(P2, P2, res); assert(res == P2);
+        gcd(P1, P2, res); assert(res == 1);
+        gcd(P2, P1, res); assert(res == 1);
 		gcd(2, 1, res); assert(res == 1);
 		gcd(2, 2, res); assert(res == 2);
 		gcd(3, 4, res); assert(res == 1);
@@ -3833,6 +3865,8 @@ void test_inv()
         inv(P1, P2, x); assert(x * P1 % P2 == 1);
         inv(P2, P3, x); assert(x * P2 % P3 == 1);
         inv(P3, P4, x); assert(x * P3 % P4 == 1);
+        inv(P4, P5, x); assert(x * P4 % P5 == 1);
+        inv(P5, P6, x); assert(x * P5 % P6 == 1);
     }
 }
 

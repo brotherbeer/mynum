@@ -1032,9 +1032,45 @@ number_t& number_t::bit_remove(size_t bpos, size_t epos)
     return *this;
 }
 
-number_t& number_t::bit_insert(const number_t& bits, size_t bpos)
+number_t& number_t::bit_insert(size_t pos, size_t size, bool v)
 {
-    return *this;
+    slen_t l = __abs(len), newcap, newlen;
+    size_t bcnt = bits_count();
+
+    if (pos < bcnt)
+    {
+        newlen = (bcnt + size + UNITBITS - 1) / UNITBITS;
+        if (newlen > cap)
+        {
+            unit_t* tmp = __allocate_units(newlen, &newcap);
+            __copy_units(tmp, dat, l);
+            __deallocate_units(dat);
+            dat = tmp;
+            cap = newcap;
+        }
+        unit_t *p = dat + l;
+        unit_t *q = dat + cap;
+        while (p != q)
+        {
+            *p++ = 0;
+        }
+        p = dat + pos / UNITBITS;
+        if (size >= UNITBITS)
+        {
+            q = p + (size - UNITBITS) / UNITBITS + 1;
+            __move_units(q, p, dat + l - p);
+            __shl_core(q, dat + l - p, size % UNITBITS);
+        }
+        else
+        {
+            unit_t tmp = *p;
+            __shl_core(p, dat + l - p, size);
+            *p |= tmp & ~(UNITMAX << (pos % UNITBITS));
+        }
+        __trim_leading_zeros(dat, newlen);
+        len = newlen * __sign(len);
+    }
+    return bit_set(pos, pos + size, v);
 }
 
 bool number_t::bit_at(size_t x) const
@@ -1049,7 +1085,7 @@ bool number_t::bit_at(size_t x) const
     return false;
 }
 
-void number_t::bit_set_one(size_t x)
+number_t& number_t::bit_set_one(size_t x)
 {
     slen_t i = x / UNITBITS;
     slen_t r = x % UNITBITS, l = __abs(len);
@@ -1071,9 +1107,10 @@ void number_t::bit_set_one(size_t x)
         __set_units_zero(dat + l, i - l);
         len = (i + 1) * __sign(len);
     }
+    return *this;
 }
 
-void number_t::bit_set_zero(size_t x)
+number_t& number_t::bit_set_zero(size_t x)
 {
     slen_t l = __abs(len);
     slen_t i = x / UNITBITS;
@@ -1085,9 +1122,10 @@ void number_t::bit_set_zero(size_t x)
         __trim_leading_zeros(dat, l);
         len = l * __sign(len);
     }
+    return *this;
 }
 
-void number_t::bit_set_flip(size_t x)
+number_t& number_t::bit_set_flip(size_t x)
 {
     slen_t l = __abs(len);
     slen_t i = x / UNITBITS;
@@ -1103,9 +1141,10 @@ void number_t::bit_set_flip(size_t x)
     {
         bit_set_one(x);
     }
+    return *this;
 }
 
-void number_t::bit_set(size_t x, int v)
+number_t& number_t::bit_set(size_t x, int v)
 {
     if (v > 0)
     {
@@ -1119,9 +1158,10 @@ void number_t::bit_set(size_t x, int v)
     {
         bit_set_flip(x);
     }
+    return *this;
 }
 
-void number_t::bit_set(size_t bpos, size_t epos, int v)
+number_t& number_t::bit_set(size_t bpos, size_t epos, int v)
 {
     if (bpos < epos)
     {
@@ -1194,6 +1234,7 @@ void number_t::bit_set(size_t bpos, size_t epos, int v)
         __trim_leading_zeros(dat, l);
         len = l * __sign(len);
     }
+    return *this;
 }
 
 size_t number_t::bits_count() const

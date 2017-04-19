@@ -1,3 +1,12 @@
+/* MYNUM LIBARAY SOURCE CODE
+ *
+ * This library provides addition, subtraction, multiplication, division,
+ * modulo, exponentiation and bitwise operations for big integer arithmetic.
+ * The author hopes mynum will be useful, but dose not make any warranty.
+ *
+ * If you have any questions, please contact <brotherbeer@163.com>
+ */
+
 #if defined(_WIN32)
 #include <windows.h>
 #else

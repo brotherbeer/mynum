@@ -123,9 +123,10 @@ struct number_t: public _base_number_t  // bignum class
     void copy(const number_t&);
 
     void release();
-    void reserve(size_t units);
+    void reserve(size_t unitsize);
+    void bits_reserve(size_t bitsize);
     void clear() { set_zero(); }
-    void clear_and_reserve(size_t units);
+    void clear_and_reserve(size_t unitsize);
 
     void set_one();
     void set_zero();
@@ -252,8 +253,6 @@ struct number_t: public _base_number_t  // bignum class
     size_t tz_count() const;
     size_t pop_count() const;
     size_t bits_count() const;
-
-    void bits_reserve(size_t);
 
     number_t& halve();
     number_t& twice();
@@ -400,6 +399,19 @@ struct number_t: public _base_number_t  // bignum class
     string_t operator () (int base) const;
     bool operator [] (size_t x) const { return bit_at(x); }
     bitref_t operator [] (size_t);
+
+    size_t unit_count() const    { return len >= 0? len: -len; }
+    size_t unit_capacity() const { return cap; }
+    unit_t* unit()               { return dat; }
+    unit_t* unit_end()           { return dat + unit_count(); }
+    unit_t* unit_last()          { return dat + unit_count() - 1; }
+    unit_t* unit_rend()          { return dat - 1; }
+    const unit_t* unit() const      { return dat; }
+    const unit_t* unit_end() const  { return dat + unit_count(); }
+    const unit_t* unit_last() const { return dat + unit_count() - 1; }
+    const unit_t* unit_rend() const { return dat - 1; }
+
+    void fill_unused_capacity(unit_t v);
 
 protected:
     number_t(unit_t* a, slen_t b, slen_t c):

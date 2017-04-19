@@ -2,11 +2,9 @@
  *
  * This library provides addition, subtraction, multiplication, division,
  * modulo, exponentiation and bitwise operations for big integer arithmetic.
- * No restrictions on the dissemination and modification of the source code.
  * The author hopes mynum will be useful, but dose not make any warranty.
- * If you have any questions, please contact <brotherbeer@163.com>
  *
- * NOTICE!! This library is only available on the LITTLE-ENDIAN machines now.
+ * If you have any questions, please contact <brotherbeer@163.com>
  */
 
 #include <cmath>
@@ -386,6 +384,15 @@ number_t::~number_t()
 void number_t::bits_reserve(size_t n)
 {
     reserve((n + UNITBITS - 1) / UNITBITS);
+}
+
+void number_t::fill_unused_capacity(unit_t v)
+{
+    unit_t *p = dat + __abs(len), *e = dat + cap;
+    while (p != e)
+    {
+        *p++ = v;
+    }
 }
 
 number_t& number_t::halve()
@@ -1048,16 +1055,11 @@ number_t& number_t::bit_insert(size_t pos, size_t size, bool v)
             dat = tmp;
             cap = newcap;
         }
-        unit_t *p = dat + l;
-        unit_t *q = dat + cap;
-        while (p != q)
-        {
-            *p++ = 0;
-        }
-        p = dat + pos / UNITBITS;
+        fill_unused_capacity(0);
+        unit_t* p = dat + pos / UNITBITS;
         if (size >= UNITBITS)
         {
-            q = p + (size - UNITBITS) / UNITBITS + 1;
+            unit_t* q = p + (size - UNITBITS) / UNITBITS + 1;
             __move_units(q, p, dat + l - p);
             __shl_core(q, dat + l - p, size % UNITBITS);
         }

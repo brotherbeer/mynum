@@ -3952,6 +3952,14 @@ void test_jacobi()
     assert(jacobi(30, 57) == 0);
     assert(jacobi(30, 59) == -1);
     assert(jacobi(1001, 9907) == -1);
+    assert(jacobi(9, 0xbb08fdf) == 1);
+    assert(jacobi(12, 0x1026345) == 0);
+    assert(jacobi(0, NN("ea8fc24caacba8dc493", 16)) == 0);
+    assert(jacobi(NN("74bca9105ad9e19e655dc83ad1b", 16), NN("21320da4eac5830b733", 16)) == 0);
+    assert(jacobi(NN("f750aca0a137924ef4b2aab1a2cbefa", 16), NN("63a013e8fab525b6054d7d56df", 16)) == 1);
+    assert(jacobi(NN("e626f178bf93c191cf00128efc3", 16), NN("72c640ba7c2dc4a699ff4f959c5", 16)) == -1);
+    assert(jacobi(NN("3735667b1959162447e835d6974d", 16), NN("c99c0b75a0024aa128e6902de9f0789bf535ecce90ef748cb", 16)) == -1);
+    assert(jacobi(NN("b04fa0ad83823227929f51620466e240fbc0422737da5907e", 16), NN("7e9f72b8f9afcf640f8edc4435bf857f4ccbb944b", 16)) == 1);
 }
 
 void test_lcm()

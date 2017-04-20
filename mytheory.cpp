@@ -21,6 +21,8 @@ namespace mynum {
 
 int jacobi(const number_t& a, const number_t& b)
 {
+    assert(b.is_odd());
+
     unit_t m;
     int t = 1, z;
     size_t tz;

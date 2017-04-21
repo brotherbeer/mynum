@@ -466,6 +466,17 @@ inline std::ostream& operator << (std::ostream& os, const string_t& s)
     return os;
 }
 
+inline std::istream& operator >> (std::istream& is, string_t& s)
+{
+    std::string tmp;
+    is >> tmp;
+    if (is.good())
+    {
+        s.assign(tmp.c_str(), tmp.length());
+    }
+    return is;
+}
+
 inline std::ostream& operator << (std::ostream& os, const bitref_t& b)
 {
     return os << (bool)b;

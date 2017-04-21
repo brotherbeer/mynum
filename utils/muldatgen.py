@@ -21,10 +21,10 @@ def genTestData(args):
         if (i + 1) % 500000 == 0:
             print >> sys.stderr, i, 'items generated'
 
-        a, b0 = randNumStr(args.max_digits_count, 16)
-        b, b1 = randNumStr(args.max_digits_count, 16)
-        va = int(a, b0)
-        vb = int(b, b1)
+        a = randNumStr(args.max_digits_count, 16, True)
+        b = randNumStr(args.max_digits_count, 16, True)
+        va = int(a, 16)
+        vb = int(b, 16)
         if randint(0, 50) == 1:
             b = a
             vb = va

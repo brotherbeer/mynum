@@ -50,108 +50,146 @@ static void __check(const number_t& res, const number_t& exp)
     __check(aa, c); \
 } while(0)
 
+#define break_when_eof() \
+    if (in.fail()) { \
+        if (!in.eof()) { \
+            cerr << "ITEM LOAD ERROR!! (" << n + 1 << ")" << endl; \
+            abort(); \
+        } \
+        break; \
+    }
+
+#define __show_error_arg2(fun) { \
+    cerr << #fun << " UNEXPECTED!!" << endl; \
+    cerr << "op1:" << a(16) << endl; \
+    cerr << "exp:" << exp(16) << endl; \
+    cerr << "res:" << res(16) << endl; \
+    abort(); \
+}
+
+#define __show_error_arg3(fun) { \
+    cerr << #fun << " UNEXPECTED!!" << endl; \
+    cerr << "op1:" << a(16) << endl; \
+    cerr << "op2:" << b(16) << endl; \
+    cerr << "exp:" << exp(16) << endl; \
+    cerr << "res:" << res(16) << endl; \
+    abort(); \
+}
+
+#define __show_error_arg4(fun) { \
+    cerr << #fun << " UNEXPECTED!!" << endl; \
+    cerr << "op1:" << a(16) << endl; \
+    cerr << "op2:" << b(16) << endl; \
+    cerr << "op3:" << c(16) << endl; \
+    cerr << "exp:" << exp(16) << endl; \
+    cerr << "res:" << res(16) << endl; \
+    abort(); \
+}
+
+#define __check_fun_arg2(fun, a, res, exp) { \
+    fun(a, res); \
+    if (res != exp) { \
+        cerr << #fun << " UNEXPECTED!! ln:" << __LINE__ << endl; \
+        cerr << "op1:" << a(16) << endl; \
+        cerr << "exp:" << exp(16) << endl; \
+        cerr << "res:" << res(16) << endl; \
+        abort(); \
+    } \
+}
+
+#define __check_fun_arg3(fun, a, b, res, exp) { \
+    fun(a, b, res); \
+    if (res != exp) {\
+        cerr << #fun << " UNEXPECTED!! " << __FUNCTION__ << "(" << __LINE__ << ")" <<endl; \
+        cerr << "op1:" << a(16) << endl; \
+        cerr << "op2:" << b(16) << endl; \
+        cerr << "exp:" << exp(16) << endl; \
+        cerr << "res:" << res(16) << endl; \
+        abort(); \
+    } \
+}
+
+#define __check_fun_arg4(fun, a, b, c, res, exp) {\
+    fun(a, b, c, res); \
+    if (res != exp) { \
+        cerr << #fun << " UNEXPECTED!! " << __FUNCTION__ << "(" << __LINE__ << ")" <<endl; \
+        cerr << "op1:" << a(16) << endl; \
+        cerr << "op2:" << b(16) << endl; \
+        cerr << "op3:" << c(16) << endl; \
+        cerr << "exp:" << exp(16) << endl; \
+        cerr << "res:" << res(16) << endl; \
+        abort(); \
+    } \
+}
+
+#define __check_fun_arg4_2(fun, a, b, res1, res2, exp1, exp2) {\
+    fun(a, b, res1, res2); \
+    if (res1 != exp1 || res2 != exp2) {\
+        cerr << #fun << " UNEXPECTED!! " << __FUNCTION__ << "(" << __LINE__ << ")" <<endl; \
+        cerr << "op1:"  << a(16) << endl; \
+        cerr << "op2:"  << b(16) << endl; \
+        cerr << "exp1:" << exp1(16) << endl; \
+        cerr << "res1:" << res1(16) << endl; \
+        cerr << "exp2:" << exp2(16) << endl; \
+        cerr << "res2:" << res2(16) << endl; \
+        abort(); \
+    } \
+}
+
 size_t __random_test_div(ifstream& in)
 {
     size_t n = 0;
-    number_t a, b, c, d;
-    number_t aa, bb, q, r;
-    b1 = b2 = b3 = b4 = 16;
-    oper = i1 = i2 = i3 = i4 = "";
-    while (in.good() && !in.eof())
+    number_t a, b, exp1, exp2, res1, res2, aa, bb;
+    number_t q, r;
+
+    in.setf(istream::hex);
+    while (1)
     {
+        in >> a >> b >> exp1 >> exp2;
+        break_when_eof();
+
+        __check_fun_arg4_2(div, a, b, q, r, exp1, exp2);
+
+        __check_fun_arg3(div, a, b, q, exp1);
+        __check_fun_arg3(mod, a, b, r, exp2);
+
+        aa.assign(a);
+        bb.assign(b);
+        __check_fun_arg3(div, a, bb, bb, exp1);
+        __check_fun_arg3(div, aa, b, aa, exp1);
+
+        aa.assign(a);
+        bb.assign(b);
+        __check_fun_arg3(mod, a, bb, bb, exp2);
+        __check_fun_arg3(mod, aa, b, aa, exp2);
+
+        aa.assign(a);
+        bb.assign(b);
+        __check_fun_arg4_2(div, a, bb, bb, r, exp1, exp2);
+        __check_fun_arg4_2(div, aa, b, aa, r, exp1, exp2);
+
+        aa.assign(a);
+        bb.assign(b);
+        __check_fun_arg4_2(div, a, bb, q, bb, exp1, exp2);
+        __check_fun_arg4_2(div, aa, b, q, aa, exp1, exp2);
+        __check_fun_arg4_2(div, b, b, q, r, ONE, ZERO);
+        __check_fun_arg3(div, b, b, q, ONE);
+
+        aa.assign(a);
+        bb.assign(b);
+        if (aa != 0) __check_fun_arg3(mod, aa, aa, aa, ZERO);
+        __check_fun_arg3(div, bb, bb, bb, ONE);
+
+        aa.assign(a);
+        bb.assign(b);
+        __check_fun_arg4_2(div, aa, aa, q, aa, ONE, ZERO);
+        __check_fun_arg4_2(div, bb, bb, bb, r, ONE, ZERO);
+
+        aa.assign(a);
+        bb.assign(b);
+        __check_fun_arg4_2(div, aa, bb, aa, bb, exp1, exp2);
+
         n++;
-        in >> i1 >> i2 >> i3 >> i4;
-
-        a.assign(i1.c_str(), b1);
-        b.assign(i2.c_str(), b2);
-        c.assign(i3.c_str(), b3);
-        d.assign(i4.c_str(), b4);
-
-        div(a, b, q, r);
-        __check(q, c);
-        __check(r, d);
-
-        div(a, b, q);
-        __check(q, c);
-
-        mod(a, b, r);
-        __check(r, d);
-
-        __check(a / b, c);
-        __check(a % b, d);
-
-        aa.assign(a);
-        bb.assign(b);
-
-        div(a, bb, bb);
-        __check(bb, c);
-
-        div(aa, b, aa);
-        __check(aa, c);
-
-        aa.assign(a);
-        bb.assign(b);
-
-        mod(a, bb, bb);
-        __check(bb, d);
-
-        mod(aa, b, aa);
-        __check(aa, d);
-
-        aa.assign(a);
-        mod(aa, aa, aa);
-        __check(aa, ZERO);
-
-        aa.assign(a);
-        bb.assign(b);
-
-        div(a, bb, bb, r);
-        __check(bb, c);
-        __check(r, d);
-
-        div(aa, b, aa, r);
-        __check(aa, c);
-        __check(r, d);
-
-        aa.assign(a);
-        bb.assign(b);
-
-        div(a, bb, q, bb);
-        __check(q, c);
-        __check(bb, d);
-
-        div(aa, b, q, aa);
-        __check(q, c);
-        __check(aa, d);
-
-        div(b, b, q, r);
-        __check(q, ONE);
-        __check(r, ZERO);
-
-        div(b, b, q);
-        __check(q, ONE);
-
-        bb.assign(b);
-
-        div(bb, bb, bb);
-        __check(bb, ONE);
-
-        aa.assign(a);
-        bb.assign(b);
-
-        div(aa, aa, q, aa);
-        __check(q, ONE);
-        __check(aa, ZERO);
-
-        div(bb, bb, bb, r);
-        __check(bb, ONE);
-        __check(r, ZERO);
-
-        aa.assign(a);
-        bb.assign(b);
-        div(aa, bb, aa, bb);
-        __check(aa, c);
-        __check(bb, d);
     }
     in.close();
     return n;
@@ -160,61 +198,41 @@ size_t __random_test_div(ifstream& in)
 size_t __random_test_mul(ifstream& in)
 {
     size_t n = 0;
-    number_t a, b, c, d;
-    number_t aa, bb, p;
-    b1 = b2 = b3 = b4 = 16;
-    oper = i1 = i2 = i3 = i4 = "";
-    while (in.good() && !in.eof())
+    number_t a, b, exp, aa, bb, res;
+
+    in.setf(istream::hex);
+    while (1)
     {
-        n++;
-        in >> i1 >> i2 >> i3;
+        in >> a >> b >> exp;
+        break_when_eof();
 
-        a.assign(i1.c_str(), b1);
-        b.assign(i2.c_str(), b2);
-        c.assign(i3.c_str(), b3);
-
-        mul(a, b, p);
-        __check(p, c);
-
-        kmul(a, b, p);
-        __check(p, c);
+        __check_fun_arg3(mul, a, b, res, exp);
+        __check_fun_arg3(kmul, a, b, res, exp);
 
         aa.assign(a);
         bb.assign(b);
-
-        mul(a, bb, bb);
-        __check(bb, c);
-
-        mul(aa, b, aa);
-        __check(aa, c);
+        __check_fun_arg3(mul, a, bb, bb, exp);
+        __check_fun_arg3(mul, aa, b, aa, exp);
 
         aa.assign(a);
         bb.assign(b);
-
-        kmul(a, bb, bb);
-        __check(bb, c);
-
-        kmul(aa, b, aa);
-        __check(aa, c);
+        __check_fun_arg3(kmul, a, bb, bb, exp);
+        __check_fun_arg3(kmul, aa, b, aa, exp);
 
         if (a == b)
         {
-            sqr(a, p);
-            __check(p, c);
-
-            ksqr(a, p);
-            __check(p, c);
-
+            __check_fun_arg2(sqr, a, res, exp);
+            __check_fun_arg2(ksqr, a, res, exp);
             aa.assign(a);
-            sqr(aa, aa);
-            __check(aa, c);
-
+            __check_fun_arg2(sqr, aa, aa, exp);
             aa.assign(a);
-            ksqr(aa, aa);
-            __check(aa, c);
+            __check_fun_arg2(ksqr, aa, aa, exp);
+            aa.assign(a);
+            __check_fun_arg3(mul, aa, aa, aa, exp);
+            aa.assign(a);
+            __check_fun_arg3(kmul, aa, aa, aa, exp);
         }
-
-        __check(a * b, c);
+        n++;
     }
     in.close();
     return n;
@@ -223,28 +241,147 @@ size_t __random_test_mul(ifstream& in)
 size_t __random_test_pom(ifstream& in)
 {
     size_t n = 0;
-    number_t a, b, c, d;
-    number_t aa, bb, cc, r;
-    b1 = b2 = b3 = b4 = 16;
-    oper = i1 = i2 = i3 = i4 = "";
-    while (in.good() && !in.eof())
+    number_t a, b, c, exp, res;
+
+    in.setf(istream::hex);
+    while (1)
     {
+        in >> a >> b >> c >> exp;
+        break_when_eof();
+        __check_fun_arg4(pom, a, b, c, res, exp);
         n++;
-        in >> i1 >> i2 >> i3 >> i4;
-
-        a.assign(i1.c_str(), b1);
-        b.assign(i2.c_str(), b2);
-        c.assign(i3.c_str(), b3);
-        d.assign(i4.c_str(), b4);
-
-        pom(a, b, c, r);
-        __check(r, d);
     }
     in.close();
     return n;
 }
 
-size_t __random_test_all(ifstream& in)
+size_t __random_test_gcd(ifstream& in)
+{
+    size_t n = 0;
+    number_t a, b, exp, res;
+
+    in.setf(istream::hex);
+    while (1)
+    {
+        in >> a >> b >> exp;
+        break_when_eof();
+        __check_fun_arg3(gcd, a, b, res, exp);
+        n++;
+    }
+    in.close();
+    return n;
+}
+
+size_t __random_test_lcm(ifstream& in)
+{
+    size_t n = 0;
+    number_t a, b, exp, res;
+
+    in.setf(istream::hex);
+    while (1)
+    {
+        in >> a >> b >> exp;
+        break_when_eof();
+        __check_fun_arg3(lcm, a, b, res, exp);
+        n++;
+    }
+    in.close();
+    return n;
+}
+
+size_t __random_test_gcd_ext(ifstream& in)
+{
+    size_t n = 0;
+    number_t a, b, x, y, g;
+    number_t u, v, w;
+
+    in.setf(istream::hex);
+    while (1)
+    {
+        in >> a >> b >> x >> y >> g;
+        break_when_eof();
+        gcd_ext(a, b, u, v, w);
+        if (u != x || v != y || w != g)
+        {
+            cerr << "gcd_ext UNEXPECTED!! " << __FUNCTION__ << "(" << __LINE__ << ")" <<endl; \
+            cerr << "op1:"  << a(16) << endl; \
+            cerr << "op2:"  << b(16) << endl; \
+            cerr << "exp1:" << x(16) << endl; \
+            cerr << "res1:" << u(16) << endl; \
+            cerr << "exp2:" << y(16) << endl; \
+            cerr << "res2:" << v(16) << endl; \
+            cerr << "exp3:" << g(16) << endl; \
+            cerr << "res3:" << w(16) << endl; \
+            abort(); \
+        }
+        n++;
+    }
+    in.close();
+    return n;
+}
+
+size_t __random_test_prime(ifstream& in)
+{
+    size_t n = 0;
+    number_t a;
+    bool b, c;
+
+    in.setf(istream::hex);
+    while (1)
+    {
+        in >> a >> b;
+        break_when_eof();
+        if (b && (!(c = prime_test_roughly(a))))
+        {
+            cerr << "prime_test_roughly UNEXPECTED!!" << endl;
+            goto ERR;
+        }
+        if ((c = MR_prime_test(a, 25)) != b)
+        {
+            cerr << "MR_prime_test UNEXPECTED!!" << endl;
+            goto ERR;
+        }
+        n++;
+    }
+    in.close();
+    return n;
+
+ERR:
+    cerr << "a:" << a(16) << endl;
+    cerr << "exp:" << b << endl;
+    cerr << "res:" << c << endl;
+    abort();
+    return 0;
+}
+
+size_t __random_test_jacobi(ifstream& in)
+{
+    size_t n = 0;
+    number_t a, b;
+    int exp, res;
+
+    in.setf(istream::hex);
+    while (1)
+    {
+        in >> a >> b >> exp;
+        break_when_eof();
+        res = jacobi(a, b);
+        if (exp != res)
+        {
+            cerr << "Jacobi UNEXPECTED!!" << endl;
+            cerr << "a:" << a(16) << endl;
+            cerr << "b:" << b(16) << endl;
+            cerr << "exp:" << exp << endl;
+            cerr << "res:" << res << endl;           
+            abort();
+        }
+        n++;
+    }
+    in.close();
+    return n;
+}
+
+size_t __random_test_basic(ifstream& in)
 {
     size_t n = 0;
     number_t a, b, c;
@@ -253,7 +390,7 @@ size_t __random_test_all(ifstream& in)
     while (in.good() && !in.eof())
     {
         n++;
-        in >> oper >>  i1 >> b1 >> i2 >> b2 >> i3;
+        in >> oper >> i1 >> b1 >> i2 >> b2 >> i3;
 
         a.assign(i1.c_str(), b1);
         b.assign(i2.c_str(), b2);
@@ -746,13 +883,13 @@ size_t __random_test_kmul(size_t N)
 
     while (n--)
     {
-        rand(rand_word() % 16000, a);
-        rand(rand_word() % 16000, b);
+        rand(rand_word() % 80000, a);
+        rand(rand_word() % 80000, b);
         mul(a, b, r1);
         kmul(a, b, r2);
         if (r1 != r2)
         {
-            cout << "KMUL ERROR!!" << endl;
+            cerr << "KMUL ERROR!!" << endl;
             abort();
         }
     }
@@ -766,12 +903,12 @@ size_t __random_test_ksqr(size_t N)
 
     while (n--)
     {
-        rand(rand() % 16000, a);
+        rand(rand_word() % 80000, a);
         sqr(a, r1);
         ksqr(a, r2);
         if (r1 != r2)
         {
-            cout << "KSQR ERROR!!" << endl;
+            cerr << "KSQR ERROR!!" << endl;
             abort();
         }
     }
@@ -787,7 +924,7 @@ size_t __test_sqr_and_mul_performace(size_t N)
 
     while (n--)
     {
-        rand(1 + rand_word() % 2000, a);
+        rand(1 + rand_word() % 32000, a);
         t0 = clock();
         sqr(a, r1);
         t1 = clock();
@@ -797,87 +934,53 @@ size_t __test_sqr_and_mul_performace(size_t N)
         T1 += t2 - t1;
         if (r1 != r2)
         {
-            cout << "SQR ERROR!!" << endl;
+            cerr << "SQR ERROR!!" << endl;
             abort();
         }
     }
     if (T0 >= T1)
     {
-        cout << "WARNING: sqr is not faster than mul" << endl;
+        cerr << "WARNING: sqr is not faster than mul" << endl;
     }
     cout << "sqr time: " << double(T0) / CLOCKS_PER_SEC
          << " mul time: " << double(T1) / CLOCKS_PER_SEC << endl;
     return N;
 }
 
-#define test_with_time(title, fun) do\
-{\
+#define test_with_time(title, fun) {\
     cout << title << endl; \
     clock_t t0 = clock(); \
     size_t n = fun; \
     cout << "OK!" << endl; \
     cout << "time: " << double(clock() - t0) / CLOCKS_PER_SEC << endl; \
     cout << n << " items tested" << endl << endl; \
-} while (0)
+}
 
-void test_performance()
-{
-    clock_t t0, t1, t2;
-    number_t a(1), b(1), r1, r2;
-    a.shl(1257787);
-    b.shl(1398269);
-    a--;
-    b--;
-    t0 = clock();
-    kmul(a, b, r1);
-    t1 = clock();
-    mul(a, b, r2);
-    t2 = clock();
-    if (r1 != r2)
-    {
-        cout << "M1257787 * M1398269 kmul result not equal to mul result" << endl;
-        abort();
-    }
-    cout << "M1257787 * M1398269 kmul time: " << double(t1 - t0) / CLOCKS_PER_SEC << "s mul time: " << double(t2 - t1) / CLOCKS_PER_SEC << "s" << endl;
-
-    number_t fac(1);
-    t0 = clock();
-    for (int i = 1; i < 100000; i++)
-    {
-        fac.mul_word(i);
-    }
-    t1 = clock();
-    cout << "The factorial of 100000, time: " << double(t1 - t0) / CLOCKS_PER_SEC << " " << fac.bits_count() << "bits" << endl;
-    /* 100000! has 1516688 bits, 1000000! has 18488865 bits */
+#define test_from_file(title, filename, fun) {\
+    ifstream in(filename); \
+    if (in) {\
+        cout << title << endl; \
+        clock_t t0 = clock(); \
+        size_t n = fun(in); \
+        cout << "OK!" << endl; \
+        cout << "time: " << double(clock() - t0) / CLOCKS_PER_SEC << endl; \
+        cout << n << " items tested" << endl << endl; \
+    }\
 }
 
 void random_test()
 {
-    ifstream randomtest_dat("randomtest.dat");
-    if (randomtest_dat)
-    {
-        test_with_time("Testing all operations", __random_test_all(randomtest_dat));
-    }
-
-    ifstream divrandomtest_dat("divrandomtest.dat");
-    if (divrandomtest_dat)
-    {
-        test_with_time("Testing division", __random_test_div(divrandomtest_dat));
-    }
-
-    ifstream mulrandomtest_dat("mulrandomtest.dat");
-    if (mulrandomtest_dat)
-    {
-        test_with_time("Testing multiplication", __random_test_mul(mulrandomtest_dat));
-    }
-
-    ifstream pomrandomtest_dat("pomrandomtest.dat");
-    if (pomrandomtest_dat)
-    {
-        test_with_time("Testing modular exponentiation", __random_test_pom(pomrandomtest_dat));
-    }
+    test_from_file("Testing basic operations", "randomtest.dat", __random_test_basic);
+    test_from_file("Testing division", "divrandomtest.dat", __random_test_div);
+    test_from_file("Testing multiplication", "mulrandomtest.dat", __random_test_mul);
+    test_from_file("Testing modular exponentiation", "pomrandomtest.dat", __random_test_pom);
+    test_from_file("Testing GCD", "gcdrandomtest.dat", __random_test_gcd);
+    test_from_file("Testing GCD Ext", "gcdextrandomtest.dat", __random_test_gcd_ext);
+    test_from_file("Testing LCM", "lcmrandomtest.dat", __random_test_lcm);
+    test_from_file("Testing prime", "primerandomtest.dat", __random_test_prime);
+    test_from_file("Testing Jacobi", "jacobirandomtest.dat", __random_test_jacobi);
 
     test_with_time("Testing sqr and mul", __test_sqr_and_mul_performace(3000));
-    test_with_time("Testing kmul", __random_test_kmul(100));
-    test_with_time("Testing ksqr", __random_test_ksqr(100));
+    test_with_time("Testing kmul", __random_test_kmul(1000));
+    test_with_time("Testing ksqr", __random_test_ksqr(1000));
 }

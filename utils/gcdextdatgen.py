@@ -1,20 +1,20 @@
 import sys, os, time, argparse
-from gmpy2 import is_prime, next_prime, mpz
+from gmpy2 import gcdext, mpz
 from random import *
 from datgen import randNumStr
 
 USAGE = '''
 %s [-h] [-d MAX_DIGITS_COUNT] [-i ITEMS_COUNT]
 
-This is a tool for generating prime test data.
+This is a tool for generating GCD extension test data.
 The test data is composed of lines, each line is
-made up of an integer and a '0' or '1' which indicates
-whether the integer is a prime.
+made up of five integers.
 for example:
 
-4de1 1
-4de2 0
+c3 1ff1b05 53dfb -2 27
 
+that means 0xc3 * 0x53dfb + 0x1ff1b05 * -2 = 0x27, and
+0x27 is the GCD of 0xc3 and 0x1ff1b05.
 All the integers are in base 16.\n
 ''' % os.path.basename(sys.argv[0])
 
@@ -22,13 +22,20 @@ def genTestData(args):
    for i in range(args.items_count):
         if (i + 1) % 500000 == 0:
             print >> sys.stderr, i, 'items generated'
-        x = randNumStr(args.max_digits_count, 16)
-        a = mpz(int(x, 16))
-        a = next_prime(a)
-        if not randint(0, 4):
-            a += 2
-        b = is_prime(a)
-        print '%x %x' % (int(a), b)
+
+        a = 0
+        b = 0
+        while a == 0 and b == 0:
+            x = randNumStr(args.max_digits_count / 2, 16)
+            y = randNumStr(args.max_digits_count / 2, 16)
+            z = randNumStr(args.max_digits_count / 2, 16)
+            a = int(x, 16)
+            b = int(y, 16)
+            c = int(z, 16)
+            a *= c
+            b *= c
+        g, x, y = gcdext(mpz(a), mpz(b))
+        print '%x %x %x %x %x' % (a, b, int(x), int(y), int(g))
 
 def parseArgs():
     parser = argparse.ArgumentParser(usage = USAGE)

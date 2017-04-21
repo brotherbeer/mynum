@@ -21,8 +21,8 @@ def genTestData(args):
    for i in range(args.items_count):
         if (i + 1) % 500000 == 0:
             print >> sys.stderr, i, 'items generated'
-        x, b0 = randNumStr(args.max_digits_count / 2, 16)
-        y, b1 = randNumStr(args.max_digits_count / 2, 16)
+        x = randNumStr(args.max_digits_count / 2, 16)
+        y = randNumStr(args.max_digits_count / 2, 16)
         a = int(x, 16)
         b = int(y, 16)
         if b & 1 == 0:

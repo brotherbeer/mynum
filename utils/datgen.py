@@ -48,16 +48,21 @@ LLONG_MIN = (-9223372036854775807 - 1)
 ULLONG_MAX = 0xffffffffffffffff
 USHORT_MAX = 0xffff
 
-def randNumStr(dmax, b = None, s = None):
-    if not b:
-        b = randint(2, 36)
+def randNumStr(dmax, base = 0, withSign = False):
+    needBase = False
+    if base == 0:
+        needBase = True
+        base = randint(2, 36)
     n = randint(0, dmax)
     s = ['0'] * n if n > 0 else ['0']
     for i in range(n):
-        s[i] = choice(digits[0: b])
-    if s != None:
-        return ''.join(s), b
-    return choice(signs) + ''.join(s), b
+        s[i] = choice(digits[0: base])
+    s = ''.join(s)
+    if withSign:
+        s = choice(signs) + s;
+    if needBase:
+        return s, base
+    return s
 
 def notSameSign(va, vb):
     sa = 1 if va >= 0 else -1
@@ -97,8 +102,8 @@ def genTestData(args):
             print >> sys.stderr, i, 'items generated'
 
         oper = choice(opers)
-        a, b0 = randNumStr(args.max_digits_count)
-        b, b1 = randNumStr(args.max_digits_count)
+        a, b0 = randNumStr(args.max_digits_count, 0, True)
+        b, b1 = randNumStr(args.max_digits_count, 0, True)
         va = int(a, b0)
         vb = int(b, b1)
 

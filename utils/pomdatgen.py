@@ -21,23 +21,19 @@ def genTestData(args):
    for i in range(args.items_count):
         if (i + 1) % 500000 == 0:
             print >> sys.stderr, i, 'items generated'
-        if args.base == 0:
-            a, b0 = randNumStr(args.max_digits_count, 16, None)
-        else:
-            a, b0 = str(args.base), 10
-        b, b1 = randNumStr(args.max_digits_count, 16, None)
-        c, b2 = randNumStr(args.max_digits_count, 16, None)
-        va = int(a, b0)
-        vb = int(b, b1)
-        vc = int(c, b1)
+        a = randNumStr(args.max_digits_count, 16)
+        b = randNumStr(args.max_digits_count, 16)
+        c = randNumStr(args.max_digits_count, 16)
+        va = int(a, 16)
+        vb = int(b, 16)
+        vc = int(c, 16)
         if vc == 0:
-            continue
+            vc = 1
         res = pow(va, vb, vc)
-        print '%s %s %s %x' % (a, b, c, res)
+        print '%x %x %x %x' % (va, vb, vc, res)
 
 def parseArgs():
     parser = argparse.ArgumentParser(usage = USAGE)
-    parser.add_argument('-b', '--base', type = int, help = 'The base', default = 0)
     parser.add_argument('-d', '--max-digits-count', type = int, help='The max digits of each integer', default = 64)
     parser.add_argument('-i', '--items-count', type = int, help = 'How many items should be generated', default = 32)
     args = parser.parse_args()

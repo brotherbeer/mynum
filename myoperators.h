@@ -430,19 +430,22 @@ inline std::istream& operator >> (std::istream& is, number_t& a)
 {
     std::string tmp;
     is >> tmp;
-
-    int base = 10;
-    if (is.flags() & std::istream::oct)
+    if (is.good())
     {
-        base = 8;
-    }
-    else if (is.flags() & std::istream::hex)
-    {
-        base = 16;
-    }
-    if (!load(a, tmp.c_str(), tmp.length(), base))
-    {
-        a.set_zero();
+        int base = 10;
+        if (is.flags() & std::istream::oct)
+        {
+            base = 8;
+        }
+        else if (is.flags() & std::istream::hex)
+        {
+            base = 16;
+        }
+        if (!load(a, tmp.c_str(), tmp.length(), base))
+        {
+            a.set_zero();
+            is.setstate(std::ios::failbit);
+        }
     }
     return is;
 }

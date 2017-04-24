@@ -651,15 +651,25 @@ void __bit_shift_op(const number_t& a, const number_t& b, size_t shift, OP& op, 
     res.len = lr * sign(res);
 }
 
+struct __OR
+{
+    void operator () (unit_t& a, dunit_t b) { a |= b; }
+};
+
 void bit_shift_or(const number_t& a, const number_t& b, size_t shift, number_t& res)
 {
-    struct{ void operator () (unit_t& a, dunit_t b) { a |= b; }} op;
+    __OR op;
     __bit_shift_op(a, b, shift, op, res);
 }
 
+struct __XOR
+{
+    void operator () (unit_t& a, dunit_t b) { a ^= b; }
+};
+
 void bit_shift_xor(const number_t& a, const number_t& b, size_t shift, number_t& res)
 {
-    struct{ void operator () (unit_t& a, dunit_t b) { a ^= b; }} op;
+    __XOR op;
     __bit_shift_op(a, b, shift, op, res);
 }
 

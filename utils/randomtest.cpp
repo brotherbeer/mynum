@@ -928,6 +928,52 @@ size_t test_sqr_and_mul_performace(size_t N)
     return N;
 }
 
+size_t random_test_bit_remove(size_t N)
+{
+    size_t n = N;
+    string_t s;
+    number_t a, r1, r2;
+
+    while (n--)
+    {
+        size_t l, b, e;
+        l = rand_unit() % 1024;
+        rand(l, "01", s);
+        s.strip_left("0");
+
+        if ((l = s.length()))
+        {
+            b = rand_unit() % 1024;
+            e = rand_unit() % 1024;
+            if (b > e)
+            {
+                size_t t = b; b = e; e = t;
+            }
+            a.assign(s, 2);
+            a.bit_remove(b, e);
+
+            s.reverse();
+            s.remove(b, e);
+            s.reverse();
+            s.strip_left("0");
+            if (s == "")
+            {
+                s = "0";
+            }
+            if (a(2) != s)
+            {
+                cerr << "bit_remove ERROR!!" << endl;
+                abort();
+            }
+        }
+        else
+        {
+            n++;
+        }
+    }
+    return N;
+}
+
 #define test_with_time(title, fun) {\
     cout << title << endl; \
     clock_t t0 = clock(); \
@@ -960,6 +1006,7 @@ int main()
     test_from_file("Testing LCM", "lcmrandomtest.dat", random_test_lcm);
     test_from_file("Testing prime", "primerandomtest.dat", random_test_prime);
     test_from_file("Testing Jacobi", "jacobirandomtest.dat", random_test_jacobi);
+    test_with_time("Testing bit_remove", random_test_bit_remove(30000));
 
     test_with_time("Testing sqr and mul", test_sqr_and_mul_performace(3000));
     test_with_time("Testing kmul", random_test_kmul(1000));

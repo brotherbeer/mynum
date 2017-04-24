@@ -976,7 +976,8 @@ void number_t::bit_xor_sword(sword_t x)
 
 number_t& number_t::bit_remove(size_t bpos, size_t epos)
 {
-    int d1, d2, l = __abs(len);
+    int d1, d2;
+    slen_t l = __abs(len);
     unit_t *p, *q, *e = dat + l, m1, m2, over;
 
     p = dat + bpos / UNITBITS;
@@ -1023,7 +1024,7 @@ number_t& number_t::bit_remove(size_t bpos, size_t epos)
         else
         {
             unit_t t0, t1;
-            slen_t d = slen_t(epos - bpos);
+            slen_t d = epos - bpos;
 
             over = 0;
             if (p != dat + l)
@@ -1031,7 +1032,7 @@ number_t& number_t::bit_remove(size_t bpos, size_t epos)
                 over = __shr_core(p + 1, e - p - 1, d);
             }
             t0 = *p & (UNITMAX << m2);
-            t1 = *p & (UNITMAX >> (UNITBITS - m1));
+            t1 = m1? *p & (UNITMAX >> (UNITBITS - m1)): 0;
             over <<= UNITBITS - d;
             *p = over | (t0 >> d | t1);
         }
@@ -1193,7 +1194,7 @@ number_t& number_t::bit_set(size_t bpos, size_t epos, int v)
                 {
                     *pb++ = UNITMAX;
                 }
-                *pe |= UNITMAX >> (UNITBITS - re);
+                *pe |= re? UNITMAX >> (UNITBITS - re): 0;
             }
             else if (v == 0)
             {
@@ -1202,7 +1203,7 @@ number_t& number_t::bit_set(size_t bpos, size_t epos, int v)
                 {
                     *pb++ = 0;
                 }
-                *pe &= ~(UNITMAX >> (UNITBITS - re));
+                *pe &= ~(re? UNITMAX >> (UNITBITS - re): 0);
             }
             else
             {
@@ -1211,12 +1212,13 @@ number_t& number_t::bit_set(size_t bpos, size_t epos, int v)
                 {
                     *pb++ = ~*pb;
                 }
-                *pe ^= UNITMAX >> (UNITBITS - re);
+                *pe ^= re? UNITMAX >> (UNITBITS - re): 0;
             }
         }
         else
         {
-            unit_t mask = (UNITMAX << rb) & (UNITMAX >> (UNITBITS - re));
+            unit_t mask = UNITMAX << rb;
+            mask &= re ? UNITMAX >> (UNITBITS - re): 0;
             if (v > 0)
             {
                 *pb |= mask;

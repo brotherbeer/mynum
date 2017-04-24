@@ -1208,9 +1208,9 @@ number_t& number_t::bit_set(size_t bpos, size_t epos, int v)
             else
             {
                 *pb++ ^= UNITMAX << rb;
-                while (pb != pe)
+                for (; pb != pe; pb++)
                 {
-                    *pb++ = ~*pb;
+                    *pb = ~*pb;
                 }
                 *pe ^= re? UNITMAX >> (UNITBITS - re): 0;
             }
@@ -1218,7 +1218,7 @@ number_t& number_t::bit_set(size_t bpos, size_t epos, int v)
         else
         {
             unit_t mask = UNITMAX << rb;
-            mask &= re ? UNITMAX >> (UNITBITS - re): 0;
+            mask &= re? UNITMAX >> (UNITBITS - re): 0;
             if (v > 0)
             {
                 *pb |= mask;

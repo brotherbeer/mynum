@@ -33,6 +33,7 @@ const number_t P8("1269712548723548723454252390875346177018965349675102388795923
 
 // test cases
 void test_construct();
+void test_construct_from_ordinary();
 void test_release();
 void test_reserve();
 void test_assign();
@@ -93,6 +94,7 @@ void test_lcm();
 void test_detail()
 {
     test_construct();
+    test_construct_from_ordinary();
     test_release();
     test_reserve();
     test_assign();
@@ -187,17 +189,6 @@ void test_construct()
 {
     {
         NN a; assert(a == 0); assert(a.is_zero());
-    }{
-#define TEST_ORDINARY(type, type_min, type_max, type_umax) {\
-        NN a(type(0)), b(type(1)), c(type(-1)), d(type(65535)), e(type(-65535)), f(type(type_max)), g(type(type_min));\
-        assert(a == type(0)); assert(b == type(1)); assert(c == type(-1)); assert(d == type(65535)); assert(e == type(-65535)); assert(f == type(type_max)); assert(g == type(type_min));\
-        NN ua((unsigned type)0), ub((unsigned type)1), uc((unsigned type)65535), ud((unsigned type)65536), ue((unsigned type)type_umax);\
-        assert(ua == (unsigned type)0); assert(ub == (unsigned type)1); assert(uc == (unsigned type)65535); assert(ud == (unsigned type)65536); assert(ue == (unsigned type)type_umax);\
-        }
-        TEST_ORDINARY(int, INT_MAX, INT_MIN, UINT_MAX);
-        TEST_ORDINARY(long, LONG_MAX, LONG_MIN, ULONG_MAX);
-        TEST_ORDINARY(long long, LLONG_MAX, LLONG_MIN, LLONG_MAX);
-#undef  TEST_ORDINARY
     }
     for (int x = min_base(); x <= max_base(); x++)
     {
@@ -320,6 +311,26 @@ void test_construct()
         NN d(O, 48, 50); assert(d == 3);
         NN e(O, 0, 50); assert(e == 844424930131968ULL);
         NN f(O, 48, 53); assert(f == 0xf);
+    }
+}
+
+void test_construct_from_ordinary()
+{
+    {
+        NN a(int(0)), b(int(1)), c(int(-1)), d(int(65535)), e(int(-65535)), f(int(INT_MAX)), g(int(INT_MIN));
+        assert(a == int(0)); assert(b == int(1)); assert(c == int(-1)); assert(d == int(65535)); assert(e == int(-65535)); assert(f == int(INT_MAX)); assert(g == int(INT_MIN));
+        NN ua((unsigned int)0), ub((unsigned int)1), uc((unsigned int)65535), ud((unsigned int)65536), ue((unsigned int)UINT_MAX);
+        assert(ua == (unsigned int)0); assert(ub == (unsigned int)1); assert(uc == (unsigned int)65535); assert(ud == (unsigned int)65536); assert(ue == (unsigned int)UINT_MAX);
+    }{
+        NN a(long(0)), b(long(1)), c(long(-1)), d(long(65535)), e(long(-65535)), f(long(LONG_MAX)), g(long(LONG_MIN));
+        assert(a == long(0)); assert(b == long(1)); assert(c == long(-1)); assert(d == long(65535)); assert(e == long(-65535)); assert(f == long(LONG_MAX)); assert(g == long(LONG_MIN));
+        NN ua((unsigned long)0), ub((unsigned long)1), uc((unsigned long)65535), ud((unsigned long)65536), ue((unsigned long)ULONG_MAX);
+        assert(ua == (unsigned long)0); assert(ub == (unsigned long)1); assert(uc == (unsigned long)65535); assert(ud == (unsigned long)65536); assert(ue == (unsigned long)ULONG_MAX);
+    }{
+        NN a((long long)0), b((long long)1), c((long long)-1), d((long long)65535), e((long long)-65535), f((long long)LLONG_MAX), g((long long)LLONG_MIN);
+        assert(a == (long long)0); assert(b == (long long)1); assert(c == (long long)-1); assert(d == (long long)65535); assert(e == (long long)-65535); assert(f == (long long)LLONG_MAX); assert(g == (long long)LLONG_MIN);
+        NN ua((unsigned long long)0), ub((unsigned long long)1), uc((unsigned long long)65535), ud((unsigned long long)65536), ue((unsigned long long)ULLONG_MAX);
+        assert(ua == (unsigned long long)0); assert(ub == (unsigned long long)1); assert(uc == (unsigned long long)65535); assert(ud == (unsigned long long)65536); assert(ue == (unsigned long long)ULLONG_MAX);   
     }
 }
 
@@ -678,8 +689,8 @@ void test_neg()
 void test_zero()
 {
     {
-        NN a, b(int(0)), c(long(0)), d(long long(0));
-        NN e(unsigned int(0)), f(unsigned long(0)), g(unsigned long long(0));
+        NN a, b(int(0)), c(long(0)), d((long long)0);
+        NN e((unsigned int)0), f((unsigned long)0), g((unsigned long long)0);
         assert(a.is_zero()); assert(b.is_zero());
         assert(c.is_zero()); assert(d.is_zero());
         assert(e.is_zero()); assert(f.is_zero()); assert(g.is_zero());
@@ -884,6 +895,8 @@ void test_mul()
         NN b;
         mul(a, a, b);
         assert(eq(b, NN("340282366920938463426481119284349108225")));
+        mul(a, a, a);
+        assert(eq(a, NN("340282366920938463426481119284349108225")));
     }
     {
         NN a("345234501298374"), b("-983757"), res;
@@ -1811,7 +1824,7 @@ void test_bit_remove()
             a.bit_remove(b, e);
             s.remove(l - e, l - b);
             s.strip_left("0");
-            assert(a(2) == s || a(2) == "0" && s == "");
+            assert(a(2) == s || (a(2) == "0" && s == ""));
             i++;
         }
     }

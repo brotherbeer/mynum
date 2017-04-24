@@ -1022,7 +1022,9 @@ number_t& number_t::bit_remove(size_t bpos, size_t epos)
         }
         else
         {
-            unit_t t0, t1, d = epos - bpos;
+            unit_t t0, t1;
+            slen_t d = slen_t(epos - bpos);
+
             over = 0;
             if (p != dat + l)
             {

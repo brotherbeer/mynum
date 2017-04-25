@@ -931,45 +931,196 @@ size_t test_sqr_and_mul_performace(size_t N)
 size_t random_test_bit_remove(size_t N)
 {
     size_t n = N;
-    string_t s;
-    number_t a, r1, r2;
+    number_t a;
+    string_t s, s0;
 
     while (n--)
     {
         size_t l, b, e;
         l = rand_unit() % 1024;
         rand(l, "01", s);
+
+        b = rand_unit() % 1024;
+        e = rand_unit() % 1024;
+        if (b > e)
+        {
+            size_t t = b; b = e; e = t;
+        }
+        s0 = s;
+        a.assign(s, 2);
+        a.bit_remove(b, e);
+
+        s.reverse();
+        s.remove(b, e);
+        s.reverse();
         s.strip_left("0");
-
-        if ((l = s.length()))
+        if (s == "")
         {
-            b = rand_unit() % 1024;
-            e = rand_unit() % 1024;
-            if (b > e)
-            {
-                size_t t = b; b = e; e = t;
-            }
-            a.assign(s, 2);
-            a.bit_remove(b, e);
-
-            s.reverse();
-            s.remove(b, e);
-            s.reverse();
-            s.strip_left("0");
-            if (s == "")
-            {
-                s = "0";
-            }
-            if (a(2) != s)
-            {
-                cerr << "bit_remove ERROR!!" << endl;
-                abort();
-            }
+            s = "0";
         }
-        else
+        if (a(2) != s)
         {
-            n++;
+            cerr << "bit_remove ERROR!!" << endl;
+            cerr << s0 << endl;
+            cerr << b << " " << e << endl;
+            abort();
         }
+    }
+    return N;
+}
+
+size_t random_test_bit_insert(size_t N)
+{
+    size_t n = N;
+    number_t a;
+    string_t s, s0;
+
+    while (n--)
+    {
+        size_t l, bpos, size;
+        l = rand_unit() % 1024;
+        rand(l, "01", s);
+
+        bpos = rand_unit() % 1024;
+        size = rand_unit() % 1024;
+        bool v = rand_unit() % 2? true: false;
+        char cv = v? '1': '0';
+
+        s0 = s;
+        if (bpos > s.length())
+        {
+            s.prepend('0', bpos - s.length());
+        }
+        a.assign(s, 2);
+        a.bit_insert(bpos, size, v);
+
+        s.reverse();
+        s.insert(bpos, cv, size);
+        s.strip_right("0");
+        s.reverse();
+
+        if (s.empty())
+        {
+            s = "0";
+        }
+        if (a(2) != s)
+        {
+            cerr << "bit_insert ERROR!!" << endl;
+            cerr << s0 << endl;
+            cerr << bpos << " " << size << " " << v << endl;
+            abort();
+        }
+    }
+    return N;
+}
+
+void random_test_bit_set_pos()
+{
+    number_t a;
+    string_t s, s0;
+    size_t l, pos;
+    l = rand_word() % 1024;
+    rand(l, "01", s);
+
+    pos = rand_word() % 1024;
+    bool v = rand_word() % 2? true: false;
+    char cv = v? '1': '0';
+
+    s0 = s;
+    a.assign(s, 2);
+    a.bit_set(pos, v);
+    if (pos >= s.length())
+    {
+        s.prepend('0', pos + 1 - s.length());
+    }
+    s.reverse();
+    s[pos] = cv;
+    s.reverse();
+    s.strip_left("0");
+
+    if (s.empty())
+    {
+        s = "0";
+    }
+    if (a(2) != s)
+    {
+        cerr << "bit_set pos ERROR!!" << endl;
+        cerr << s0.strip_left("0") << endl;
+        cerr << pos << " " << v << endl;
+        cerr << a(2) << endl;
+        cerr << s << endl;
+        abort();
+    }
+}
+
+void random_test_bit_set_range()
+{
+    number_t a;
+    string_t s, s0;
+    size_t l, bpos, epos;
+    l = rand_word() % 32;
+    rand(l, "01", s);
+
+    bpos = rand_word() % 32;
+    epos = rand_word() % 32;
+    if (bpos > epos)
+    {
+        size_t t = bpos; bpos = epos; epos = t;
+    }
+    bool v = rand_word() % 2? true: false;
+    char cv = v? '1': '0';
+
+    s0 = s;
+    a.assign(s, 2);
+    a.bit_set(bpos, epos, v);
+
+    if (epos > s.length())
+    {
+        s.prepend('0', epos - s.length());
+    }
+
+    s.reverse();
+    if (rand_unit() & 1)  // two ways to test
+    {
+        for (size_t pos = bpos; pos != epos; pos++)
+        {
+            s[pos] = cv;
+        }
+    }
+    else
+    {
+        string_t s1, s2;
+        s1.assign(s, 0, bpos);
+        s2.assign(s, epos, s.end_pos());
+        s1.append(cv, epos - bpos);
+        s = s1.append(s2);
+    }
+    s.reverse();
+    s.strip_left("0");
+
+    if (s.empty())
+    {
+        s = "0";
+    }
+    if (a(2) != s)
+    {
+        cerr << "bit_set range ERROR!!" << endl;
+        cerr << s0.strip_left("0") << endl;
+        cerr << bpos << " " << epos << " "  << v << endl;
+        cerr << a(2) << endl;
+        cerr << s << endl;
+        abort();
+    }
+}
+
+size_t random_test_bit_set(size_t N)
+{
+    size_t n = N;
+
+    while (n--)
+    {
+        random_test_bit_set_pos();
+        random_test_bit_set_range();
     }
     return N;
 }
@@ -1006,7 +1157,10 @@ int main()
     test_from_file("Testing LCM", "lcmrandomtest.dat", random_test_lcm);
     test_from_file("Testing prime", "primerandomtest.dat", random_test_prime);
     test_from_file("Testing Jacobi", "jacobirandomtest.dat", random_test_jacobi);
+
     test_with_time("Testing bit_remove", random_test_bit_remove(30000));
+    test_with_time("Testing bit_insert", random_test_bit_insert(30000));
+    test_with_time("Testing bit_set", random_test_bit_set(30000));
 
     test_with_time("Testing sqr and mul", test_sqr_and_mul_performace(3000));
     test_with_time("Testing kmul", random_test_kmul(1000));

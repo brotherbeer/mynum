@@ -1073,8 +1073,11 @@ number_t& number_t::bit_insert(size_t pos, size_t size, bool v)
         else
         {
             unit_t tmp = *p;
+            unit_t mask = UNITMAX << (pos % UNITBITS);
+
             __shl_core(p, dat + l - p, size);
-            *p |= tmp & ~(UNITMAX << (pos % UNITBITS));
+            *p &= mask;
+            *p |= tmp & ~mask;
         }
         __trim_leading_zeros(dat, newlen);
         len = newlen * __sign(len);
@@ -2723,15 +2726,21 @@ void string_t::reserve(size_t newcap)
 
 string_t& string_t::append(char c, size_t n)
 {
-    if (len + n > cap)
+    if (n)
     {
-        reserve(len + n);
+        if (len + n > cap)
+        {
+            reserve(len + n);
+        }
+        char* p = dat + len;
+        char* e = p + n;
+        while (p != e)
+        {
+            *p++ = c;
+        }
+        *e = '\0';
+        len += n;
     }
-    for (size_t i = 0; i < n; i++)
-    {
-        *(dat + len + i) = c;
-    }
-    dat[len += n] = '\0';
     return *this;
 }
 
@@ -2782,13 +2791,21 @@ string_t& string_t::insert(size_t pos, char c, size_t n)
     {
         reserve(len + n);
     }
-    pos = pos > len? len: pos;
-    memmove(dat + pos + n, dat + pos, len - pos);
-    for (char* p = dat + pos, *e = p + n; p != e; p++)
+    if (pos > len)
     {
-        *p = c;
+        pos = len;
     }
-    dat[len += n] = '\0';
+    char* p = dat + pos;
+    char* e = p + n;
+    memmove(e, p, len - pos);   
+    while (p != e)
+    {
+        *p++ = c;
+    }
+    if (dat)
+    {
+        dat[len += n] = '\0';
+    }
     return *this;
 }
 

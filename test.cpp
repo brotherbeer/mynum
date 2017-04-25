@@ -2412,6 +2412,14 @@ void test_string_insert()
         string_t a("1234567890");
         a.append(a.dat + 5); assert(a == "123456789067890");
         a.append(a.dat + a.len); assert(a == "123456789067890");
+        string_t b;
+        b.append('a', 0); assert(b == "");
+        b.append('b', 1); assert(b == "b");
+        b.append('c', 2); assert(b == "bcc");
+        string_t c;
+        c.prepend('a', 0); assert(c == "");
+        c.prepend('b', 1); assert(c == "b");
+        c.prepend('c', 2); assert(c == "ccb");
     }
 }
 

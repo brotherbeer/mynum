@@ -2359,8 +2359,6 @@ void test_string_insert()
         b.release(); b.append("1"); assert(b == "1");
         b.prepend("a"); assert(b == "a1");
         b.append("b"); assert(b == "a1b");
-        b.prepend(NULL); assert(b == "a1b");
-        b.append(NULL); assert(b == "a1b");
         b.append('8', 3); assert(b == "a1b888");
         b.prepend('8', 3); assert(b == "888a1b888");
         b.insert(2, '7', 5); assert(b == "88777778a1b888");
@@ -2908,10 +2906,7 @@ void test_string()
 
     string_t e("1234567890", 3); assert(e == "123");
     string_t f("1234567890", 0); assert(f == "");
-    string_t g(NULL, 123); assert(!g.valid()); assert(g == "");
-
     string_t h(e); assert(h == e && h == "123");
-    string_t i(g); assert(i == g && !i.valid());
 
     string_t o("abcd");
     assert(o[0] == 'a'); assert(o[1] == 'b');

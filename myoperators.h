@@ -376,6 +376,12 @@ inline bool operator <  (const char* a, const string_t& b) { return cmp(a, b) < 
 inline bool operator >= (const char* a, const string_t& b) { return cmp(a, b) >= 0; }
 inline bool operator <= (const char* a, const string_t& b) { return cmp(a, b) <= 0; }
 
+inline string_t operator + (char a, const string_t& b)            { string_t tmp(a); return tmp.append(b); }
+inline string_t operator + (const char* a, const string_t& b)     { string_t tmp(a); return tmp.append(b); }
+inline string_t operator + (const string_t& a, char b)            { string_t tmp(a); return tmp.append(b); }
+inline string_t operator + (const string_t& a, const char* b)     { string_t tmp(a); return tmp.append(b); }
+inline string_t operator + (const string_t& a, const string_t& b) { string_t tmp(a); return tmp.append(b); }
+
 inline bool operator == (const bitref_t& b, bool x) { return b.value() == x; }
 inline bool operator != (const bitref_t& b, bool x) { return b.value() != x; }
 inline bool operator == (const bitref_t& b, int x)  { return (int)b.value() == x; }

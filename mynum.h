@@ -842,24 +842,31 @@ struct string_t
     size_t cap;
 
     string_t(): dat(NULL), len(0), cap(0) {}
-    template<class T> string_t(T n): dat(NULL), len(0), cap(0)
-    {
-        reserve(n);
-    }
-    template<class T> string_t(T n, char c): dat(NULL), len(0), cap(0)
-    {
-        if (n)
-        {
-            reserve(n);
-            for (size_t i = 0; i != n; i++) dat[i] = c;
-            dat[len = n] = '\0';
-        }
-    }
     string_t(char);
     string_t(const char*);
     string_t(const char*, size_t);
     string_t(const string_t&);
     string_t(const string_t&, size_t bpos, size_t epos);
+
+    template<class T> explicit string_t(T n): dat(NULL), len(0), cap(0)
+    {
+        reserve(n);
+    }
+
+    template<class T> explicit string_t(char c, T n): dat(NULL), len(0), cap(0)
+    {
+        if (n)
+        {
+            reserve(n);
+            char* p = dat, *e = p + n;
+            while (p != e)
+            {
+                *p++ = c;
+            }
+            *e = '\0';
+            len = n;
+        }
+    }
 
     ~string_t();
 
@@ -869,7 +876,6 @@ struct string_t
     bool empty() const { return len == 0; }
 
     void clear();
-    int cmp(const string_t& another) const { return mynum::cmp(*this, another); }
 
     void take(char* p, size_t l);
     void take(char* p, size_t l, size_t c);
@@ -878,12 +884,14 @@ struct string_t
     void release();
     void reserve(size_t);
 
+    string_t& append(char);
     string_t& append(char, size_t);
     string_t& append(const char*, size_t);
     string_t& append(const string_t&, size_t bpos, size_t epos);
     string_t& append(const char* p) { return append(p, _try_strlen(p)); }
     string_t& append(const string_t& another) { return append(another.dat, another.len); }
 
+    string_t& prepend(char c) { return insert(0, c, 1); }
     string_t& prepend(char c, size_t n) { return insert(0, c, n); }
     string_t& prepend(const char* p) { return insert(0, p); }
     string_t& prepend(const char* p, size_t l) { return insert(0, p, l); }
@@ -925,6 +933,7 @@ struct string_t
     size_t find(size_t pos, char c) const;
     size_t find(size_t pos, const char* p) const;
     size_t find(size_t pos, const string_t& str) const { return find(pos, str.dat); }
+    size_t find(char c) const { return find(0, c); }
     size_t find(const char* p) const { return find(0, p); }
     size_t find(const string_t& str) const { return find(0, str.dat); }
 
@@ -953,8 +962,12 @@ struct string_t
     size_t pos_not_chars(size_t pos, const char*) const;
     size_t rpos_not_chars(size_t pos, const char*) const;
 
+    string_t& operator = (char c) { return assign(c); }
     string_t& operator = (const char* p) { return assign(p); }
     string_t& operator = (const string_t& another) { return assign(another); }
+    string_t& operator += (char c) { return append(c, 1); }
+    string_t& operator += (const char* p) { return append(p); }
+    string_t& operator += (const string_t& another) { return append(another); }
 
     char& operator [] (size_t x) { return dat[x]; }
     char operator [] (size_t x) const { return dat[x]; }

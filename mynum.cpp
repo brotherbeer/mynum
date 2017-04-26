@@ -2724,6 +2724,18 @@ void string_t::reserve(size_t newcap)
     }
 }
 
+string_t& string_t::append(char c)
+{
+    if (++len > cap)
+    {
+        reserve(len);
+    }
+    char* p = dat + len;
+    *p-- = '\0';
+    *p = c;
+    return *this;
+}
+
 string_t& string_t::append(char c, size_t n)
 {
     if (n)

@@ -322,8 +322,8 @@ struct number_t: public _base_number_t  // bignum class
     number_t  operator ~ () const                { number_t x(*this); return x.bit_not(); }
     number_t& operator ++ ()                     { add_unit(1); return *this; }
     number_t& operator -- ()                     { sub_unit(1); return *this; }
-    number_t& operator ++ (int)                  { add_unit(1); return *this; }
-    number_t& operator -- (int)                  { sub_unit(1); return *this; }
+    number_t  operator ++ (int)                  { number_t tmp(*this); add_unit(1); return tmp; }
+    number_t  operator -- (int)                  { number_t tmp(*this); sub_unit(1); return tmp; }
     number_t& operator += (const number_t& x)    { return add(x); }
     number_t& operator -= (const number_t& x)    { return sub(x); }
     number_t& operator *= (const number_t& x)    { return mul(x); }
@@ -915,6 +915,7 @@ struct string_t
     string_t& to_lower(string_t& res) const;
 
     string_t& assign(char);
+    string_t& assign(char, size_t);
     string_t& assign(const char*, size_t);
     string_t& assign(const string_t&, size_t bpos, size_t epos);
     string_t& assign(const char* p) { return assign(p, _try_strlen(p)); }
@@ -925,7 +926,7 @@ struct string_t
     string_t& strip(const char*);
     string_t& strip_left(const string_t& another) { return strip_left(another.dat); }
     string_t& strip_right(const string_t& another) { return strip_right(another.dat); }
-    string_t& strip_left()  { return strip_left(WHITE_SPACES); }
+    string_t& strip_left() { return strip_left(WHITE_SPACES); }
     string_t& strip_right() { return strip_right(WHITE_SPACES); }
     string_t& strip(const string_t& another) { return strip(another.dat); }
     string_t& strip() { return strip(WHITE_SPACES); }

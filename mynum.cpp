@@ -2486,9 +2486,40 @@ string_t::~string_t()
     release();
 }
 
+string_t& string_t::assign(char c)
+{
+    if (!dat)
+    {
+        cap = sizeof(word_t);
+        dat = (char*)mem::allocate(cap, sizeof(char));
+    }
+    dat[0] = c;
+    dat[len = 1] = '\0';
+    return *this;
+}
+
+string_t& string_t::assign(char c, size_t l)
+{
+    len = l;
+    if (l)
+    {
+        if (l > cap)
+        {
+            mem::deallocate(dat);
+            dat = (char*)mem::allocate((cap = l) + 1, sizeof(char));
+        }
+        memset(dat, c, l);
+    }
+    if (dat)
+    {
+        dat[l] = '\0';
+    }
+    return *this;
+}
+
 string_t& string_t::assign(const char* p, size_t l)
 {
-    len = 0;
+    len = l;
     if (p && l)
     {
         if (l > cap)
@@ -2496,24 +2527,12 @@ string_t& string_t::assign(const char* p, size_t l)
             mem::deallocate(dat);
             dat = (char*)mem::allocate((cap = l) + 1, sizeof(char));
         }
-        memmove(dat, p, len = l);
+        memmove(dat, p, l);
     }
     if (dat)
     {
-        dat[len] = '\0';
+        dat[l] = '\0';
     }
-    return *this;
-}
-
-string_t& string_t::assign(char c)
-{
-    if (!dat)
-    {
-        cap = sizeof(word_t);
-        dat = (char*)mem::allocate(cap + 1, sizeof(char));
-    }
-    dat[0] = c;
-    dat[len = 1] = '\0';
     return *this;
 }
 
@@ -2538,8 +2557,7 @@ size_t string_t::pos_not_chars(size_t pos, const char* chars) const
 {
     if (dat && chars && pos < len)
     {
-        char* p = dat + pos;
-        for (; *p != '\0'; p++)
+        for (char* p = dat + pos; *p != '\0'; p++)
         {
             if (!strchr(chars, *p))
             {

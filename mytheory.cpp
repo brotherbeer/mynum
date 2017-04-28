@@ -84,7 +84,7 @@ int gcd_ext(const number_t& a, const number_t& b, number_t& x, number_t& y, numb
         g.assign(a);
         g.set_abs();
         b1.set_abs();
-        __EUCLIDext(g, b1, x, y);
+        __EUCLID_ext(g, b1, x, y);
     }
     else if (a.is_zero() && !b.is_zero())
     {
@@ -618,6 +618,17 @@ int inv(const number_t& a, const number_t& m, number_t& res)
     return 0;
 }
 
+word_t hash(const number_t& a)
+{
+    word_t hash = (word_t)a.len;
+
+    for (const unit_t* p = a.unit(); p != a.unit_end(); p++)
+    {
+        hash = ((hash << 5) ^ (hash >> 27)) ^ *p;
+    }
+    return hash;
+}
+
 template <class OP>
 void __bit_shift_op(const number_t& a, const number_t& b, size_t shift, OP& op, number_t& res)
 {
@@ -690,7 +701,7 @@ void __EUCLID(number_t& a, number_t& b)
     }
 }
 
-void __EUCLIDext(number_t& a, number_t& b, number_t& px, number_t& py)
+void __EUCLID_ext(number_t& a, number_t& b, number_t& px, number_t& py)
 {
     assert(a.is_pos() && b.is_pos());
 

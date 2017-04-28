@@ -382,6 +382,87 @@ inline string_t operator + (const string_t& a, char b)            { string_t tmp
 inline string_t operator + (const string_t& a, const char* b)     { string_t tmp(a); return tmp.append(b); }
 inline string_t operator + (const string_t& a, const string_t& b) { string_t tmp(a); return tmp.append(b); }
 
+inline string_t operator - (const string_t& a, char b)
+{
+    size_t pos;
+    string_t tmp(a);
+
+    while ((pos = tmp.find(b)) != string_t::npos)
+    {
+        tmp.remove(pos);
+    }
+    return tmp;
+}
+
+inline string_t operator - (const string_t& a, const string_t& b)
+{
+    size_t pos;
+    string_t tmp(a);
+
+    while ((pos = tmp.find(b)) != string_t::npos)
+    {
+        tmp.remove(pos, pos + b.length());
+    }
+    return tmp;
+}
+
+inline string_t& operator -= (string_t& a, char b)
+{
+    size_t pos;
+
+    while ((pos = a.find(b)) != string_t::npos)
+    {
+        a.remove(pos);
+    }
+    return a;
+}
+
+inline string_t& operator -= (string_t& a, const string_t& b)
+{
+    size_t pos;
+
+    while ((pos = a.find(b)) != string_t::npos)
+    {
+        a.remove(pos, pos + b.length());
+    }
+    return a;
+}
+
+inline string_t operator * (const string_t& a, size_t n)
+{
+    string_t tmp(a);
+    if (n)
+    {
+        tmp.reserve(a.length() * n);
+        while (--n)
+        {
+            tmp.append(a);
+        }
+    }
+    return tmp;
+}
+
+inline string_t operator * (size_t n, const string_t& a) { return operator * (a, n); }
+inline string_t operator * (const string_t& a, int n) { return operator * (a, size_t(n)); }
+inline string_t operator * (int n, const string_t& a) { return operator * (a, size_t(n)); }
+
+inline string_t& operator *= (string_t& a, size_t n)
+{
+    if (n)
+    {
+        string_t tmp(a);
+        size_t l = a.length();
+        a.reserve(l * n);
+        while (--n)
+        {
+            a.append(tmp);
+        }
+    }
+    return a;
+}
+
+inline string_t& operator *= (string_t& a, int n) { return operator *= (a, size_t(n)); }
+
 inline bool operator == (const bitref_t& b, bool x) { return b.value() == x; }
 inline bool operator != (const bitref_t& b, bool x) { return b.value() != x; }
 inline bool operator == (const bitref_t& b, int x)  { return (int)b.value() == x; }
@@ -397,10 +478,32 @@ inline bool operator != (int x, const bitref_t& b)  { return x != (int)b.value()
 #ifndef NO_STL_SUPPORT
 
 #include <string>
+#include <list>
 #include <iostream>
 
 
 namespace mynum {
+
+template<class T, class R>
+inline R& split(const string_t& a, const T& b, R& res)
+{
+    size_t p0 = 0, p1;
+
+    while ((p1 = a.find(p0, b)) != string_t::npos)
+    {
+        res.push_back(string_t());
+        res.back().assign(a, p0, p1);
+        p0 = p1 + 1;
+    }
+    res.push_back(string_t());
+    res.back().assign(a, p0, a.end_pos());
+    return res;
+}
+
+inline std::list<string_t> operator / (const string_t& a, char b) { std::list<string_t> v; return split(a, b, v); }
+inline std::list<string_t> operator / (const string_t& a, const char* b) { std::list<string_t> v; return split(a, b, v); }
+inline std::list<string_t> operator / (const string_t& a, const string_t& b) { std::list<string_t> v; return split(a, b, v); }
+inline std::list<string_t> operator / (const char* a, const string_t& b) { std::list<string_t> v; return split(a, b, v); }
 
 inline std::ostream& operator << (std::ostream& os, const number_t& a)
 {

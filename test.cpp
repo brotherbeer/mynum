@@ -71,6 +71,7 @@ void test_string_remove();
 void test_string_reverse();
 void test_string_strip();
 void test_string_find();
+void test_string_replace();
 void test_string_load();
 void test_string_dump();
 void test_string();
@@ -2223,6 +2224,16 @@ void test_string_assignment()
         a.assign("1234567890");
         a.assign(a.dat); assert(a == "1234567890");
         a.assign(a.dat + 3); assert(a == "4567890");
+    }{
+        string_t a;
+        a.assign('a', 0); assert(a == "");
+        a.assign('a', 1); assert(a == "a");
+        a.assign('a', 2); assert(a == "aa");
+        a.assign('a', 3); assert(a == "aaa");
+        a.release();
+        a.assign('a', 16); assert(a == "aaaaaaaaaaaaaaaa");
+        a.assign('a', 8); assert(a == "aaaaaaaa");
+        a.assign('a', 0); assert(a == "");
     }
 }
 
@@ -2762,6 +2773,11 @@ void test_string_find()
         assert(s.find(4, "x") == string_t::npos);
         assert(s.find("def") == 3);
         assert(s.find("defg") == 3);
+        assert(s.find("") == 0);
+        assert(s.find(1, "") == 1);
+        assert(s.find(2, "") == 2);
+        assert(s.find(6, "") == 6);
+        assert(s.find(7, "") == string_t::npos);
         string_t t("bcde");
         assert(s.find(t) == 1);
         assert(s.find(1, t) == 1);
@@ -2781,6 +2797,33 @@ void test_string_find()
     }
 }
 
+void test_string_replace()
+{
+    {
+        string_t s("abcdefg");
+        assert(s.replace(0, 0, "xxx") == "xxxabcdefg");
+        assert(s.replace(0, 1, "yyy") == "yyyxxabcdefg");
+        assert(s.replace(0, 2, "zzz") == "zzzyxxabcdefg");
+        assert(s.replace(0, s.end_pos(), "ooo") == "ooo");
+        assert(s.replace(1000, 2000, "uuu") == "ooouuu");
+        assert(s.replace(3, 3, "xxx") == "oooxxxuuu");
+        assert(s.replace(3, 6, "") == "ooouuu");
+
+        s.assign("abcdefg");
+        assert(s.replace(6, 7, 'x', 1) == "abcdefx");
+        assert(s.replace(7, 7, 'y', 1) == "abcdefxy");
+        assert(s.replace(2, 5, 'x', 0) == "abfxy");
+        assert(s.replace(0, 5, 'x', 0) == "");
+        assert(s.replace(0, 5, 'x', 3) == "xxx");
+
+        s.assign("abcdefg");
+        assert(s.replace(0, 5, string_t('x')) == "xfg");
+        assert(s.replace(0, 5, string_t('x'), 0, 0) == "");
+        assert(s.replace(0, 0, string_t("xxx"), 1, 2) == "x");
+        assert(s.replace(0, 1, string_t("aaa"), 0, 3) == "aaa");
+    }
+}
+
 void test_string()
 {
     test_string_assignment();
@@ -2790,6 +2833,7 @@ void test_string()
     test_string_reverse();
     test_string_strip();
     test_string_find();
+    test_string_replace();
     test_string_load();
     test_string_dump();
 

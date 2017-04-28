@@ -909,6 +909,12 @@ struct string_t
     string_t& remove_to_begin(size_t pos);
     string_t& remove_to_end(size_t pos);
 
+    string_t& replace(size_t bpos, size_t epos, char c, size_t l) { return remove(bpos, epos).insert(bpos, c, l); }
+    string_t& replace(size_t bpos, size_t epos, const char* p) { return replace(bpos, epos, p, _try_strlen(p)); }
+    string_t& replace(size_t bpos, size_t epos, const char* p, size_t l) { return remove(bpos, epos).insert(bpos, p, l); }
+    string_t& replace(size_t bpos, size_t epos, const string_t& s) { return replace(bpos, epos, s.dat, s.len); }
+    string_t& replace(size_t bpos, size_t epos, const string_t& s, size_t sbpos, size_t sepos) { return remove(bpos, epos).insert(bpos, s, sbpos, sepos); }
+
     string_t& to_upper();
     string_t& to_lower();
     string_t& to_upper(string_t& res) const;
@@ -973,7 +979,7 @@ struct string_t
     char& operator [] (size_t x) { return dat[x]; }
     char operator [] (size_t x) const { return dat[x]; }
 
-    bool overlap(const char* p, size_t l);
+    bool __overlap(const char* p, size_t l);
 };
 
 inline string_t number_t::to_bin_string() const { string_t res; return to_bin_string(res); }

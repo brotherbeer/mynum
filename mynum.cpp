@@ -2774,7 +2774,7 @@ string_t& string_t::append(char c, size_t n)
     return *this;
 }
 
-bool string_t::overlap(const char* p, size_t l)
+bool string_t::__overlap(const char* p, size_t l)
 {
     return (p >= dat && p <= dat + len) || (p + l >= dat && p + l <= dat + len);
 }
@@ -2786,7 +2786,7 @@ string_t& string_t::append(const char* p, size_t l)
         string_t tmp;
         if (len + l > cap)
         {
-            if (overlap(p, l))
+            if (__overlap(p, l))
             {
                 tmp.assign(p, l);
                 p = tmp.dat;
@@ -2844,7 +2844,7 @@ string_t& string_t::insert(size_t pos, const char* p, size_t l)
     if (p)
     {
         string_t tmp;
-        if (overlap(p, l))
+        if (__overlap(p, l))
         {
             tmp.assign(p, l);
             p = tmp.dat;
@@ -2931,7 +2931,7 @@ void string_t::clear()
     len = 0;
     if (dat)
     {
-        dat[len] = '\0';
+        *dat = '\0';
     }
 }
 

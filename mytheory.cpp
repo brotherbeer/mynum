@@ -632,6 +632,8 @@ word_t hash(const number_t& a)
 template <class OP>
 void __bit_shift_op(const number_t& a, const number_t& b, size_t shift, OP& op, number_t& res)
 {
+    assert(res.is_not(b));
+
     res.assign(a);
     if (shift + b.bits_count() > res.bits_count())
     {
@@ -670,7 +672,15 @@ struct __OR
 void bit_shift_or(const number_t& a, const number_t& b, size_t shift, number_t& res)
 {
     __OR op;
-    __bit_shift_op(a, b, shift, op, res);
+    if (b.is_not(res))
+    {
+        __bit_shift_op(a, b, shift, op, res);
+    }
+    else
+    {
+        number_t tmp(b);
+        __bit_shift_op(a, tmp, shift, op, res);
+    }
 }
 
 struct __XOR
@@ -681,7 +691,15 @@ struct __XOR
 void bit_shift_xor(const number_t& a, const number_t& b, size_t shift, number_t& res)
 {
     __XOR op;
-    __bit_shift_op(a, b, shift, op, res);
+    if (b.is_not(res))
+    {
+        __bit_shift_op(a, b, shift, op, res);
+    }
+    else
+    {
+        number_t tmp(b);
+        __bit_shift_op(a, tmp, shift, op, res);
+    }
 }
 
 void __EUCLID(number_t& a, number_t& b)

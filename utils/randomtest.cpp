@@ -4,6 +4,7 @@
 #include <ctime>
 #include <cstdlib>
 #include <string>
+#include <vector>
 #include <fstream>
 #include <sstream>
 #include <iostream>
@@ -1080,7 +1081,7 @@ void random_test_bit_set_range()
     }
 
     s.reverse();
-    if (rand_unit() & 1)  // two ways to test
+    if (chance(2))  // two ways to test
     {
         for (size_t pos = bpos; pos != epos; pos++)
         {
@@ -1093,7 +1094,7 @@ void random_test_bit_set_range()
         s1.assign(s, 0, bpos);
         s2.assign(s, epos, s.end_pos());
         s1.append(cv, epos - bpos);
-        s = s1.append(s2);
+        s = s1 + s2;
     }
     s.reverse();
     s.strip_left("0");
@@ -1125,7 +1126,172 @@ size_t random_test_bit_set(size_t N)
     return N;
 }
 
-#define test_with_time(title, fun) {\
+size_t random_test_bit_shift_xor(size_t N)
+{
+    size_t n = N;
+    number_t a, aa, b, res1, res2;
+
+    while (n--)
+    {
+        rand(rand_word() % 1024, a);
+        rand(rand_word() % 1024, b);
+        size_t shift = rand_word() % 1024;
+        aa = a;
+        res1 = a ^ (b << shift);
+
+        bit_shift_xor(a, b, shift, res2);
+        if (res2 != res1)
+        {
+            cerr << "bit_shift_xor ERROR!!" << endl;
+            abort();
+        }
+        bit_shift_xor(a, b, shift, a);
+        if (a != res1)
+        {
+            cerr << "bit_shift_xor(a, b, shift, a) ERROR!!" << endl;
+            abort();
+        }
+        bit_shift_xor(aa, b, shift, b);
+        if (b != res1)
+        {
+            cerr << "bit_shift_xor(a, b, shift, b) ERROR!!" << endl;
+            abort();
+        }
+    }
+    return N;
+}
+
+size_t random_test_bit_shift_or(size_t N)
+{
+    size_t n = N;
+    number_t a, aa, b, res1, res2;
+
+    while (n--)
+    {
+        rand(rand_word() % 1024, a);
+        rand(rand_word() % 1024, b);
+        size_t shift = rand_word() % 1024;
+        aa = a;
+        res1 = a | (b << shift);
+
+        bit_shift_or(a, b, shift, res2);
+        if (res2 != res1)
+        {
+            cerr << "bit_shift_or ERROR!!" << endl;
+            abort();
+        }
+        bit_shift_or(a, b, shift, a);
+        if (a != res1)
+        {
+            cerr << "bit_shift_or(a, b, shift, a) ERROR!!" << endl;
+            abort();
+        }
+        bit_shift_or(aa, b, shift, b);
+        if (b != res1)
+        {
+            cerr << "bit_shift_or(a, b, shift, b) ERROR!!" << endl;
+            abort();
+        }
+    }
+    return N;
+}
+
+size_t random_test_string_insert(size_t N)
+{
+    size_t n = N;
+    string_t chars = " \tabcdefghijklmnopqrstuvwxyz";
+    string_t a, b, s, t, u;
+    while (n--)
+    {
+        rand(rand_word() % 128, chars, s);
+        rand(rand_word() % 128, chars, t);
+        rand(rand_word() % 128, chars, u);
+
+        a = s + t;
+        b = s + u + t;
+        if (a.insert(s.length(), u) != b)
+        {
+            cerr << "string_t::insert ERROR!!" << endl;
+            abort();
+        }
+        if (chance(5)) a.release();
+        if (chance(5)) b.release();
+
+        a = b = s;
+        a.append(t);
+        b.insert(b.end_pos(), t);
+        if (a != b)
+        {
+            cerr << "string_t::append ERROR!!" << endl;
+            abort();
+        }
+    }
+    return N;
+}
+
+void replace_all(const string_t& s, const string_t& from, const string_t& to, string_t& res)
+{
+    res.clear();
+    if (from.length())
+    {
+        size_t p0 = 0, p1;
+        res.reserve(s.length());
+        while ((p1 = s.find(p0, from)) != string_t::npos)
+        {
+            res.append(s, p0, p1);
+            res.append(to);
+            p0 = p1 + from.length();
+        }
+        res.append(s, p0, s.end_pos());
+    }
+    else
+    {
+        res.reserve(s.length() * to.length());
+        res.append(to);
+        char* p = s.dat;
+        char* e = s.dat + s.length();
+        while (p != e)
+        {
+            res.append(*p++);
+            res.append(to);
+        }
+    }
+}
+
+size_t random_test_string_find(size_t N)
+{
+    size_t n = N;
+    string_t chars = " \tabcdefghijklmnopqrstuvwxyz";
+    string_t a, b, s, t, u;
+    while (n--)
+    {
+        rand(rand_word() % 128, chars, s);
+        rand(rand_word() % 128, chars, t);
+        rand(rand_word() % 128, chars, u);
+
+        a = s + t;
+        b = s + u + t;
+        if (a.insert(s.length(), u) != b)
+        {
+            cerr << "string_t::insert ERROR!!" << endl;
+            abort();
+        }
+        if (chance(5)) a.release();
+        if (chance(5)) b.release();
+
+        a = b = s;
+        a.append(t);
+        b.insert(b.end_pos(), t);
+        if (a != b)
+        {
+            cerr << "string_t::append ERROR!!" << endl;
+            abort();
+        }
+    }
+    return N;
+}
+
+#define test_with_time(title, fun) { \
     cout << title << endl; \
     clock_t t0 = clock(); \
     size_t n = fun; \
@@ -1134,16 +1300,16 @@ size_t random_test_bit_set(size_t N)
     cout << n << " items tested" << endl << endl; \
 }
 
-#define test_from_file(title, filename, fun) {\
+#define test_from_file(title, filename, fun) { \
     ifstream in(filename); \
-    if (in) {\
+    if (in) { \
         cout << title << endl; \
         clock_t t0 = clock(); \
         size_t n = fun(in); \
         cout << "OK!" << endl; \
         cout << "time: " << double(clock() - t0) / CLOCKS_PER_SEC << endl; \
         cout << n << " items tested" << endl << endl; \
-    }\
+    } \
 }
 
 int main()
@@ -1157,10 +1323,12 @@ int main()
     test_from_file("Testing LCM", "lcmrandomtest.dat", random_test_lcm);
     test_from_file("Testing prime", "primerandomtest.dat", random_test_prime);
     test_from_file("Testing Jacobi", "jacobirandomtest.dat", random_test_jacobi);
-
     test_with_time("Testing bit_remove", random_test_bit_remove(30000));
     test_with_time("Testing bit_insert", random_test_bit_insert(30000));
     test_with_time("Testing bit_set", random_test_bit_set(30000));
+    test_with_time("Testing bit_shift_xor", random_test_bit_shift_or(300000));
+    test_with_time("Testing bit_shift_or", random_test_bit_shift_xor(300000));
+    test_with_time("Testing string insert", random_test_string_insert(300000));
 
     test_with_time("Testing sqr and mul", test_sqr_and_mul_performace(3000));
     test_with_time("Testing kmul", random_test_kmul(1000));

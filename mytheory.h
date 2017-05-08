@@ -24,6 +24,8 @@ int inv(const number_t& a, const number_t& m, number_t& res);  // Modular multip
 void bit_shift_or(const number_t& a, const number_t& b, size_t shift, number_t& res);
 void bit_shift_xor(const number_t& a, const number_t& b, size_t shift, number_t& res);
 
+size_t log2(const number_t& a);
+
 struct RNG;
 
 RNG& default_RNG();

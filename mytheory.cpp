@@ -17,6 +17,18 @@
 #include "mytheory.h"
 
 
+#if defined(_MSC_VER)
+#define __force_inline(x) __forceinline x
+#elif defined(__GNUC__)
+#define __force_inline(x) __attribute__((always_inline)) inline x
+#else
+#define __force_inline(x) inline x
+#endif
+
+#if defined(_MSC_VER) && !defined(NO_INTRINSIC)
+#include <intrin.h>
+#endif
+
 namespace mynum {
 
 int jacobi(const number_t& a, const number_t& b)
@@ -702,6 +714,11 @@ void bit_shift_xor(const number_t& a, const number_t& b, size_t shift, number_t&
     }
 }
 
+size_t log2(const number_t& a)
+{
+    return a.bits_count() - 1;
+}
+
 void __EUCLID(number_t& a, number_t& b)
 {
     assert(a.is_pos() && b.is_pos());
@@ -846,5 +863,45 @@ bool __MR_witness_unit(unit_t b, const number_t& n, const number_t& nd1, const n
     }
     return false;
 }
+
+#if defined(__GNUC__) && !defined(NO_INTRINSIC)
+
+size_t __log2(slen_t x)
+{
+    assert(x > 0);
+
+    return 32 - __builtin_clz((unsigned int)x) - 1;
+}
+
+#elif defined(_MSC_VER) && !defined(NO_INTRINSIC)
+
+#if UNITBITS == 16
+size_t __log2(slen_t x)
+{
+    assert(x > 0);
+
+    unsigned long b;
+    _BitScanReverse(&b, x);
+    return b;
+}
+
+#elif UNITBITS == 32
+
+size_t size_t __log2(slen_t x)
+{
+    assert(x > 0);
+
+    unsigned long b;
+    _BitScanReverse64(&b, x);
+    return b;
+}
+
+#endif
+
+#else
+
+// TODO
+
+#endif
 
 } // namespace end

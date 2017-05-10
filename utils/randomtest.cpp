@@ -336,7 +336,7 @@ size_t random_test_jacobi(ifstream& in)
 }
 
 #define check_bool(res, exp) { \
-    if (res != exp) { \
+    if ((res) != (exp)) { \
         show_unexpected_loc(oper); \
         cout << "op1: " << s1 << "(" << b1 << ")" << endl; \
         cout << "op2: " << s2 << "(" << b2 << ")" << endl; \

@@ -30,7 +30,7 @@ const number_t ONE(1);
 
 #define check_fun_arg2(fun, a, res, exp) { \
     fun(a, res); \
-    if (res != exp) { \
+    if ((res) != (exp)) { \
         show_unexpected_loc(#fun); \
         cerr << "op1:" << a(16) << endl; \
         cerr << "exp:" << exp(16) << endl; \
@@ -41,7 +41,7 @@ const number_t ONE(1);
 
 #define check_fun_arg3(fun, a, b, res, exp) { \
     fun(a, b, res); \
-    if (res != exp) {\
+    if ((res) != (exp)) {\
         show_unexpected_loc(#fun); \
         cerr << "op1:" << a(16) << endl; \
         cerr << "op2:" << b(16) << endl; \
@@ -53,7 +53,7 @@ const number_t ONE(1);
 
 #define check_fun_arg4(fun, a, b, c, res, exp) {\
     fun(a, b, c, res); \
-    if (res != exp) { \
+    if ((res) != (exp)) { \
         show_unexpected_loc(#fun); \
         cerr << "op1:" << a(16) << endl; \
         cerr << "op2:" << b(16) << endl; \
@@ -66,7 +66,7 @@ const number_t ONE(1);
 
 #define check_fun_arg4_2(fun, a, b, res1, res2, exp1, exp2) {\
     fun(a, b, res1, res2); \
-    if (res1 != exp1 || res2 != exp2) {\
+    if ((res1) != (exp1) || (res2) != (exp2)) {\
         show_unexpected_loc(#fun); \
         cerr << "op1:"  << a(16) << endl; \
         cerr << "op2:"  << b(16) << endl; \

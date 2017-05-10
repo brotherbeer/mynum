@@ -10,14 +10,6 @@
 #include "mytheory.h"
 
 
-#ifdef __GNUC__
-#pragma GCC diagnostic ignored "-Wunknown-pragmas"
-#pragma GCC diagnostic ignored "-Wsign-compare"
-#pragma GCC diagnostic ignored "-Wconversion-null"
-#pragma GCC diagnostic ignored "-Wunused-variable"
-#pragma GCC diagnostic ignored "-Wunused-but-set-variable"
-#endif
-
 using namespace mynum;
 
 // some big primes
@@ -458,8 +450,6 @@ void test_assign()
         a.assign("1234567890", 3, 10); assert(a == 123);
         a.assign((char*)NULL); assert(a == 0);
         a.assign("1234567890"); assert(a == 1234567890);
-        a.assign(NULL); assert(a == 0);
-        a.assign((char*)NULL); assert(a == 0);
     }{
         NN a(123), b;
         a.assign("123123", 0); assert(a == 0);
@@ -2005,7 +1995,7 @@ void test_bits()
         assert(!a.bit_at(36)); assert(a.bit_at(37)); assert(!a.bit_at(38)); assert(!a.bit_at(39)); assert(ref[40]);
     }{
         NN a("111", 2);
-        for (int i = 0; i < 43; i++)
+        for (size_t i = 0; i < 43; i++)
         {
             assert(a.tz_count() == i);
             assert(a.bits_count() == i + 3);

@@ -1,43 +1,47 @@
 #pragma once
 
 #include "mymem.h"
-#include "myprime.h"
 #include <intrin.h>
 #include <iostream>
 #include <cassert>
 
-NAME_SPACE_START
 
-const dunit_t P = 3221225473;   // P = 0xf600000000000001 for 64-bit proc
-const dunit_t v = 1431655763;
-const dunit_t g = 5;
-const dunit_t W[] = // g**((P-1)/n) % P
-{
-    /*1, */ 3221225472, 1013946479, 1031213943, 2526611335, 66931328, 651814490, 1292405718, 1958494276,
-    764652596, 1855261384, 1168849724, 211283056, 1734477367, 1445148504, 1405588668, 2519378301,
-    1800384970, 1358427440, 511777184, 3009749949, 448192265, 3182672916, 140749519, 538601489,
-    1838654099, 247425463, 229807484, 244140625, 15625, 125, 5, 1
+namespace mynum {
+
+const dunit_t P = 0xc0000001; // primitive root 5
+const dunit_t v = 0x55555553;
+
+const dunit_t W[] = {
+     0xc0000000, 0x3c6f986f, 0x3d771377, 0x96990787,
+     0x03fd4a80, 0x26d9e65a, 0x4d088bd6, 0x74bc4044,
+     0x2d93ac34, 0x6e950ac8, 0x45ab3b3c, 0xc97ec70,
+     0x67620637, 0x56233758, 0x53c794bc, 0x962aa97d,
+     0x6b4fb1ca, 0x50f7f530, 0x1e8119a0, 0xb36523bd,
+     0x1ab6df09, 0xbdb3bc14, 0x0863aacf, 0x201a6811,
+     0x6d97a293, 0x0ebf69b7, 0x0db2957c, 0x0e8d4a51,
 };
 
-// W[i] * RW[i] % P = 1
-const dunit_t RW[] =
-{
-    /*1, */ 3221225472, 2207278994, 613406496, 741264833, 3098715598, 704887665, 764521865, 2935727869,
-    2450347685, 532203874, 2829850173, 1588903488, 919321183, 1736059882, 3000663231, 2793181474,
-    2702431710, 615116962, 2055537301, 618423934, 762996773, 670776757, 2925583959, 1181743895,
-    210645833, 1294972776, 2980752801, 1869040087, 121221157, 2267742733, 1932735284, 1
+const dunit_t RW[] = {
+     0xc0000000, 0x83906792, 0x248fd720, 0x2c2ecdc1,
+     0xb8b2a5ce, 0x2a03bb71, 0x2d91ad89, 0xaefba6fd,
+     0x920d56a5, 0x1fb8c962, 0xa8ac163d, 0x5eb4be40,
+     0x36cbba5f, 0x677a2bea, 0xb2da7cbf, 0xa67c9122,
+     0xa113d5de, 0x24a9f0a2, 0x7a850295, 0x24dc667e,
+     0x2d7a6825, 0x27fb3db5, 0xae60de57, 0x466ffb17,
+     0x0c8e3349, 0x4d2fb768, 0xb1aaada1, 0x6f6749d7,
 };
 
-const dunit_t N[] = 
-{
-    1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192, 16384, 32768, 65536, 131072, 262144, 
+const dunit_t RN[] = {
+     1, 0x60000001, 0x90000001, 0xa8000001, 0xb4000001,
+     0xba000001, 0xbd000001, 0xbe800001, 0xbf400001,
+     0xbfa00001, 0xbfd00001, 0xbfe80001, 0xbff40001,
+     0xbffa0001, 0xbffd0001, 0xbffe8001, 0xbfff4001,
+     0xbfffa001, 0xbfffd001, 0xbfffe801, 0xbffff401,
+     0xbffffa01, 0xbffffd01, 0xbffffe81, 0xbfffff41,
+     0xbfffffa1, 0xbfffffd1, 0xbfffffe9, 0xbffffff5,
+     0xbffffffb, 0xbffffffe, 0x5fffffff, 0x90000000,
 };
 
-const dunit_t RN[] = // N[i] ** (P - 2) % P
-{
-    1, 1610612737, 2415919105, 2818572289, 3019898881, 3120562177, 3170893825, 3196059649, 3208642561,
-    3214934017, 3218079745, 3219652609, 3220439041, 3220832257, 3221028865, 3221127169, 3221176321, 3221200897, 3221213185,
-};
 
 static const byte_t __bit_rev_table[] = 
 {
@@ -115,6 +119,7 @@ static dunit_t __mul_mod_P(dunit_t x, dunit_t y)
     q0 = Q & 0xFFFFFFFF;
 
     r = u0 - ++q1 * P;
+
     if (r > q0)
     {
         r += P;
@@ -131,45 +136,6 @@ __forceinline dunit_t __add_mod_P(dunit_t x, dunit_t y)
     dunit_t z = P - y;
     return x - z + P * (z > x);
 }
-
-//struct root_pool_t
-//{
-//    dunit_t* pool;
-//
-//    root_pool_t()
-//    {
-//        pool = new dunit_t[16 * 32768];
-//    }
-//
-//    ~root_pool_t()
-//    {
-//        delete[] pool;
-//    }
-//
-//    void init(const dunit_t W[])
-//    {
-//        dunit_t *p, *e, w, x;
-//
-//        for (int i = 0; i < 16; i++)
-//        {
-//            w = 1;
-//            x = 1;
-//            p = pool + i * 32768;
-//            e = p + 32768;
-//
-//            for (; p != e; p++)
-//            {
-//                *p = x = __mul_mod_P(x, w);
-//                w = W[i + 1];
-//            }
-//        }
-//    }
-//
-//    const dunit_t* get(int i) const
-//    {
-//        return pool + i * 32768;
-//    }
-//};
 
 struct root_pool_t
 {
@@ -210,8 +176,6 @@ struct root_pool_t
         return pool + (1 << i) - 1;
     }
 };
-
-
 
 //inline void fft(dunit_t* dat, int n, int lgn, const dunit_t W[])
 //{
@@ -340,78 +304,6 @@ inline void points_rmul(dunit_t* dat0, dunit_t R, int n)
     }
 }
 
-//inline void fmul(const number_t& a, const number_t& b, number_t& res, const root_pool_t& pool0, const root_pool_t& pool1)
-//{
-//    int i;
-//    int n = a.len * 2 * 2;
-//    int lgn = __log2(n);
-//
-//    dunit_t* dat0 = (dunit_t*)calloc(n, sizeof(dunit_t));
-//    dunit_t* dat1 = (dunit_t*)calloc(n, sizeof(dunit_t));
-//
-//    byte_t *p;
-//    dunit_t *q, *e;
-//
-//    p = (byte_t*)a.dat;
-//    q = dat0;
-//    e = dat0 + a.len * 2;
-//    while (q != e)
-//    {
-//        *q++ = *p++;
-//    }
-//
-//    p = (byte_t*)b.dat;
-//    q = dat1;
-//    e = dat1 + b.len * 2;
-//    while (q != e)
-//    {
-//        *q++ = *p++;
-//    }
-//
-//    __rev_x86(dat0, n, lgn, __bit_rev_table);
-//    __rev_x86(dat1, n, lgn, __bit_rev_table);
-//
-//    fft(dat0, n, lgn, pool0);
-//    fft(dat1, n, lgn, pool0);
-//    points_mul(dat0, dat1, n);
-//
-//    __rev_x86(dat0, n, lgn, __bit_rev_table);
-//    fft(dat0, n, lgn, pool1);
-//    points_rmul(dat0, RN[lgn], n);
-//
-//    dunit_t carry = 0;   // perform the carrying
-//    for (i = 0; i < n; i++)
-//    {
-//        carry += dat0[i];
-//        dat0[i] = carry % 256;
-//        carry /= 256;
-//    }
-//
-//    while (!dat0[n - 1])
-//    {
-//        n--;
-//    }
-//
-//    int len = (n + 1) / 2;
-//    unit_t* dat = number_t::allocate_units(len);
-//    for (p = (byte_t*)dat, i = 0; i < n; i++, p++)
-//    {
-//        *p = (byte_t)dat0[i];
-//    }
-//    if (n & 1)
-//    {
-//        *p = 0;
-//    }
-//
-//    mem::deallocate(dat0);
-//    mem::deallocate(dat1);
-//
-//    res.__release();
-//    res.len = len;
-//    res.dat = dat;
-//    res.__init_ref();
-//}
-
 inline void init(const number_t& a, int n, int lgn, dunit_t* dat)
 {
     byte_t *p = (byte_t*)a.dat;
@@ -452,7 +344,7 @@ inline void rinit(int n, int lgn, dunit_t* dat)
 inline void fmul(const number_t& a, const number_t& b, number_t& res, const root_pool_t& pool0, const root_pool_t& pool1)
 {
     int n = a.len * 2 * 2;
-    int lgn = __log2(n);
+    int lgn = __log2(n), len;
 
     dunit_t* dat0 = (dunit_t*)calloc(n, sizeof(dunit_t));
     dunit_t* dat1 = (dunit_t*)calloc(n, sizeof(dunit_t));
@@ -467,106 +359,27 @@ inline void fmul(const number_t& a, const number_t& b, number_t& res, const root
     fft(dat0, n, lgn, pool1);
     points_rmul(dat0, RN[lgn], n);
 
-    int i;
+    unit_t* dat = number_t::allocate_units(len = n / 2);
+    byte_t* p = (byte_t*)dat;
+
+    dunit_t* q = dat0;
+    dunit_t* qe = dat0 + n;
     dunit_t carry = 0;   // perform the carrying
-    for (i = 0; i < n; i++)
+    while (q != qe)
     {
-        carry += dat0[i];
-        dat0[i] = carry % 256;
+        carry += *q++;
+        *p++ = carry % 256;
         carry /= 256;
     }
-
-    while (!dat0[n - 1])
-    {
-        n--;
-    }
-
-    int len = (n + 1) / 2;
-    byte_t* p;
-    unit_t* dat = number_t::allocate_units(len);
-
-    for (p = (byte_t*)dat, i = 0; i < n; i++, p++)
-    {
-        *p = (byte_t)dat0[i];
-    }
-    if (n & 1)
-    {
-        *p = 0;
-    }
-
     mem::deallocate(dat0);
     mem::deallocate(dat1);
 
+    __trim_leading_zeros(dat, len);
+    
     res.__release();
     res.len = len;
     res.dat = dat;
     res.__init_ref();
 }
 
-//inline void fmul(const number_t& a, const number_t& b, number_t& res)
-//{
-//    int i;
-//    int n = a.len * 2;
-//    int lgn = 0;
-//    while ((1 << (++lgn)) < n);
-//
-//    dunit_t* dat0 = (dunit_t*)mem::allocate(n, sizeof(dunit_t));
-//    dunit_t* dat1 = (dunit_t*)mem::allocate(n, sizeof(dunit_t));
-//
-//    mem::set(dat0, 0, n * sizeof(dunit_t));
-//    mem::set(dat1, 0, n * sizeof(dunit_t));
-//
-//    unit_t* p;
-//    for (p = a.dat, i = 0; i < a.len; i++, p++)
-//    {
-//        dat0[i] = *p;
-//    }
-//    for (p = b.dat, i = 0; i < b.len; i++, p++)
-//    {
-//        dat1[i] = *p;
-//    }
-//
-//    __rev_x86(dat0, n, lgn, __bit_rev_table);
-//    __rev_x86(dat1, n, lgn, __bit_rev_table);
-//    fft(dat0, n, lgn, W);
-//    fft(dat1, n, lgn, W);
-//    __points_mul_x86(dat0, dat1, n, P);
-//
-//    __rev_x86(dat0, n, lgn, __bit_rev_table);
-//    fft(dat0, n, lgn, RW);
-//    __points_rmul_x86(dat0, RN[lgn], n, P);
-//
-//    dunit_t g = 0;
-//    for (i = 0; i < n; i++)
-//    {
-//        g += dat0[i];
-//        dat0[i] = g % 65536;
-//        g /= 65536;
-//    }
-//
-//    while (!dat0[n - 1])    // ¸Ä½ø
-//    {
-//        n--;
-//    }
-//
-//    int len = n;
-//    unit_t* dat = number_t::allocate_units(n);
-//    for (p = dat, i = 0; i < n; i++, p++)
-//    {
-//        *p = (unit_t)dat0[i];
-//    }
-//    if (n & 1)
-//    {
-//        *p = 0;
-//    }
-//
-//    mem::deallocate(dat0);
-//    mem::deallocate(dat1);
-//
-//    res.__release();
-//    res.len = len;
-//    res.dat = dat;
-//    res.__init_ref();
-//}
-
-NAME_SPACE_END
+} // namespace end

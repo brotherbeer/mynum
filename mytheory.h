@@ -26,6 +26,54 @@ void bit_shift_xor(const number_t& a, const number_t& b, size_t shift, number_t&
 
 size_t log2(const number_t& a);
 
+struct NTT
+{
+    struct roots_pool_t
+    {
+        dunit_t* pool;
+
+        roots_pool_t(const dunit_t W[]);
+
+       ~roots_pool_t();
+
+        const dunit_t* get(int i) const
+        {
+            return pool + (1 << i) - 1;
+        }
+    };
+
+    static const dunit_t P;
+    static const dunit_t V;
+
+    static const dunit_t  W[];
+    static const dunit_t RW[];
+    static const dunit_t RN[];
+
+    static roots_pool_t pool0;
+    static roots_pool_t pool1;
+
+    dunit_t* dat;
+    size_t n;
+    size_t lgn;
+
+    NTT(): dat(NULL), n(0), lgn(0)
+    {}
+
+    NTT(const number_t&);
+
+    ~NTT();
+
+    void clear();
+
+    void release();
+
+    void forward(const number_t&);
+
+    void backward(number_t&);
+
+    void mul(const NTT&);
+};
+
 struct RNG;
 
 RNG& default_RNG();

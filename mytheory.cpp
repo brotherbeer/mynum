@@ -719,6 +719,64 @@ size_t log2(const number_t& a)
     return a.bits_count() - 1;
 }
 
+const dunit_t NTT::P = 0xc0000001; // primitive root 5
+const dunit_t NTT::V = 0x55555553; // (B**2 - 1) / P - B  B is 1 << 32
+
+const dunit_t NTT::W[] = {
+    0xc0000000, 0x3c6f986f, 0x3d771377, 0x96990787,
+    0x3fd4a80, 0x26d9e65a, 0x4d088bd6, 0x74bc4044,
+    0x2d93ac34, 0x6e950ac8, 0x45ab3b3c, 0xc97ec70,
+    0x67620637, 0x56233758, 0x53c794bc, 0x962aa97d,
+    0x6b4fb1ca, 0x50f7f530, 0x1e8119a0, 0xb36523bd,
+    0x1ab6df09, 0xbdb3bc14, 0x863aacf, 0x201a6811,
+};
+
+const dunit_t NTT::RW[] = {
+    0xc0000000, 0x83906792, 0x248fd720, 0x2c2ecdc1,
+    0xb8b2a5ce, 0x2a03bb71, 0x2d91ad89, 0xaefba6fd,
+    0x920d56a5, 0x1fb8c962, 0xa8ac163d, 0x5eb4be40,
+    0x36cbba5f, 0x677a2bea, 0xb2da7cbf, 0xa67c9122,
+    0xa113d5de, 0x24a9f0a2, 0x7a850295, 0x24dc667e,
+    0x2d7a6825, 0x27fb3db5, 0xae60de57, 0x466ffb17,
+};
+
+const dunit_t NTT::RN[] = {
+    0x60000001, 0x90000001, 0xa8000001, 0xb4000001,
+    0xba000001, 0xbd000001, 0xbe800001, 0xbf400001,
+    0xbfa00001, 0xbfd00001, 0xbfe80001, 0xbff40001,
+    0xbffa0001, 0xbffd0001, 0xbffe8001, 0xbfff4001,
+    0xbfffa001, 0xbfffd001, 0xbfffe801, 0xbffff401,
+    0xbffffa01, 0xbffffd01, 0xbffffe81, 0xbfffff41,
+};
+
+static __force_inline(dunit_t) __mul_mod_P(dunit_t x, dunit_t y);
+static __force_inline(dunit_t) __add_mod_P(dunit_t x, dunit_t y);
+
+NTT::roots_pool_t::roots_pool_t(const dunit_t roots[])
+{
+    int s = 1, i = 0;
+    dunit_t *p, *e, w, x;
+
+    pool = new dunit_t[65535];
+    while (s < 65536)
+    {
+        x = 1;
+        w = roots[i++];
+        p = pool + s - 1;
+        e = p + s;   
+        for (*p++ = 1; p != e; p++)
+        {
+            *p = x = __mul_mod_P(x, w);
+        }
+        s <<= 1;
+    }
+}
+
+NTT::roots_pool_t::~roots_pool_t()
+{
+    delete[] pool;
+}
+
 void __EUCLID(number_t& a, number_t& b)
 {
     assert(a.is_pos() && b.is_pos());
@@ -876,6 +934,7 @@ size_t __log2(slen_t x)
 #elif defined(_MSC_VER) && !defined(NO_INTRINSIC)
 
 #if UNITBITS == 16
+
 size_t __log2(slen_t x)
 {
     assert(x > 0);
@@ -883,6 +942,40 @@ size_t __log2(slen_t x)
     unsigned long b;
     _BitScanReverse(&b, x);
     return b;
+}
+
+dunit_t __mul_mod_P(dunit_t x, dunit_t y)
+{
+    unsigned __int64 U, Q;
+    dunit_t u1, u0, q1, q0, r;
+    const dunit_t P = NTT::P;
+    const dunit_t V = NTT::V;
+
+    U = __emulu(x, y);
+    u1 = U >> 32;
+    u0 = U & 0xFFFFFFFF;
+
+    Q = __emulu(V, u1) + U;   
+    q1 = Q >> 32;
+    q0 = Q & 0xFFFFFFFF;
+
+    r = u0 - ++q1 * P;
+
+    if (r > q0)
+    {
+        r += P;
+    }
+    if (r >= P)
+    {
+        r -= P;
+    }
+    return r;
+}
+
+dunit_t __add_mod_P(dunit_t x, dunit_t y)
+{
+    dunit_t z = NTT::P - y;
+    return x - z + NTT::P * (z > x);
 }
 
 #elif UNITBITS == 32

@@ -49,21 +49,19 @@ struct NTT
     static const dunit_t RW[];
     static const dunit_t RN[];
 
-    static roots_pool_t pool0;
-    static roots_pool_t pool1;
+    static roots_pool_t* pool0;
+    static roots_pool_t* pool1;
+
+    static void init_roots_pool();
+    static void release_roots_pool();
 
     dunit_t* dat;
     size_t n;
     size_t lgn;
 
-    NTT(): dat(NULL), n(0), lgn(0)
-    {}
-
-    NTT(const number_t&);
+    NTT();
 
     ~NTT();
-
-    void clear();
 
     void release();
 
@@ -72,6 +70,8 @@ struct NTT
     void backward(number_t&);
 
     void mul(const NTT&);
+
+    void __fft(const roots_pool_t*);
 };
 
 struct RNG;

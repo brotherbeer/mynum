@@ -400,6 +400,8 @@ struct number_t: public _base_number_t  // bignum class
     bool operator [] (size_t x) const { return bit_at(x); }
     bitref_t operator [] (size_t);
 
+    int sign() const { return len >= 0? 1: -1; }
+
     size_t unit_count() const    { return len >= 0? len: -len; }
     size_t unit_capacity() const { return cap; }
     unit_t* unit()               { return dat; }
@@ -728,8 +730,6 @@ inline number_t& set_sign(number_t& a, int sign)               { set_abs(a); if 
 inline number_t abs(const number_t& a)                         { number_t res; abs(a, res); return res; }
 inline number_t neg(const number_t& a)                         { number_t res; neg(a, res); return res; }
 
-inline int sign(const number_t& a)                             { return (a.len >> (sizeof(slen_t) * 8 - 1)) | 1; }
-inline int sign(const number_t& a, const number_t& b)          { return ((a.len ^ b.len) >> (sizeof(slen_t) * 8 - 1)) | 1; }
 inline bool same_sign(const number_t& a, const number_t& b)    { return (a.len ^ b.len) >> (sizeof(slen_t) * 8 - 1) == 0; }
 
 inline number_t  number_t::abs() const                { return mynum::abs(*this); }

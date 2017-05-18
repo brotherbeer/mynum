@@ -58,6 +58,7 @@ struct NTT
     dunit_t* dat;
     size_t n;
     size_t lgn;
+    slen_t sig;
 
     NTT();
 
@@ -67,12 +68,17 @@ struct NTT
 
     void forward(const number_t&);
 
-    void backward(number_t&);
-
     void mul(const NTT&);
+
+    void backward();
+
+    void to_number(number_t&);
 
     void __fft(const roots_pool_t*);
 };
+
+void fsqr(const number_t& a, number_t& res);
+void fmul(const number_t& a, const number_t& b, number_t& res);
 
 struct RNG;
 

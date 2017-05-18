@@ -673,7 +673,7 @@ void __bit_shift_op(const number_t& a, const number_t& b, size_t shift, OP& op, 
         lr = pr - res.dat;
     }
     __trim_leading_zeros(res.dat, lr);
-    res.len = lr * sign(res);
+    res.len = lr * res.sign();
 }
 
 struct __OR
@@ -856,7 +856,7 @@ NTT::roots_pool_t* NTT::pool1 = NULL;
 void NTT::init_roots_pool()
 {
     pool0 = new roots_pool_t(W);
-    pool1 = new roots_pool_t(W);
+    pool1 = new roots_pool_t(RW);
 }
 
 void NTT::release_roots_pool()
@@ -882,33 +882,99 @@ void NTT::release()
 
 void NTT::forward(const number_t& a)
 {
-    n = a.len * 2 * 2;
-    lgn = __log2(n);
-    dat = (dunit_t*)calloc(n, sizeof(dunit_t));
+    slen_t l = a.unit_count();
+    byte_t *p = (byte_t*)a.dat, *e = p + l * 2;
 
-    byte_t *p = (byte_t*)a.dat;
-    byte_t *e = p + a.len * 2;
-    unsigned short s = 16 - lgn;
-    unsigned short i = 0, ih, il, k;
-    
-    for (; p != e; p++, i++)
+    n = l * 2 * 2;
+    lgn = __log2(n);
+    sig = a.sign();
+    dat = (dunit_t*)mem::allocate(n, sizeof(dunit_t));
+    memset(dat, 0, n * sizeof(dunit_t));
+
+    size_t i, ih, il, s = 16 - lgn;
+    for (i = 0; p != e; i++, p++)
     {
         ih = __bit_rev_table[i >> 8];
         il = __bit_rev_table[i & 0xff];
-        k = ((il << 8) | ih) >> s;
-        dat[k] = *p;
+        dat[((il << 8) | ih) >> s] = *p;
     }
     if (pool0)
     {
         __fft(pool0);
     }
+    else
+    {
+        // TODO
+    }
 }
 
 void NTT::mul(const NTT& another)
-{}
+{
+    dunit_t* p = dat;
+    dunit_t* e = dat + n;
+    dunit_t* q = another.dat;
 
-void NTT::backward(number_t& a)
-{}
+    for (; p != e; p++, q++)
+    {
+        *p = __mul_mod_P(*p, *q);
+    }
+}
+
+void NTT::backward()
+{
+    dunit_t tmp;
+    size_t i, ih, il, k;
+    size_t s = 16 - lgn;
+
+    for (i = 0; i < n; i++)
+    {
+        ih = __bit_rev_table[i >> 8];
+        il = __bit_rev_table[i & 0xff];
+        k = ((il << 8) | ih) >> s;
+        if (i > k)
+        {
+            tmp = dat[i];
+            dat[i] = dat[k];
+            dat[k] = tmp;
+        }
+    }
+    if (pool1)
+    {
+        __fft(pool1);
+    }
+    else
+    {
+        // TODO
+    }
+
+    dunit_t R = RN[lgn - 1];
+    dunit_t* p = dat;
+    dunit_t* e = dat + n;
+    for (; p != e; p++)
+    {
+        *p = __mul_mod_P(*p, R);
+    }
+}
+
+void NTT::to_number(number_t& res)
+{
+    slen_t len = n / 2;
+    unit_t *tmp = (unit_t*)mem::allocate(len, sizeof(unit_t));
+    byte_t *p = (byte_t*)tmp;
+    dunit_t *q = dat, *e = q + n, carry = 0;
+
+    while (q != e)
+    {
+        carry += *q++;
+        *p++ = carry % 256;
+        carry /= 256;
+    }
+
+    __trim_leading_zeros(tmp, len);
+    res.release();
+    res.len = len;
+    res.dat = tmp;
+}
 
 void NTT::__fft(const roots_pool_t* pool)
 {
@@ -953,6 +1019,27 @@ void NTT::__fft(const roots_pool_t* pool)
             }
         }
     }
+}
+
+void fsqr(const number_t& a, number_t& res)
+{
+    NTT ntta;
+
+    ntta.forward(a);
+    ntta.mul(ntta);
+    ntta.backward();
+    ntta.to_number(res);
+}
+
+void fmul(const number_t& a, const number_t& b, number_t& res)
+{
+    NTT ntta, nttb;
+
+    ntta.forward(a);
+    nttb.forward(b);
+    ntta.mul(nttb);
+    ntta.backward();
+    ntta.to_number(res);
 }
 
 void __EUCLID(number_t& a, number_t& b)
@@ -1158,7 +1245,7 @@ dunit_t __add_mod_P(dunit_t x, dunit_t y)
 
 #elif UNITBITS == 32
 
-size_t size_t __log2(slen_t x)
+size_t __log2(slen_t x)
 {
     assert(x > 0);
 

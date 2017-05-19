@@ -1312,6 +1312,52 @@ size_t random_test_string_find(size_t N)
     } \
 }
 
+#define TIMES(n) for (int i = 0; i < n; i++)
+
+size_t random_test_fmul(size_t N)
+{
+    size_t n = N;
+    number_t a, b, res1, res2;
+    clock_t t1 = 0, t2 = 0;
+
+    t1 = clock();
+    NTT::init_roots_pool();
+    t2 = clock();
+    cout << "Init:" << double(t2 - t1) / CLOCKS_PER_SEC << endl;
+
+    int units = 4096;
+    while (n--)
+    {
+        rand(units * sizeof(unit_t) * 8, default_RNG(), true, a);
+        rand(units * sizeof(unit_t) * 8, default_RNG(), true, b);
+
+        t1 = clock();
+        TIMES(10) kmul(a, b, res1);
+        t2 = clock();
+        cout << double(t2 - t1) / CLOCKS_PER_SEC << endl;
+
+        t1 = clock();
+        TIMES(10) fmul(a, b, res2);
+        t2 = clock();
+        cout << double(t2 - t1) / CLOCKS_PER_SEC << endl;
+        if (!eq(res1, res2))
+        {
+            //cout << a.to_hex_string().c_str() << endl;
+            //cout << b.to_hex_string().c_str() << endl;
+            //cout << res1.to_hex_string().c_str() << endl;
+            //cout << res2.to_hex_string().c_str() << endl;
+            cout << "NEQ!" << endl;
+            //break;
+        }
+        cout << endl;
+    }
+    return N;
+}
+
+
+
+
+
 int main()
 {
     test_from_file("Testing basic operations", "randomtest.dat", random_test_basic);
@@ -1333,6 +1379,7 @@ int main()
     test_with_time("Testing sqr and mul", test_sqr_and_mul_performace(3000));
     test_with_time("Testing kmul", random_test_kmul(1000));
     test_with_time("Testing ksqr", random_test_ksqr(1000));
+    test_with_time("Testing fmul", random_test_fmul(10));
 
     return 0;
 }

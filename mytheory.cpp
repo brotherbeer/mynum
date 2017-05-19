@@ -751,6 +751,9 @@ const dunit_t RN[] = {
     0xf5fff85000000001, 0xf5fffc2800000001, 0xf5fffe1400000001, 0xf5ffff0a00000001,
 };
 
+typedef unsigned short hunit_t;
+const unit_t HUNITBASE = 65536;
+
 #elif UNITBITS == 16
 
 const dunit_t NTT::P = 0xc0000001; // primitive root 5
@@ -782,6 +785,9 @@ const dunit_t NTT::RN[] = {
     0xbfffa001, 0xbfffd001, 0xbfffe801, 0xbffff401,
     0xbffffa01, 0xbffffd01, 0xbffffe81, 0xbfffff41,
 };
+
+typedef byte_t hunit_t;
+const unit_t HUNITBASE = 256;
 
 #endif
 
@@ -883,10 +889,17 @@ void NTT::release()
 void NTT::forward(const number_t& a)
 {
     slen_t l = a.unit_count();
-    byte_t *p = (byte_t*)a.dat, *e = p + l * 2;
+    hunit_t* p = (hunit_t*)a.dat;
+    hunit_t* e = p + l * 2;
 
     n = l * 2 * 2;
     lgn = __log2(n);
+    if (n & (n - 1))
+    {
+        lgn++;
+        n = 1 << lgn;
+    }
+
     sig = a.sign();
     dat = (dunit_t*)mem::allocate(n, sizeof(dunit_t));
     memset(dat, 0, n * sizeof(dunit_t));
@@ -904,7 +917,7 @@ void NTT::forward(const number_t& a)
     }
     else
     {
-        // TODO
+        __fft(W);
     }
 }
 
@@ -944,7 +957,7 @@ void NTT::backward()
     }
     else
     {
-        // TODO
+        __fft(RW);
     }
 
     dunit_t R = RN[lgn - 1];
@@ -960,20 +973,51 @@ void NTT::to_number(number_t& res)
 {
     slen_t len = n / 2;
     unit_t *tmp = (unit_t*)mem::allocate(len, sizeof(unit_t));
-    byte_t *p = (byte_t*)tmp;
+    hunit_t *p = (hunit_t*)tmp;
     dunit_t *q = dat, *e = q + n, carry = 0;
 
     while (q != e)
     {
         carry += *q++;
-        *p++ = carry % 256;
-        carry /= 256;
+        *p++ = carry % HUNITBASE;
+        carry /= HUNITBASE;
     }
 
     __trim_leading_zeros(tmp, len);
     res.release();
     res.len = len;
     res.dat = tmp;
+}
+
+void NTT::__fft(const dunit_t root[])
+{
+    size_t k, s, h;
+    dunit_t *p, *q, *e;
+    dunit_t wm, m, t, w, u;
+
+    for (s = 0; s < lgn; s++)
+    {
+        h = 1 << s;
+        m = h << 1;
+        wm = root[s];
+        for (k = 0; k < n; k += m)
+        {
+            w = 1;
+
+            p = dat + k;
+            e = p + h;
+            for (; p != e; p++)
+            {
+                u = *p;
+                q = p + h;
+
+                t = __mul_mod_P(w, *q);
+               *p = __add_mod_P(u, t);
+               *q = __add_mod_P(u, P - t);
+                w = __mul_mod_P(w, wm);
+            }
+        }
+    }
 }
 
 void NTT::__fft(const roots_pool_t* pool)

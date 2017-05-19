@@ -74,6 +74,7 @@ struct NTT
 
     void to_number(number_t&);
 
+    void __fft(const dunit_t[]);
     void __fft(const roots_pool_t*);
 };
 

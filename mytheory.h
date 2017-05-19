@@ -31,14 +31,20 @@ struct NTT
     struct roots_pool_t
     {
         dunit_t* pool;
+        dunit_t lgmax;
 
         roots_pool_t(const dunit_t W[]);
 
        ~roots_pool_t();
 
-        const dunit_t* get(int i) const
+        const dunit_t* get(size_t i) const
         {
-            return pool + (1 << i) - 1;
+            return pool + (size_t(1) << i) - 1;
+        }
+
+        size_t size() const
+        {
+            return lgmax;
         }
     };
 

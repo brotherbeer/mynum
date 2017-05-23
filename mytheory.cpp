@@ -834,13 +834,14 @@ static __force_inline(dunit_t) __add_mod_P(dunit_t x, dunit_t y);
 NTT::roots_pool_t::roots_pool_t(const dunit_t roots[])
 {
 #if UNITBITS == 16
-    lgmax = 16
+    lgmax = 16;
 #elif UNITBITS == 32
     lgmax = 20;
 #endif
-    int s = 1, i = 0;
-    dunit_t *p, *e, w, x;
+
+    size_t s = 1, i = 0;
     size_t poolsize = (size_t(1) << lgmax) - 1;
+    dunit_t *p, *e, w, x;
 
     pool = (dunit_t*)mem::allocate(poolsize, sizeof(dunit_t));
     if (pool) while (s < poolsize + 1)
@@ -848,7 +849,7 @@ NTT::roots_pool_t::roots_pool_t(const dunit_t roots[])
         x = 1;
         w = roots[i++];
         p = pool + s - 1;
-        e = p + s;   
+        e = p + s;
         for (*p++ = 1; p != e; p++)
         {
             *p = x = __mul_mod_P(x, w);
@@ -968,6 +969,9 @@ void NTT::forward(const number_t& a)
 
 void NTT::mul(const NTT& another)
 {
+    assert(n == another.n);
+    assert(lgn == another.lgn);
+
     dunit_t* p = dat;
     dunit_t* e = dat + n;
     dunit_t* q = another.dat;
@@ -975,6 +979,25 @@ void NTT::mul(const NTT& another)
     for (; p != e; p++, q++)
     {
         *p = __mul_mod_P(*p, *q);
+    }
+}
+
+void NTT::mul(const NTT& another, NTT& res)
+{
+    assert(n == another.n);
+    assert(lgn == another.lgn);
+
+    dunit_t *o;
+    const dunit_t *p, *q, *e;
+
+    res.set_up(n);
+    p = dat;
+    e = dat + n;
+    q = another.dat;
+    o = res.dat;
+    for (; p != e; p++, q++)
+    {
+        *o = __mul_mod_P(*p, *q);
     }
 }
 

@@ -80,6 +80,8 @@ struct NTT
 
     void mul(const NTT&);
 
+    void mul(const NTT&, NTT&);
+
     void backward();
 
     void to_number(number_t&);

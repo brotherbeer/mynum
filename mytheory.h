@@ -51,7 +51,7 @@ struct NTT
     static const dunit_t P;
     static const dunit_t V;
 
-    static const dunit_t  W[];
+    static const dunit_t W[];
     static const dunit_t RW[];
     static const dunit_t RN[];
 
@@ -61,15 +61,19 @@ struct NTT
     static void init_roots_pool();
     static void release_roots_pool();
 
+    static bool suitable(const number_t&);
+
     dunit_t* dat;
     size_t n;
     size_t lgn;
-    slen_t sig;
+    size_t cap;
 
     NTT();
 
-    ~NTT();
+   ~NTT();
 
+    void set_up(size_t);
+    
     void release();
 
     void forward(const number_t&);

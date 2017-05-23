@@ -843,7 +843,7 @@ NTT::roots_pool_t::roots_pool_t(const dunit_t roots[])
     size_t poolsize = (size_t(1) << lgmax) - 1;
 
     pool = (dunit_t*)mem::allocate(poolsize, sizeof(dunit_t));
-    while (s < poolsize + 1)
+    if (pool) while (s < poolsize + 1)
     {
         x = 1;
         w = roots[i++];
@@ -860,6 +860,8 @@ NTT::roots_pool_t::roots_pool_t(const dunit_t roots[])
 NTT::roots_pool_t::~roots_pool_t()
 {
     delete[] pool;
+    lgmax = 0;
+    pool = NULL;
 }
 
 NTT::roots_pool_t* NTT::pool0 = NULL;
@@ -867,8 +869,14 @@ NTT::roots_pool_t* NTT::pool1 = NULL;
 
 void NTT::init_roots_pool()
 {
-    pool0 = new roots_pool_t(W);
-    pool1 = new roots_pool_t(RW);
+    if (!pool0)
+    {
+        pool0 = new roots_pool_t(W);
+    }
+    if (!pool1)
+    {
+        pool1 = new roots_pool_t(RW);
+    }
 }
 
 void NTT::release_roots_pool()
@@ -878,7 +886,12 @@ void NTT::release_roots_pool()
     pool0 = pool1 = NULL;
 }
 
-NTT::NTT(): dat(NULL), n(0), lgn(0)
+bool NTT::suitable(const number_t& a)
+{
+    return false;
+}
+
+NTT::NTT(): dat(NULL), n(0), lgn(0), cap(0)
 {}
 
 NTT::~NTT()
@@ -886,29 +899,36 @@ NTT::~NTT()
     release();
 }
 
-void NTT::release()
+void NTT::set_up(size_t x)
 {
-    mem::deallocate(dat);
-    dat = NULL;
-    n = lgn = 0;
-}
-
-void NTT::forward(const number_t& a)
-{
-    slen_t l = a.unit_count();
-    hunit_t* p = (hunit_t*)a.dat;
-    hunit_t* e = p + l * 2;
-
-    n = l * 2 * 2;
+    n = x * 2;
     lgn = __log2(n);
     if (n & (n - 1))
     {
         lgn++;
         n = size_t(1) << lgn;
     }
+    if (n > cap)
+    {
+        mem::deallocate(dat);
+        dat = (dunit_t*)mem::allocate(n, sizeof(dunit_t));
+        cap = n;
+    }
+}
 
-    sig = a.sign();
-    dat = (dunit_t*)mem::allocate(n, sizeof(dunit_t));
+void NTT::release()
+{
+    mem::deallocate(dat);
+    dat = NULL;
+    n = lgn = cap = 0;
+}
+
+void NTT::forward(const number_t& a)
+{
+    size_t l = a.unit_count();
+    hunit_t* p = (hunit_t*)a.dat;
+    hunit_t* e = p + l * 2;
+
     memset(dat, 0, n * sizeof(dunit_t));
 
     if (lgn < 16)
@@ -1113,23 +1133,38 @@ void NTT::__fft(const roots_pool_t* pool)
 
 void fsqr(const number_t& a, number_t& res)
 {
-    NTT ntta;
-
-    ntta.forward(a);
-    ntta.mul(ntta);
-    ntta.backward();
-    ntta.to_number(res);
+    NTT ntt;
+    
+    ntt.set_up(2 * a.unit_count());
+    ntt.forward(a);
+    ntt.mul(ntt);
+    ntt.backward();
+    ntt.to_number(res);
 }
 
 void fmul(const number_t& a, const number_t& b, number_t& res)
 {
+    size_t la, lb;
     NTT ntta, nttb;
 
+    la = a.unit_count();
+    lb = b.unit_count();
+    if (lb > la)
+    {
+        la = lb;
+    }
+    ntta.set_up(2 * la);
+    nttb.set_up(2 * la);
     ntta.forward(a);
     nttb.forward(b);
     ntta.mul(nttb);
     ntta.backward();
     ntta.to_number(res);
+
+    if (!same_sign(a, b))
+    {
+        res.set_neg();
+    }
 }
 
 void __EUCLID(number_t& a, number_t& b)

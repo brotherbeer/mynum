@@ -1336,8 +1336,8 @@ void number_t::reserve(size_t units)
 
 void number_t::clear_and_reserve(size_t units)
 {
-    release();
-    __reserve(units);
+    clear();
+    reserve(units);
 }
 
 void number_t::copy(const number_t& another)
@@ -2334,9 +2334,13 @@ void mul_unit(const number_t& a, unit_t x, number_t& res)
     unit_t carry;
     slen_t la = __abs(a.len);
 
-    if (res.cap < la + 1)
+    if (res.is_not(a))
     {
         res.clear_and_reserve(la + 1);
+    }
+    else
+    {
+        res.reserve(la + 1);
     }
     if ((carry = __mul_unit_core(a.dat, la, x, res.dat)))
     {
@@ -2344,19 +2348,41 @@ void mul_unit(const number_t& a, unit_t x, number_t& res)
     }
     __trim_leading_zeros(res.dat, la);
     res.len = la * __sign(a.len);
+
+
+    //unit_t carry;
+    //slen_t la = __abs(a.len);
+
+    //if (res.cap < la + 1 && res.dat == a.dat)
+    //{
+    //    res.cap = res.cap;
+    //}
+
+    //if (res.cap < la + 1)
+    //{
+    //    res.clear_and_reserve(la + 1);
+    //}
+    //if ((carry = __mul_unit_core(a.dat, la, x, res.dat)))
+    //{
+    //    res.dat[la++] = carry & UNITMAX;
+    //}
+    //__trim_leading_zeros(res.dat, la);
+    //res.len = la * __sign(a.len);
+
+
 }
 
-unit_t div_unit(const number_t& a, unit_t x, number_t& res)
+unit_t div_unit(const number_t& a, unit_t x, number_t& q)
 {
     if (a.len && x)
     {
         slen_t la = __abs(a.len), lr;
-        if (res.cap < la)
+        if (q.is_not(a))
         {
-            res.clear_and_reserve(la);
+            q.clear_and_reserve(la);
         }
-        unit_t r = __div_unit_core(a.dat, la, x, res.dat, &lr);
-        res.len = lr * __sign(a.len);
+        unit_t r = __div_unit_core(a.dat, la, x, q.dat, &lr);
+        q.len = lr * __sign(a.len);
         return r;
     }
     return 0;
@@ -2367,7 +2393,7 @@ unit_t div_unit(const number_t& a, const UDM& udm, number_t& q)
     if (udm.divisor)
     {
         slen_t la = __abs(a.len), lq;
-        if (q.cap < la)
+        if (q.is_not(a))
         {
             q.clear_and_reserve(la);
         }

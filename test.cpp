@@ -3192,6 +3192,23 @@ void test_mul_small()
         a.mul_unit(0); assert(a == 0);
         a = 1111; a.mul_unit(0); assert(a == 0);
     }
+#if UNITBITS == 32
+    {
+        NN a("ffffffffffffffff", 16), b;
+        mul_unit(a, 0xffffffff, b);
+        assert(b(16) == "fffffffeffffffff00000001");    // no problem
+        mul_unit(a, 0xffffffff, a);
+        assert(a(16) == "fffffffeffffffff00000001");    // error!
+    }
+#elif UNITBITS == 16
+    {
+        NN a("ffffffffffffffff", 16), b;
+        mul_unit(a, 0xffff, b);
+        assert(b(16) == "fffeffffffffffff0001");    // no problem
+        mul_unit(a, 0xffff, a);
+        assert(a(16) == "fffeffffffffffff0001");    // error!
+    }
+#endif
 }
 
 void test_div_small()

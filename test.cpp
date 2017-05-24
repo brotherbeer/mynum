@@ -3196,17 +3196,17 @@ void test_mul_small()
     {
         NN a("ffffffffffffffff", 16), b;
         mul_unit(a, 0xffffffff, b);
-        assert(b(16) == "fffffffeffffffff00000001");    // no problem
+        assert(b(16) == "fffffffeffffffff00000001");
         mul_unit(a, 0xffffffff, a);
-        assert(a(16) == "fffffffeffffffff00000001");    // error!
+        assert(a(16) == "fffffffeffffffff00000001");
     }
 #elif UNITBITS == 16
     {
         NN a("ffffffffffffffff", 16), b;
         mul_unit(a, 0xffff, b);
-        assert(b(16) == "fffeffffffffffff0001");    // no problem
+        assert(b(16) == "fffeffffffffffff0001");
         mul_unit(a, 0xffff, a);
-        assert(a(16) == "fffeffffffffffff0001");    // error!
+        assert(a(16) == "fffeffffffffffff0001");
     }
 #endif
 }
@@ -3310,6 +3310,11 @@ void test_div_small()
         assert(!a.div_unit(UDM(5))); assert(a == 87490849000ULL);
         assert(!a.div_unit(UDM(20)));
         assert(!a.div_unit(UDM(50)));
+    }{
+        NN a, b = 123;
+        div_unit(a, 3, b); assert(b == 0);
+        div_unit(a, UDM(3), b); assert(b == 0);
+        div_unit(a, UDM(3), a); assert(a == 0);
     }
 }
 
@@ -3365,6 +3370,14 @@ void test_mod_small()
         a.assign(4096); a.mod_unit(UDM(32)); assert(a.is_zero());
         a.assign(64); a.mod_unit(UDM(64)); assert(a.is_zero());
         a.assign(65); a.mod_unit(UDM(64)); assert(a.is_one());
+    }{
+        NN a, b = 123;
+        mod_unit(a, 3, b); assert(b == 0);
+        mod_unit(a, UDM(3), b); assert(b == 0);
+        mod_unit(a, UDM(3), a); assert(a == 0);
+        NN c, d;
+        c.mod_unit(123); assert(c == 0);
+        d.mod_unit(UDM(123)); assert(d == 0);
     }
 }
 

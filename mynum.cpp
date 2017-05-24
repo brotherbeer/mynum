@@ -565,36 +565,40 @@ unit_t number_t::div_unit(unit_t x)
 
 unit_t number_t::div_unit(const UDM& udm)
 {
-    dunit_t r = 0, h;
-    slen_t l = __abs(len);
-    unsigned char shift = udm.shift;
+    if (dat)
+    {
+        dunit_t r = 0, h;
+        slen_t l = __abs(len);
+        unsigned char shift = udm.shift;
 
-    if (udm.notpo2)
-    {
-        unit_t* p = dat + l;
-        if (udm.nooverflow) while (--p >= dat)
+        if (udm.notpo2)
         {
-            r = __make_dunit(r, *p);
-            h = __mul_dunit_high(r, udm.multiplier) >> shift;
-            r -= h * udm.divisor;
-            *p = unit_t(h);
+            unit_t* p = dat + l;
+            if (udm.nooverflow) while (--p >= dat)
+            {
+                r = __make_dunit(r, *p);
+                h = __mul_dunit_high(r, udm.multiplier) >> shift;
+                r -= h * udm.divisor;
+                *p = unit_t(h);
+            }
+            else while (--p >= dat)
+            {
+                r = __make_dunit(r, *p);
+                h = __mul_dunit_high(r, udm.multiplier);
+                h = (((r - h) >> 1) + h) >> shift;
+                r -= h * udm.divisor;
+                *p = unit_t(h);
+            }
         }
-        else while (--p >= dat)
+        else
         {
-            r = __make_dunit(r, *p);
-            h = __mul_dunit_high(r, udm.multiplier);
-            h = (((r - h) >> 1) + h) >> shift;
-            r -= h * udm.divisor;
-            *p = unit_t(h);
+            r = __shr_core(dat, l, shift);
         }
+        __trim_leading_zeros(dat, l);
+        len = l * __sign(len);
+        return r & UNITMAX;
     }
-    else
-    {
-        r = __shr_core(dat, l, shift);
-    }
-    __trim_leading_zeros(dat, l);
-    len = l * __sign(len);
-    return r & UNITMAX;
+    return 0;
 }
 
 void number_t::mod_unit(unit_t x)
@@ -2348,42 +2352,27 @@ void mul_unit(const number_t& a, unit_t x, number_t& res)
     }
     __trim_leading_zeros(res.dat, la);
     res.len = la * __sign(a.len);
-
-
-    //unit_t carry;
-    //slen_t la = __abs(a.len);
-
-    //if (res.cap < la + 1 && res.dat == a.dat)
-    //{
-    //    res.cap = res.cap;
-    //}
-
-    //if (res.cap < la + 1)
-    //{
-    //    res.clear_and_reserve(la + 1);
-    //}
-    //if ((carry = __mul_unit_core(a.dat, la, x, res.dat)))
-    //{
-    //    res.dat[la++] = carry & UNITMAX;
-    //}
-    //__trim_leading_zeros(res.dat, la);
-    //res.len = la * __sign(a.len);
-
-
 }
 
 unit_t div_unit(const number_t& a, unit_t x, number_t& q)
 {
-    if (a.len && x)
+    if (x)
     {
-        slen_t la = __abs(a.len), lr;
-        if (q.is_not(a))
+        if (!a.is_zero())
         {
-            q.clear_and_reserve(la);
+            slen_t la = __abs(a.len), lr;
+            if (q.is_not(a))
+            {
+                q.clear_and_reserve(la);
+            }
+            unit_t r = __div_unit_core(a.dat, la, x, q.dat, &lr);
+            q.len = lr * __sign(a.len);
+            return r;
         }
-        unit_t r = __div_unit_core(a.dat, la, x, q.dat, &lr);
-        q.len = lr * __sign(a.len);
-        return r;
+        else
+        {
+            q.set_zero();
+        }
     }
     return 0;
 }
@@ -2392,14 +2381,21 @@ unit_t div_unit(const number_t& a, const UDM& udm, number_t& q)
 {
     if (udm.divisor)
     {
-        slen_t la = __abs(a.len), lq;
-        if (q.is_not(a))
+        if (!a.is_zero())
         {
-            q.clear_and_reserve(la);
+            slen_t la = __abs(a.len), lq;
+            if (q.is_not(a))
+            {
+                q.clear_and_reserve(la);
+            }
+            unit_t r = __div_unit_core(a.dat, la, udm, q.dat, &lq);
+            q.len = lq * __sign(a.len);
+            return r;
         }
-        unit_t r = __div_unit_core(a.dat, la, udm, q.dat, &lq);
-        q.len = lq * __sign(a.len);
-        return r;
+        else
+        {
+            q.set_zero();
+        }
     }
     return 0;
 }
@@ -2408,9 +2404,16 @@ void mod_unit(const number_t& a, unit_t x, number_t& res)
 {
     if (x)
     {
-        slen_t s = __sign(a.len);
-        res.assign(__mod_unit_core(a.dat, __abs(a.len), x));
-        res.len *= s;
+        if (!a.is_zero())
+        {
+            slen_t s = __sign(a.len);
+            res.assign(__mod_unit_core(a.dat, __abs(a.len), x));
+            res.len *= s;
+        }
+        else
+        {
+            res.set_zero();
+        }
     }
 }
 
@@ -2418,9 +2421,16 @@ void mod_unit(const number_t& a, const UDM& udm, number_t& res)
 {
     if (udm.divisor)
     {
-        slen_t s = __sign(a.len);
-        res.assign(__mod_unit_core(a.dat, __abs(a.len), udm));
-        res.len *= s;
+        if (!a.is_zero())
+        {
+            slen_t s = __sign(a.len);
+            res.assign(__mod_unit_core(a.dat, __abs(a.len), udm));
+            res.len *= s;
+        }
+        else
+        {
+            res.set_zero();
+        }
     }
 }
 

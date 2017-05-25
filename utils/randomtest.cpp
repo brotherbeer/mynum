@@ -243,7 +243,8 @@ size_t random_test_gcd_ext(ifstream& in)
         in >> a >> b >> x >> y >> g;
         break_when_eof();
         gcd_ext(a, b, u, v, w);
-        if (u != x || v != y || w != g)
+        //if (u != x || v != y || w != g) TODO: if a and b are the same...
+        if (a * u + b * v != w)
         {
             cerr << "gcd_ext UNEXPECTED!!" << endl;
             cerr << "op1:"  << a(16) << endl;
@@ -324,7 +325,7 @@ size_t random_test_jacobi(ifstream& in)
 }
 
 #define check(res, exp) { \
-    const number_t& rres = res; \
+    const number_t& rres = (res); \
     if (rres != exp) { \
         show_unexpected_loc(oper); \
         cout << "op1: " << s1 << "(" << b1 << ")" << endl; \
@@ -333,6 +334,7 @@ size_t random_test_jacobi(ifstream& in)
         cout << "res: " << rres(10) << endl; \
         abort(); \
     } \
+    if (chance(5)) (res).release();\
 }
 
 #define check_bool(res, exp) { \
@@ -374,9 +376,9 @@ size_t random_test_basic(ifstream& in)
         n++;
         in >> oper >> s1 >> b1 >> s2 >> b2 >> s3;
 
-        a.assign(s1.c_str(), b1);
-        b.assign(s2.c_str(), b2);
-        exp.assign(s3.c_str());
+        a.assign(s1, b1);
+        b.assign(s2, b2);
+        exp.assign(s3);
 
         if (oper == "+")
         {
@@ -434,6 +436,9 @@ size_t random_test_basic(ifstream& in)
 
             mul(a, bb, bb);
             check(bb, exp);
+
+            fmul(a, b, res);
+            check(res, exp);
 
             check(a * b, exp);
         }
@@ -587,6 +592,8 @@ size_t random_test_basic(ifstream& in)
             sqr(a, res);
             check(res, exp);
             ksqr(a, res);
+            check(res, exp);
+            fsqr(a, res);
             check(res, exp);
             aa.assign(a);
             aa.ksqr();
@@ -827,19 +834,21 @@ size_t random_test_basic(ifstream& in)
         {
             check_ordinary(div_unit, in_range_ushort, to_ushort);
 
-            aa.assign(a);
             UDM udm(b.to_ushort());
+            aa.assign(a);
             aa.div_unit(udm); check(aa, exp);
-            div_unit(a, udm, cc); check(cc, exp);
+            aa.assign(a);
+            div_unit(aa, udm, cc); check(cc, exp);
         }
         else if (oper == "%u16")
         {
             check_ordinary(mod_unit, in_range_ushort, to_ushort);
 
-            aa.assign(a);
             UDM udm(b.to_ushort());
+            aa.assign(a);
             aa.mod_unit(udm); check(aa, exp);
-            mod_unit(a, udm, cc); check(cc, exp);
+            aa.assign(a);
+            mod_unit(aa, udm, cc); check(cc, exp);
         }
         else if (oper == "&u16")
         {
@@ -853,6 +862,16 @@ size_t random_test_basic(ifstream& in)
         {
             check_ordinary(bit_xor_unit, in_range_ushort, to_ushort);
         }
+
+        if (chance(5)) a.release();
+        if (chance(5)) b.release();
+        if (chance(5)) res.release();
+        if (chance(5)) exp.release();
+        if (chance(5)) aa.release();
+        if (chance(5)) bb.release();
+        if (chance(5)) cc.release();
+        if (chance(5)) q.release();
+        if (chance(5)) r.release();
     }
     in.close();
     return n;
@@ -1316,47 +1335,98 @@ size_t random_test_string_find(size_t N)
 
 size_t random_test_fmul(size_t N)
 {
-    size_t n = N;
     number_t a, b, res1, res2;
     clock_t t1 = 0, t2 = 0;
+    size_t n = N, units0, units1, bits0, bits1;
 
     t1 = clock();
     NTT::init_roots_pool();
     t2 = clock();
-    cout << "Init:" << double(t2 - t1) / CLOCKS_PER_SEC << endl;
+    cout << "init_roots_pool:" << double(t2 - t1) / CLOCKS_PER_SEC << endl;
 
-    int units = 4096;
     while (n--)
     {
-        rand(units * sizeof(unit_t) * 8, default_RNG(), true, a);
-        rand(units * sizeof(unit_t) * 8, default_RNG(), true, b);
+        if (sizeof(size_t) == 4)
+        {
+            units0 = 1 + rand_word() % 16383;
+            units1 = 1 + rand_word() % 16383;
+        }
+        else
+        {
+            units0 = 2 + rand_word() % 524288;
+            units1 = 2 + rand_word() % 524288;
+        }
+
+        bits0 = units0 * sizeof(unit_t) * 8;
+        bits1 = units1 * sizeof(unit_t) * 8;
+        rand(bits0, default_RNG(), true, a);
+        rand(bits1, default_RNG(), true, b);
+        cout << bits0 << "*" << bits1 << endl;
 
         t1 = clock();
-        TIMES(10) kmul(a, b, res1);
+        kmul(a, b, res1);
         t2 = clock();
-        cout << double(t2 - t1) / CLOCKS_PER_SEC << endl;
+        cout << "kmul:" << double(t2 - t1) / CLOCKS_PER_SEC << endl;
 
         t1 = clock();
-        TIMES(10) fmul(a, b, res2);
+        fmul(a, b, res2);
         t2 = clock();
-        cout << double(t2 - t1) / CLOCKS_PER_SEC << endl;
+        cout << "fmul:" << double(t2 - t1) / CLOCKS_PER_SEC << endl;
+
         if (!eq(res1, res2))
         {
-            //cout << a.to_hex_string().c_str() << endl;
-            //cout << b.to_hex_string().c_str() << endl;
-            //cout << res1.to_hex_string().c_str() << endl;
-            //cout << res2.to_hex_string().c_str() << endl;
             cout << "NEQ!" << endl;
-            //break;
+            break;
         }
         cout << endl;
     }
     return N;
 }
 
+size_t random_test_fsqr(size_t N)
+{
+    number_t a, res1, res2;
+    clock_t t1 = 0, t2 = 0;
+    size_t n = N, units, bits;
 
+    t1 = clock();
+    NTT::init_roots_pool();
+    t2 = clock();
+    cout << "init_roots_pool:" << double(t2 - t1) / CLOCKS_PER_SEC << endl;
 
+    while (n--)
+    {
+        if (sizeof(size_t) == 4)
+        {
+            units = 1 + rand_word() % 16383;
+        }
+        else
+        {
+            units = 2 + rand_word() % 524288;
+        }
+        bits = units * sizeof(unit_t) * 8;
+        rand(bits, default_RNG(), true, a);
+        cout << bits << "*" << bits << endl;
 
+        t1 = clock();
+        ksqr(a, res1);
+        t2 = clock();
+        cout << double(t2 - t1) / CLOCKS_PER_SEC << endl;
+
+        t1 = clock();
+        fsqr(a, res2);
+        t2 = clock();
+        cout << double(t2 - t1) / CLOCKS_PER_SEC << endl;
+
+        if (!eq(res1, res2))
+        {
+            cout << "NEQ!" << endl;
+            break;
+        }
+        cout << endl;
+    }
+    return N;
+}
 
 int main()
 {
@@ -1376,10 +1446,11 @@ int main()
     test_with_time("Testing bit_shift_or", random_test_bit_shift_xor(300000));
     test_with_time("Testing string insert", random_test_string_insert(300000));
 
-    test_with_time("Testing sqr and mul", test_sqr_and_mul_performace(3000));
+    test_with_time("Testing sqr and mul", test_sqr_and_mul_performace(5000));
     test_with_time("Testing kmul", random_test_kmul(1000));
     test_with_time("Testing ksqr", random_test_ksqr(1000));
-    test_with_time("Testing fmul", random_test_fmul(10));
+    test_with_time("Testing fmul", random_test_fmul(30));
+    test_with_time("Testing fsqr", random_test_fsqr(30));
 
     return 0;
 }

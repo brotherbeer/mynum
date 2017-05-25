@@ -36,6 +36,7 @@ opers = [
     '<<', '>>',
     '+u16', '-u16', '*u16', '/u16', '%u16', '&u16', '|u16', '^u16',
     '+u16', '-u16', '*u16', '/u16', '%u16', '&u16', '|u16', '^u16',
+	'**', '**'
 ]
 
 signs = ['-', '', ]
@@ -399,6 +400,5 @@ def parseArgs():
 if __name__ == '__main__':
     args = parseArgs()
     if args.with_power:
-        opers.append('**')
         opers.append('po')
     genTestData(args)

@@ -37,6 +37,7 @@ const number_t ONE(1);
         cerr << "res:" << res(16) << endl; \
         abort(); \
     } \
+    if (chance(5)) (res).release();\
 }
 
 #define check_fun_arg3(fun, a, b, res, exp) { \
@@ -49,6 +50,7 @@ const number_t ONE(1);
         cerr << "res:" << res(16) << endl; \
         abort(); \
     } \
+    if (chance(5)) (res).release();\
 }
 
 #define check_fun_arg4(fun, a, b, c, res, exp) {\
@@ -62,6 +64,7 @@ const number_t ONE(1);
         cerr << "res:" << res(16) << endl; \
         abort(); \
     } \
+    if (chance(5)) (res).release();\
 }
 
 #define check_fun_arg4_2(fun, a, b, res1, res2, exp1, exp2) {\
@@ -76,6 +79,8 @@ const number_t ONE(1);
         cerr << "res2:" << res2(16) << endl; \
         abort(); \
     } \
+    if (chance(5)) (res1).release();\
+    if (chance(5)) (res2).release();\
 }
 
 size_t random_test_div(ifstream& in)
@@ -88,6 +93,7 @@ size_t random_test_div(ifstream& in)
     while (1)
     {
         in >> a >> b >> exp1 >> exp2;
+
         break_when_eof();
 
         check_fun_arg4_2(div, a, b, q, r, exp1, exp2);
@@ -124,7 +130,7 @@ size_t random_test_div(ifstream& in)
 
         aa.assign(a);
         bb.assign(b);
-        check_fun_arg4_2(div, aa, aa, q, aa, ONE, ZERO);
+        if (aa != 0) check_fun_arg4_2(div, aa, aa, q, aa, ONE, ZERO);
         check_fun_arg4_2(div, bb, bb, bb, r, ONE, ZERO);
 
         aa.assign(a);
@@ -132,6 +138,15 @@ size_t random_test_div(ifstream& in)
         check_fun_arg4_2(div, aa, bb, aa, bb, exp1, exp2);
 
         n++;
+
+        if (chance(5)) a.release();
+        if (chance(5)) b.release();
+        if (chance(5)) res1.release();
+        if (chance(5)) res2.release();
+        if (chance(5)) exp1.release();
+        if (chance(5)) exp2.release();
+        if (chance(5)) aa.release();
+        if (chance(5)) bb.release();
     }
     in.close();
     return n;
@@ -175,6 +190,13 @@ size_t random_test_mul(ifstream& in)
             check_fun_arg3(kmul, aa, aa, aa, exp);
         }
         n++;
+
+        if (chance(5)) a.release();
+        if (chance(5)) b.release();
+        if (chance(5)) res.release();
+        if (chance(5)) exp.release();
+        if (chance(5)) aa.release();
+        if (chance(5)) bb.release();
     }
     in.close();
     return n;
@@ -192,6 +214,7 @@ size_t random_test_pom(ifstream& in)
         break_when_eof();
         check_fun_arg4(pom, a, b, c, res, exp);
         n++;
+        if (chance(5)) res.release();
     }
     in.close();
     return n;
@@ -209,6 +232,7 @@ size_t random_test_gcd(ifstream& in)
         break_when_eof();
         check_fun_arg3(gcd, a, b, res, exp);
         n++;
+        if (chance(5)) res.release();
     }
     in.close();
     return n;
@@ -226,6 +250,7 @@ size_t random_test_lcm(ifstream& in)
         break_when_eof();
         check_fun_arg3(lcm, a, b, res, exp);
         n++;
+        if (chance(5)) res.release();
     }
     in.close();
     return n;
@@ -258,6 +283,9 @@ size_t random_test_gcd_ext(ifstream& in)
             abort();
         }
         n++;
+        if (chance(5)) u.release();
+        if (chance(5)) v.release();
+        if (chance(5)) w.release();
     }
     in.close();
     return n;
@@ -925,7 +953,7 @@ size_t test_sqr_and_mul_performace(size_t N)
 
     while (n--)
     {
-        rand(1 + rand_word() % 32000, a);
+        rand(1 + rand_word() % 36000, a);
         t0 = clock();
         sqr(a, r1);
         t1 = clock();

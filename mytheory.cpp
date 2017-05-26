@@ -13,6 +13,7 @@
 #include <cstdio>
 #include <sys/time.h>
 #endif
+#include <cstring>
 #include <cassert>
 #include "mytheory.h"
 
@@ -828,8 +829,8 @@ static const byte_t __bit_rev_table[] =
 };
 
 static __force_inline(size_t) __log2(slen_t x);
-static __force_inline(dunit_t) __mul_mod_P(dunit_t x, dunit_t y);
 static __force_inline(dunit_t) __add_mod_P(dunit_t x, dunit_t y);
+static __force_inline(dunit_t) __mul_mod_P(dunit_t x, dunit_t y);
 
 NTT::roots_pool_t::roots_pool_t(const dunit_t roots[])
 {
@@ -902,18 +903,25 @@ NTT::~NTT()
 
 void NTT::set_up(size_t x)
 {
-    n = x * 2;
-    lgn = __log2(n);
-    if (n & (n - 1))
+    if (x)
     {
-        lgn++;
-        n = size_t(1) << lgn;
+        n = x * 2;
+        lgn = __log2(n);
+        if (n & (n - 1))
+        {
+            lgn++;
+            n = size_t(1) << lgn;
+        }
+        if (n > cap)
+        {
+            mem::deallocate(dat);
+            dat = (dunit_t*)mem::allocate(n, sizeof(dunit_t));
+            cap = n;
+        }
     }
-    if (n > cap)
+    else
     {
-        mem::deallocate(dat);
-        dat = (dunit_t*)mem::allocate(n, sizeof(dunit_t));
-        cap = n;
+        n = lgn = 0;
     }
 }
 
@@ -974,7 +982,7 @@ void NTT::mul(const NTT& another)
 
     dunit_t* p = dat;
     dunit_t* e = dat + n;
-    dunit_t* q = another.dat;
+    const dunit_t* q = another.dat;
 
     for (; p != e; p++, q++)
     {
@@ -1062,7 +1070,10 @@ void NTT::backward()
 void NTT::to_number(number_t& res)
 {
     slen_t len = n / 2;
-    unit_t *tmp = (unit_t*)mem::allocate(len, sizeof(unit_t));
+
+    res.clear_and_reserve(len);
+
+    unit_t *tmp = res.unit();
     hunit_t *p = (hunit_t*)tmp;
     dunit_t *q = dat, *e = q + n, carry = 0;
 
@@ -1072,11 +1083,8 @@ void NTT::to_number(number_t& res)
         *p++ = carry % HUNITBASE;
         carry /= HUNITBASE;
     }
-
     __trim_leading_zeros(tmp, len);
-    res.release();
     res.len = len;
-    res.dat = tmp;
 }
 
 void NTT::__fft(const dunit_t root[])
@@ -1112,7 +1120,7 @@ void NTT::__fft(const dunit_t root[])
 void NTT::__fft(const roots_pool_t* pool)
 {
     size_t k, s, h;
-    dunit_t m, t, w, u;
+    dunit_t m, t, u;
     dunit_t *p, *q, *e;
     const dunit_t *pp, *pw;
 
@@ -1136,7 +1144,6 @@ void NTT::__fft(const roots_pool_t* pool)
         m = h << 1;
         for (k = 0; k < n; k += m)
         {
-            w = 1;
             pw = pp;
             p = dat + k;
             e = p + h;
@@ -1145,10 +1152,9 @@ void NTT::__fft(const roots_pool_t* pool)
                 u = *p;
                 q = p + h;
 
-                t = __mul_mod_P(w, *q);
+                t = __mul_mod_P(*pw++, *q);
                *p = __add_mod_P(u, t);
                *q = __add_mod_P(u, P - t);
-                w = *++pw;
             }
         }
     }
@@ -1167,6 +1173,7 @@ void fsqr(const number_t& a, number_t& res)
 
 void fmul(const number_t& a, const number_t& b, number_t& res)
 {
+    int s = 1;
     size_t la, lb;
     NTT ntta, nttb;
 
@@ -1176,6 +1183,10 @@ void fmul(const number_t& a, const number_t& b, number_t& res)
     {
         la = lb;
     }
+    if (!same_sign(a, b))
+    {
+        s = -1;
+    }
     ntta.set_up(2 * la);
     nttb.set_up(2 * la);
     ntta.forward(a);
@@ -1183,11 +1194,7 @@ void fmul(const number_t& a, const number_t& b, number_t& res)
     ntta.mul(nttb);
     ntta.backward();
     ntta.to_number(res);
-
-    if (!same_sign(a, b))
-    {
-        res.set_neg();
-    }
+    res.set_sign(s);
 }
 
 void __EUCLID(number_t& a, number_t& b)
@@ -1337,11 +1344,48 @@ bool __MR_witness_unit(unit_t b, const number_t& n, const number_t& nd1, const n
 
 #if defined(__GNUC__) && !defined(NO_INTRINSIC)
 
+#if UNITBITS == 16
+typedef unsigned long long __qunit_t;
+
+#elif UNITBITS == 32
+typedef __uint128_t __qunit_t;
+
+#endif
+
 size_t __log2(slen_t x)
 {
     assert(x > 0);
 
     return 32 - __builtin_clz((unsigned int)x) - 1;
+}
+
+dunit_t __mul_mod_P(dunit_t x, dunit_t y)
+{
+    const dunit_t P = NTT::P;
+    const __qunit_t V = NTT::V;
+
+    __qunit_t U, Q;
+    dunit_t u1, u0, q1, q0, r;
+
+    U = __qunit_t(x) * y;
+    u1 = U >> DUNITBITS;
+    u0 = U & DUNITMAX;
+
+    Q = V * u1 + U;
+    q1 = Q >> DUNITBITS;
+    q0 = Q & DUNITMAX;
+
+    r = u0 - ++q1 * P;
+    r += r > q0? P: 0;
+    return r < P? r: r - P;
+}
+
+dunit_t __add_mod_P(dunit_t x, dunit_t y)
+{
+    const dunit_t P = NTT::P;
+
+    dunit_t z = P - y, u = z > x? P: 0;
+    return x - z + u;
 }
 
 #elif defined(_MSC_VER) && !defined(NO_INTRINSIC)
@@ -1374,16 +1418,26 @@ dunit_t __mul_mod_P(dunit_t x, dunit_t y)
     q0 = Q & 0xFFFFFFFF;
 
     r = u0 - ++q1 * P;
-
     if (r > q0)
     {
         r += P;
     }
-    if (r >= P)
+    if (r < P)
     {
-        r -= P;
+        return r;
     }
-    return r;
+    return r - P;
+}
+
+dunit_t __add_mod_P(dunit_t x, dunit_t y)
+{
+    dunit_t r;
+    unsigned char b;
+    const dunit_t P = NTT::P;
+    const dunit_t T[2] = { 0, P };
+
+    b = _subborrow_u32(0, x, P - y, &r);
+    return r + T[b];
 }
 
 #elif UNITBITS == 32
@@ -1417,24 +1471,47 @@ dunit_t __mul_mod_P(dunit_t x, dunit_t y)
     {
         r += P;
     }
-    if (r >= P)
+    if (r < P)
     {
-        r -= P;
+        return r;
     }
-    return r;
+    return r - P;
+}
+
+dunit_t __add_mod_P(dunit_t x, dunit_t y)
+{
+    dunit_t r;
+    unsigned char b;
+    const dunit_t P = NTT::P;
+    const dunit_t T[2] = { 0, P };
+
+    b = _subborrow_u64(0, x, P - y, &r);
+    return r + T[b];
 }
 
 #endif
 
-dunit_t __add_mod_P(dunit_t x, dunit_t y)
-{
-    dunit_t z = NTT::P - y;
-    return x - z + NTT::P * (z > x);
-}
-
 #else
 
-// TODO
+size_t __log2(slen_t x)
+{
+    assert(x > 0);
+
+    size_t n = 0;
+    for (; x != 1; x >>= 1)
+    {
+        n++;
+    }
+    return n;
+}
+
+dunit_t __mul_mod_P(dunit_t x, dunit_t y)
+{
+    number_t n(x);
+    n.mul_word(y);
+    n.mod_word(NTT::P);
+    return (dunit_t)n;
+}
 
 #endif
 

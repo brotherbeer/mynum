@@ -63,7 +63,7 @@ struct mem  // global memory interface
 private:
     mem() {}
     mem(const mem&) {}
-    ~mem() {}
+   ~mem() {}
 };
 
 struct _base_number_t
@@ -103,7 +103,7 @@ struct number_t: public _base_number_t  // bignum class
     number_t(const number_t&);
     number_t(const number_t&, size_t bbit, size_t ebit);
 
-    ~number_t();
+   ~number_t();
 
     number_t& assign(int);
     number_t& assign(long);
@@ -459,7 +459,7 @@ template <class T> struct _stype_ref_t: public number_t
         len *= slen_t(y | 1);
     }
 
-    ~_stype_ref_t()
+   ~_stype_ref_t()
     {
         dat = NULL;
     }
@@ -475,7 +475,7 @@ template <class T> struct _utype_ref_t: public number_t
         __trim_leading_zeros(dat, len);
     }
 
-    ~_utype_ref_t()
+   ~_utype_ref_t()
     {
         dat = NULL;
     }
@@ -868,7 +868,7 @@ struct string_t
         }
     }
 
-    ~string_t();
+   ~string_t();
 
     const char* c_str() const { return dat; }
     size_t length() const { return len; }
@@ -1024,7 +1024,7 @@ struct _leadings_t
     _leadref_t* refs;
 
     _leadings_t();
-    ~_leadings_t();
+   ~_leadings_t();
 
     const string_t& get(int base) const;
     void set(int base, const char* leading);

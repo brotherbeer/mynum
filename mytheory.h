@@ -41,11 +41,6 @@ struct NTT
         {
             return pool + (size_t(1) << i) - 1;
         }
-
-        size_t size() const
-        {
-            return lgmax;
-        }
     };
 
     static const dunit_t P;
@@ -267,7 +262,7 @@ struct CRNG_t: public RNG  // Cryptographical RNG
 
     CRNG_t();
 
-    ~CRNG_t();
+   ~CRNG_t();
 
     word_t gen();
 

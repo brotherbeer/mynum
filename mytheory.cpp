@@ -837,7 +837,7 @@ NTT::roots_pool_t::roots_pool_t(const dunit_t roots[])
 #if UNITBITS == 16
     lgmax = 16;
 #elif UNITBITS == 32
-    lgmax = 20;
+    lgmax = 21;
 #endif
 
     size_t s = 1, i = 0;
@@ -965,7 +965,7 @@ void NTT::forward(const number_t& a)
             dat[k >> s] = *p;
         }
     }
-    if (pool0 && lgn <= pool0->size())
+    if (pool0 && lgn <= pool0->lgmax)
     {
         __fft(pool0);
     }
@@ -1049,7 +1049,7 @@ void NTT::backward()
             }
         }
     }
-    if (pool1 && lgn <= pool1->size())
+    if (pool1 && lgn <= pool1->lgmax)
     {
         __fft(pool1);
     }
@@ -1087,7 +1087,7 @@ void NTT::to_number(number_t& res)
     res.len = len;
 }
 
-void NTT::__fft(const dunit_t root[])
+void NTT::__fft(const dunit_t roots[])
 {
     size_t k, s, h;
     dunit_t *p, *q, *e;
@@ -1097,17 +1097,15 @@ void NTT::__fft(const dunit_t root[])
     {
         h = size_t(1) << s;
         m = h << 1;
-        wm = root[s];
+        wm = roots[s];
         for (k = 0; k < n; k += m)
         {
             w = 1;
             p = dat + k;
-            e = p + h;
-            for (; p != e; p++)
+            for (e = p + h; p != e; p++)
             {
                 u = *p;
                 q = p + h;
-
                 t = __mul_mod_P(w, *q);
                *p = __add_mod_P(u, t);
                *q = __add_mod_P(u, P - t);
@@ -1122,10 +1120,10 @@ void NTT::__fft(const roots_pool_t* pool)
     size_t k, s, h;
     dunit_t m, t, u;
     dunit_t *p, *q, *e;
-    const dunit_t *pp, *pw;
+    const dunit_t *w, *roots;
 
     p = dat;
-    e = p + n;
+    e = dat + n;
     while (p != e)
     {
         q = p + 1;
@@ -1136,23 +1134,20 @@ void NTT::__fft(const roots_pool_t* pool)
         p += 2;
     }
 
-    for (s = 1; s < lgn; s++)
+    for (s = h = 1; s < lgn; s++)
     {
-        pp = pool->get(s);
-
-        h = size_t(1) << s;
+        h <<= 1;
         m = h << 1;
+        roots = pool->get(s);
         for (k = 0; k < n; k += m)
         {
-            pw = pp;
+            w = roots;
             p = dat + k;
-            e = p + h;
-            for (; p != e; p++)
+            for (e = p + h; p != e; p++)
             {
                 u = *p;
                 q = p + h;
-
-                t = __mul_mod_P(*pw++, *q);
+                t = __mul_mod_P(*w++, *q);
                *p = __add_mod_P(u, t);
                *q = __add_mod_P(u, P - t);
             }

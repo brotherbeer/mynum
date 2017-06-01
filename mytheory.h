@@ -33,14 +33,24 @@ struct NTT
         dunit_t* pool;
         dunit_t lgmax;
 
-        roots_pool_t(const dunit_t W[]);
+        roots_pool_t(): pool(NULL), lgmax(0)
+        {}
 
        ~roots_pool_t();
+
+        void init(const dunit_t W[]);
+
+        bool valid() const
+        {
+            return pool != NULL;
+        }
 
         const dunit_t* get(size_t i) const
         {
             return pool + (size_t(1) << i) - 1;
         }
+
+        void release();
     };
 
     static const dunit_t P;
@@ -50,8 +60,8 @@ struct NTT
     static const dunit_t RW[];
     static const dunit_t RN[];
 
-    static roots_pool_t* pool0;
-    static roots_pool_t* pool1;
+    static roots_pool_t pool0;
+    static roots_pool_t pool1;
 
     static void init_roots_pool();
     static void release_roots_pool();
@@ -82,7 +92,7 @@ struct NTT
     void to_number(number_t&);
 
     void __fft(const dunit_t[]);
-    void __fft(const roots_pool_t*);
+    void __fft(const roots_pool_t&);
 };
 
 void fsqr(const number_t& a, number_t& res);

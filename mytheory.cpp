@@ -832,7 +832,7 @@ static __force_inline(size_t) __log2(slen_t x);
 static __force_inline(dunit_t) __add_mod_P(dunit_t x, dunit_t y);
 static __force_inline(dunit_t) __mul_mod_P(dunit_t x, dunit_t y);
 
-NTT::roots_pool_t::roots_pool_t(const dunit_t roots[])
+void NTT::roots_pool_t::init(const dunit_t roots[])
 {
 #if UNITBITS == 16
     lgmax = 16;
@@ -859,33 +859,31 @@ NTT::roots_pool_t::roots_pool_t(const dunit_t roots[])
     }
 }
 
-NTT::roots_pool_t::~roots_pool_t()
+void NTT::roots_pool_t::release()
 {
-    delete[] pool;
+    mem::deallocate(pool);
     lgmax = 0;
     pool = NULL;
 }
 
-NTT::roots_pool_t* NTT::pool0 = NULL;
-NTT::roots_pool_t* NTT::pool1 = NULL;
+NTT::roots_pool_t::~roots_pool_t()
+{
+    release();
+}
+
+NTT::roots_pool_t NTT::pool0;
+NTT::roots_pool_t NTT::pool1;
 
 void NTT::init_roots_pool()
 {
-    if (!pool0)
-    {
-        pool0 = new roots_pool_t(W);
-    }
-    if (!pool1)
-    {
-        pool1 = new roots_pool_t(RW);
-    }
+    pool0.init(W);
+    pool1.init(RW);
 }
 
 void NTT::release_roots_pool()
 {
-    delete pool0;
-    delete pool1;
-    pool0 = pool1 = NULL;
+    pool0.release();
+    pool1.release();
 }
 
 bool NTT::suitable(const number_t& a)
@@ -965,7 +963,7 @@ void NTT::forward(const number_t& a)
             dat[k >> s] = *p;
         }
     }
-    if (pool0 && lgn <= pool0->lgmax)
+    if (pool0.valid() && lgn <= pool0.lgmax)
     {
         __fft(pool0);
     }
@@ -1049,7 +1047,7 @@ void NTT::backward()
             }
         }
     }
-    if (pool1 && lgn <= pool1->lgmax)
+    if (pool1.valid() && lgn <= pool1.lgmax)
     {
         __fft(pool1);
     }
@@ -1115,7 +1113,7 @@ void NTT::__fft(const dunit_t roots[])
     }
 }
 
-void NTT::__fft(const roots_pool_t* pool)
+void NTT::__fft(const roots_pool_t& pool)
 {
     size_t k, s, h;
     dunit_t m, t, u;
@@ -1138,7 +1136,7 @@ void NTT::__fft(const roots_pool_t* pool)
     {
         h <<= 1;
         m = h << 1;
-        roots = pool->get(s);
+        roots = pool.get(s);
         for (k = 0; k < n; k += m)
         {
             w = roots;

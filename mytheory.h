@@ -38,7 +38,7 @@ struct NTT
 
        ~roots_pool_t();
 
-        void init(const dunit_t W[]);
+        void init(const dunit_t W[], size_t lgm);
 
         bool valid() const
         {
@@ -64,6 +64,8 @@ struct NTT
     static roots_pool_t pool1;
 
     static void init_roots_pool();
+    static void init_roots_pool(size_t lgm);
+    static void reset_roots_pool(size_t lgm);
     static void release_roots_pool();
 
     static bool suitable(const number_t&);
@@ -74,6 +76,8 @@ struct NTT
     size_t cap;
 
     NTT();
+
+    NTT(const NTT&);
 
    ~NTT();
 

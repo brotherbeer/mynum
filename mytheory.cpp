@@ -754,6 +754,7 @@ const dunit_t NTT::RN[] = {
 
 typedef unsigned short hunit_t;
 const unit_t HUNITBASE = 65536;
+const hunit_t HUNITMAX = 65535;
 
 #elif UNITBITS == 16
 
@@ -789,6 +790,7 @@ const dunit_t NTT::RN[] = {
 
 typedef byte_t hunit_t;
 const unit_t HUNITBASE = 256;
+const hunit_t HUNITMAX = 255;
 
 #endif
 
@@ -828,24 +830,19 @@ static const byte_t __bit_rev_table[] =
     0x1F, 0x9F, 0x5F, 0xDF, 0x3F, 0xBF, 0x7F, 0xFF,
 };
 
-static __force_inline(size_t) __log2(slen_t x);
+static __force_inline(dunit_t) __log2(dunit_t x);
 static __force_inline(dunit_t) __add_mod_P(dunit_t x, dunit_t y);
 static __force_inline(dunit_t) __mul_mod_P(dunit_t x, dunit_t y);
 
-void NTT::roots_pool_t::init(const dunit_t roots[])
+void NTT::roots_pool_t::init(const dunit_t roots[], size_t lgm)
 {
-#if UNITBITS == 16
-    lgmax = 16;
-#elif UNITBITS == 32
-    lgmax = 21;
-#endif
-
     size_t s = 1, i = 0;
-    size_t poolsize = (size_t(1) << lgmax) - 1;
+    size_t size = s << lgm;
     dunit_t *p, *e, w, x;
 
-    pool = (dunit_t*)mem::allocate(poolsize, sizeof(dunit_t));
-    if (pool) while (s < poolsize + 1)
+    lgmax = lgm;
+    pool = (dunit_t*)mem::allocate(size, sizeof(dunit_t));
+    while (s < size)
     {
         x = 1;
         w = roots[i++];
@@ -876,8 +873,36 @@ NTT::roots_pool_t NTT::pool1;
 
 void NTT::init_roots_pool()
 {
-    pool0.init(W);
-    pool1.init(RW);
+#if UNITBITS == 16
+    pool0.init(W, 16);
+    pool1.init(RW, 16);
+#elif UNITBITS == 32
+    pool0.init(W, 21);
+    pool1.init(RW, 21);
+#endif
+}
+
+void NTT::init_roots_pool(size_t lgm)
+{
+#if UNITBITS == 16
+    if (lgm > 16)
+    {
+        lgm = 16;
+    }
+#elif UNITBITS == 32
+    if (lgm > 25)
+    {
+        lgm = 25;
+    }
+#endif
+    pool0.init(W, lgm);
+    pool1.init(RW, lgm);
+}
+
+void NTT::reset_roots_pool(size_t lgm)
+{
+    release_roots_pool();
+    init_roots_pool(lgm);
 }
 
 void NTT::release_roots_pool()
@@ -888,11 +913,18 @@ void NTT::release_roots_pool()
 
 bool NTT::suitable(const number_t& a)
 {
-    return false;
+    dunit_t M = P / HUNITMAX / HUNITMAX;
+    return a.unit_count() <= dunit_t(1) << (__log2(M) - 1);
 }
 
 NTT::NTT(): dat(NULL), n(0), lgn(0), cap(0)
 {}
+
+NTT::NTT(const NTT& another): n(another.n), lgn(another.lgn), cap(another.cap)
+{
+    dat = (dunit_t*)mem::allocate(cap, sizeof(dunit_t));
+    memmove(dat, another.dat, n * sizeof(dunit_t));
+}
 
 NTT::~NTT()
 {
@@ -1345,11 +1377,11 @@ typedef __uint128_t __qunit_t;
 
 #endif
 
-size_t __log2(slen_t x)
+dunit_t __log2(dunit_t x)
 {
-    assert(x > 0);
+    assert(x != 0);
 
-    return 32 - __builtin_clz((unsigned int)x) - 1;
+    return 32 - __builtin_clzl((unsigned long)x) - 1;
 }
 
 dunit_t __mul_mod_P(dunit_t x, dunit_t y)
@@ -1385,9 +1417,9 @@ dunit_t __add_mod_P(dunit_t x, dunit_t y)
 
 #if UNITBITS == 16
 
-size_t __log2(slen_t x)
+dunit_t __log2(dunit_t x)
 {
-    assert(x > 0);
+    assert(x != 0);
 
     unsigned long b;
     _BitScanReverse(&b, x);
@@ -1435,9 +1467,9 @@ dunit_t __add_mod_P(dunit_t x, dunit_t y)
 
 #elif UNITBITS == 32
 
-size_t __log2(slen_t x)
+dunit_t __log2(dunit_t x)
 {
-    assert(x > 0);
+    assert(x != 0);
 
     unsigned long b;
     _BitScanReverse64(&b, x);

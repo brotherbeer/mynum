@@ -1,6 +1,6 @@
 ![logo](https://github.com/brotherbeer/mydocument/blob/master/mynum/mynum-logo.png?raw=true)
 
-Mynum is a portable library for big integer arithmetic, it aims to provide convenience for the research of number theory, cryptology and other fields. [\[中文版\]](https://github.com/brotherbeer/mydocument/blob/master/mynum/README-ch.md)
+Multiprecision binary number — mynum is a portable library for big integer arithmetic, it aims to provide convenience for the research of number theory, cryptology and other fields. [\[中文版\]](https://github.com/brotherbeer/mydocument/blob/master/mynum/README-ch.md)
 
 Mynum is currently only available on the LITTLE-ENDIAN machines.
 
@@ -25,18 +25,17 @@ Documents:
  * [Other-utils](https://github.com/brotherbeer/mydocument/blob/master/mynum/Other-utils.md)
 
 The efficiency of mynum is not inferior to GMP and other well-known library too much, but the interfaces are much simpler.
-Compared to the built-in big integer libaraies of java, python, etc., mynum is even more efficient.
+Compared to the built-in big integer libaraies of java, python, etc., in some ways, mynum is even more efficient.
 
 No restrictions on the dissemination and modification of the source code. The author hopes mynum will be useful, but dose not make any warranty.
-
-If you have any questions, please contact <brotherbeer@163.com>
 
 [mynumheaderfile]: https://github.com/brotherbeer/mynum/blob/master/mynum.h
 [mynumcppfile]: https://github.com/brotherbeer/mynum/blob/master/mynum.cpp
 [myoperatorheaderfile]: https://github.com/brotherbeer/mynum/blob/master/operators.h
 [testcppfile]: https://github.com/brotherbeer/mynum/blob/master/test.cpp
 
-##Installation
+**Installation**
+
 [mynum.h][mynumheaderfile] and [mynum.cpp][mynumcppfile] are the essential files mynum required, and other files are the expansion of the core functions.
 
 Include [mynum.h][mynumheaderfile] and [mynum.cpp][mynumcppfile] into your project, and `#include "mynum.h"` in whichever file you need big integer arithmetic, and the namespace is `mynum`.
@@ -47,8 +46,9 @@ Include [mynum.h][mynumheaderfile] and [mynum.cpp][mynumcppfile] into your proje
 
 The source code is currently applicable to g++, MSVC(2008 and above versions), clang. see [\[the compilation\]](https://github.com/brotherbeer/mydocument/blob/master/mynum/compilation.md)
 
-##Communication
- * If you **need help**, my email is <brotherbeer@163.com>
+**Communication**
+
+ * If you **need help**, the author's email is <brotherbeer@163.com>
  * If you **found a bug**, *and can provide steps to reliably reproduce it*, open an issue.
  * If you **have a feature request**, open an issue.
  * If you **want to contribute**, submit a pull request.

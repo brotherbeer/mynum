@@ -1,39 +1,38 @@
-import sys, os, argparse
+import sys, os, time, argparse
+from gmpy2 import is_prime, next_prime, mpz
 from random import *
-from datgen import randNumStr, notSameSign
+from datgen import randNumStr
 
 USAGE = '''
 %s [-h] [-d MAX_DIGITS_COUNT] [-i ITEMS_COUNT]
 
-This is a tool for generating multiplication test data.
+This is a tool for generating prime test data.
 The test data is composed of lines, each line is
-made up of 2 factors and their product.
+made up of an integer and a '0' or '1' which indicates
+whether the integer is a prime.
 for example:
 
-92f b2ae0 668ebf20
+4de1 1
+4de2 0
 
-'92f' is the first factor, 'b2ae0' is the second factor,
-'668ebf20' is the product. All the integers are in base 16.\n
+All the integers are in base 16.\n
 ''' % os.path.basename(sys.argv[0])
 
 def genTestData(args):
    for i in range(args.items_count):
         if (i + 1) % 500000 == 0:
             print >> sys.stderr, i, 'items generated'
-
-        a = randNumStr(args.max_digits_count, 16, True)
-        b = randNumStr(args.max_digits_count, 16, True)
-        va = int(a, 16)
-        vb = int(b, 16)
-        if randint(0, 50) == 1:
-            b = a
-            vb = va
-        p = va * vb
-        print '%s %s %x' % (a, b, p)
+        x = randNumStr(args.max_digits_count, 16)
+        a = mpz(int(x, 16))
+        a = next_prime(a)
+        if not randint(0, 4):
+            a += 2
+        b = is_prime(a)
+        print '%x %x' % (int(a), b)
 
 def parseArgs():
     parser = argparse.ArgumentParser(usage = USAGE)
-    parser.add_argument('-d', '--max-digits-count', type = int, help='The max digits of each integer', default = 500)
+    parser.add_argument('-d', '--max-digits-count', type = int, help = 'The max digits of each integer', default = 64)
     parser.add_argument('-i', '--items-count', type = int, help = 'How many items should be generated', default = 32)
     args = parser.parse_args()
     if args.max_digits_count == 0:

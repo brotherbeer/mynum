@@ -31,13 +31,14 @@ def genTestData(args):
         if (i + 1) % 500000 == 0:
             print >> sys.stderr, i, 'items generated'
 
-        a, b0 = randNumStr(args.max_digits_count, 16)
-        b, b1 = randNumStr(args.max_digits_count, 16)
-        va = int(a, b0)
-        vb = int(b, b1)
-        if not vb: continue
+        a = randNumStr(args.max_digits_count, 16, True)
+        b = randNumStr(args.max_digits_count, 16, True)
+        va = int(a, 16)
+        vb = int(b, 16)
+        if not vb:
+            vb = 1
         q, r = mydivmod(va, vb)
-        print '%s %s %x %x' % (a, b, q, r)
+        print '%x %x %x %x' % (va, vb, q, r)
 
 def parseArgs():
     parser = argparse.ArgumentParser(usage = USAGE)

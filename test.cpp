@@ -1,24 +1,33 @@
-#include "mynum.h"
-#include "myoperators.h"
 #include <ctime>
 #include <cstdlib>
 #include <iomanip>
 #include <sstream>
 #include <cmath>
+#include <map>
+#include <fstream>
 #include <cassert>
+#include "myoperators.h"
+#include "mytheory.h"
 
-
-#ifdef __GNUC__
-#pragma GCC diagnostic ignored "-Wunknown-pragmas"
-#pragma GCC diagnostic ignored "-Wsign-compare"
-#pragma GCC diagnostic ignored "-Wconversion-null"
-#pragma GCC diagnostic ignored "-Wunused-variable"
-#pragma GCC diagnostic ignored "-Wunused-but-set-variable"
-#endif
 
 using namespace mynum;
 
+// some big primes
+const number_t P0("45911199988959465183765912664616310275170336168741130658429954235029908138159");
+const number_t P1("508190217928689643391431714479630954760588436314498312387");
+const number_t P2("31014988937155224150507473922242319516571301238077219986238457411462445796248223968880796017062334043955589096371253");
+const number_t P3("8383555565944093718593764739391348007500133036883716486541747654183165780298639280109467165637722729505821991519140806588490972868342490983723572462953557");
+const number_t P4("12176636605415159766183139392179042866360930144701428894112485055697496902343");
+const number_t P5("447244349315675241584289123648301582947729383084658295377308841751961879127566706835744292360131");
+const number_t P6("79824420962299636329402026765963393147");
+const number_t P7("65483798648195834568457280759866283769638818002805615004721489355954670347813");
+const number_t P8("12697125487235487234542523908753461770189653496751023887959238045623489523489719");
+
+// test cases
 void test_construct();
+void test_construct_from_ordinary();
+void test_release();
+void test_reserve();
 void test_assign();
 void test_copy();
 void test_string_conversion();
@@ -38,6 +47,7 @@ void test_and();
 void test_or();
 void test_xor();
 void test_not();
+void test_bit_remove();
 void test_shl();
 void test_shr();
 void test_pow();
@@ -50,8 +60,10 @@ void test_string_assignment();
 void test_string_reserve();
 void test_string_insert();
 void test_string_remove();
+void test_string_reverse();
 void test_string_strip();
 void test_string_find();
+void test_string_replace();
 void test_string_load();
 void test_string_dump();
 void test_string();
@@ -65,12 +77,19 @@ void test_or_small();
 void test_xor_small();
 void test_basic_type_conversion();
 void test_prime();
+void test_rand();
+void test_gcd();
+void test_inv();
+void test_rsa();
+void test_jacobi();
+void test_lcm();
 
 void test_detail()
 {
-    srand((unsigned int)time(NULL));
-
     test_construct();
+    test_construct_from_ordinary();
+    test_release();
+    test_reserve();
     test_assign();
     test_copy();
     test_string_conversion();
@@ -80,6 +99,7 @@ void test_detail()
     test_cmp();
     test_property();
     test_swap();
+    test_operators();
     test_string();
     test_add();
     test_sub();
@@ -95,6 +115,7 @@ void test_detail()
     test_or();
     test_xor();
     test_not();
+    test_bit_remove();
     test_shl();
     test_shr();
     test_bits();
@@ -108,6 +129,12 @@ void test_detail()
     test_xor_small();
     test_basic_type_conversion();
     test_prime();
+    test_rand();
+    test_gcd();
+    test_inv();
+    test_rsa();
+    test_jacobi();
+    test_lcm();
 }
 
 int main(int argc, char* argv[])
@@ -152,88 +179,67 @@ int main(int argc, char* argv[])
 
 typedef number_t NN;
 
-bool chance(int n);
-void random(NN& a);
-void create_big(NN& x, int size);
-
 void test_construct()
 {
     {
-        NN a(NULL), b, c, d(0);
-        assert(eq(a, b));
-        assert(eq(c, d));
-        assert(eq(a, c));
-        assert(eq(a, d));
-        NN e(""), f("0"), g("-0"), h("-0", 16);
-        assert(eq(e, f));
-        assert(eq(a, e));
-        assert(eq(b, e));
-        assert(eq(b, h));
-        a = b; assert(eq(a, b));
-        c = e; assert(eq(c, e));
-        e = f; assert(eq(e, f));
+        NN a; assert(a == 0); assert(a.is_zero());
+    }
+    for (int x = min_base(); x <= max_base(); x++)
+    {
+        NN a("", x); assert(a == 0);
+        NN b(NULL, x); assert(b == 0);
+        NN c((char*)NULL, x); assert(c == 0);
+        NN d("0", x); assert(d == 0);
+        NN e("-0", x); assert(e == 0);
+        NN f("0000", x); assert(f == 0);
+        NN g("-0000", x); assert(g == 0);
+        NN h("00000", x); assert(h == 0);
+        NN i("-00000", x); assert(i == 0);
+        NN j("00000000000000", x); assert(j == 0);
+        NN k("-00000000000000", x); assert(k == 0);
+        NN l("-", x); assert(l == 0);
+        NN m("1", x); assert(m == 1);
+        NN n("-1", x); assert(n == -1);
     }{
-        NN a("123456789123456789123456789");
-        NN b(123456789);
-        NN c((long)12);
-        NN d((long long)12);
-        assert(neq(a, b));
-        assert(a(10) == "123456789123456789123456789");
-        assert(b.to_string() == "123456789");
-        assert(c.to_string() == "12");
-        assert(d.to_string() == "12");
-    }{
-        NN a("123456789"), b(123456789); assert(eq(a, b));
-    }{
-        NN a("10ff0023457ABCD", 16), b("76543610947349453"); assert(eq(a, b));
-        NN c("-10ff0023457ABCD", 16), d("-76543610947349453"); assert(eq(c, d));
-    }{
-        NN a("", 16);         assert(a.is_zero());
-        NN b(NULL, 16);       assert(b.is_zero());
-        NN c((char*)NULL, 8); assert(c.is_zero());
-        NN d("");             assert(d.is_zero());
-        NN e((char*)NULL);    assert(e.is_zero());
-        NN f("0", 10);        assert(f.is_zero());
-        NN g("0000", 16);     assert(g.is_zero());
-        NN h("00000", 13);    assert(h.is_zero());
-        NN i("00000000", 16); assert(i.is_zero());
-        NN j("00000000000000", 19); assert(j.is_zero());
-    }{
-        NN a("a", 16);         assert(eq(a, 0xa));
-        NN b("ab", 16);        assert(eq(b, 0xab));
-        NN c("abc", 16);       assert(eq(c, 0xabc));
-        NN d("abcd", 16);      assert(eq(d, 0xabcd));
-        NN e("abcde", 16);     assert(eq(e, 0xabcde));
-        NN f("abcdef", 16);    assert(eq(f, 0xabcdef));
-        NN g("abcdef1", 16);   assert(eq(g, 0xabcdef1));
-        NN h("abcdef12", 16);  assert(eq(h, 0xabcdef12));
-    }{
-        NN a("0", 2), b("1", 2), c("11", 2), d("111", 2);
-        assert(eq(a, 0));
-        assert(eq(b, 1));
-        assert(eq(c, 3));
-        assert(eq(d, 7));
+        NN a("11", 2), b("111", 2), c("1111", 2), d("11111111", 2);
+        assert(a == 3); assert(b == 7);
+        assert(c == 15); assert(d == 255);
         NN e("100010101011011011010010111111111001000101010001110101101011001111010100011111001001101", 2);
-        assert(eq(e, NN("83847563019273457210375757")));
-        NN f("00100010101011011011010010111111111001000101010001110101101011001111010100011111001001101", 2);
-        assert(eq(f, NN("83847563019273457210375757")));
-        NN g("11111111111111111111111111111111", 2);
-        assert(eq(g, 0xffffffff));
-        NN h("1111111111111111", 2);
-        assert(eq(h, 0xffff));
+        assert(e == NN("83847563019273457210375757"));
+        NN f("-00100010101011011011010010111111111001000101010001110101101011001111010100011111001001101", 2);
+        assert(f == NN("-83847563019273457210375757"));
+        NN g("1111111111111111", 2); assert(g == 0xffff);
+        NN h("11111111111111111111111111111111", 2); assert(h == 0xffffffff);
+        NN i("111111111111111111111111111111111", 2); assert(i == 0x1ffffffffULL);
     }{
-        NN a("0", 8), b("1", 8), c("8", 10);
-        assert(a.to_oct_string() == "0");
-        assert(b.to_oct_string() == "1");
-        assert(c.to_oct_string() == "10");
-        NN e("1243214567654322345667625253635315253647434553212212344", 8);
-        assert(eq(e, NN("7710276014938769938930450760400327405668642919652")));
+        NN a("177777", 8), b("200000", 8);
+        assert(a == 65535 && b == 65536);
+        NN c("37777777777", 8), d("40000000000", 8);
+        assert(c == 4294967295 && d == 4294967296ULL);
+        NN e("-1243214567654322345667625253635315253647434553212212344", 8);
+        assert(e == NN("-7710276014938769938930450760400327405668642919652"));
+        NN f("00000001243214567654322345667625253635315253647434553212212344", 8);
+        assert(f == NN("7710276014938769938930450760400327405668642919652"));
     }{
-        NN a("ffffabcdabcdeeee", 16), b(0xffffabcdabcdeeeeULL);
-        assert(eq(a, b));
+        NN a("65535"), b("65536");
+        assert(a == 65535 && b == 65536);
+        NN c("4294967295"), d("4294967296");
+        assert(c == 4294967295 && d == 4294967296ULL);
+        NN e("980824040763720778904650379609290356107233831885", 10);
+        assert(e == NN("abcdabcdabcdabcdabcdabcdabcdabcdabcdabcd", 16));
+        NN f("-0980824040763720778904650379609290356107233831885", 10);
+        assert(f == NN("-abcdabcdabcdabcdabcdabcdabcdabcdabcdabcd", 16));
     }{
-        NN a("1234567890"); a.release(); assert(a.is_zero());
-        NN b; b.release(); assert(b.is_zero());
+        NN a("a", 16); assert(a == 0xa);
+        NN b("-ab", 16); assert(b == -0xab);
+        NN c("abc", 16); assert(c == 0xabc);
+        NN d("-abcd", 16); assert(d == -0xabcd);
+        NN e("abcde", 16); assert(e == 0xabcde);
+        NN f("-abcdef", 16); assert(f == -0xabcdef);
+        NN g("abcdef1", 16); assert(g == 0xabcdef1);
+        NN h("-abcdef12", 16); assert(h == -0xabcdef12LL);
+        NN i("abcdef123", 16); assert(i == 0xabcdef123LL);
+        NN j("ffffabcdabcdeeee", 16); assert(j == 0xffffabcdabcdeeeeULL);
     }{
         NN a("2132314432123432323234", 5);  assert(eq(a, NN("1116483718636069")));
         NN b("2132314432123432323234", 6);  assert(eq(b, NN("49617098196310822")));
@@ -246,14 +252,15 @@ void test_construct()
         assert(eq(h, NN("41344028102870176563305997529441614984333017185992689784270345138316739022495793606262711909389364726981774832025688250243376430885399855868948295890581")));
         NN i("xxxxxxxx4j6473829202108172636454fgh64i74373823893293094058574c65251a4153648596069587473463535465757", 35);
         assert(eq(i, NN("707573262359867469722108287531813156522232983532435655888961385815574840755970285498631371438854997683935219937026688181345809812572009834620486153142507")));
-        NN j("xxxxxxxx4j6473829202108172636454fgh64i74373823893293094058574c65251a4153648596069587473463535465757", 36);
-        assert(eq(j, NN("11178755861740141374843999603430165213965899583171658065043666848036688188574509754493515917379914805991183712992559640751067510545467802062207656437684587")));
+        NN j("-xxxxxxxx4j6473829202108172636454fgh64i74373823893293094058574c65251a4153648596069587473463535465757", 36);
+        assert(eq(j, NN("-11178755861740141374843999603430165213965899583171658065043666848036688188574509754493515917379914805991183712992559640751067510545467802062207656437684587")));
     }{
-        NN a("", 2), b("", 16), c("8812", 2), d("9999", 8), e("abcd", 10), f("xyz", 16), g("123\xff\xf0\xe0\x00\xab", 2), h("578298234\xff\xf0\xe0\x00\xab", 8), i("\xffxxx\xf0\xe0\x00\xab", 10), j("qqqqqqq\xff\xf0\xe0\x00\xab", 16);
-        NN k("\x0\x1\x2\x3\x4\x5\x6\x7\x8\x9\xa\xb\xc\xd\xe\xf\x10\x11\x12\x13\x14\x15\x16\x17\x18\x19\x1a\x1b\x1c\x1d\x1e\x1f\x20\x21\x22\x23\x24\x25\x26\x27\x28\x29\x2a\x2b\x2c\x2d\x2e\x2f\x30\x31\x32\x33\x34\x35\x36\x37\x38\x39\x3a\x3b\x3c\x3d\x3e\x3f\x40\x41\x42\x43\x44\x45\x46\x47\x48\x49\x4a\x4b\x4c\x4d\x4e\x4f\x50\x51\x52\x53\x54\x55\x56\x57\x58\x59\x5a\x5b\x5c\x5d\x5e\x5f\x60\x61\x62\x63\x64\x65\x66\x67\x68\x69\x6a\x6b\x6c\x6d\x6e\x6f\x70\x71\x72\x73\x74\x75\x76\x77\x78\x79\x7a\x7b\x7c\x7d\x7e\x7f\x80\x81\x82\x83\x84\x85\x86\x87\x88\x89\x8a\x8b\x8c\x8d\x8e\x8f\x90\x91\x92\x93\x94\x95\x96\x97\x98\x99\x9a\x9b\x9c\x9d\x9e\x9f\xa0\xa1\xa2\xa3\xa4\xa5\xa6\xa7\xa8\xa9\xaa\xab\xac\xad\xae\xaf\xb0\xb1\xb2\xb3\xb4\xb5\xb6\xb7\xb8\xb9\xba\xbb\xbc\xbd\xbe\xbf\xc0\xc1\xc2\xc3\xc4\xc5\xc6\xc7\xc8\xc9\xca\xcb\xcc\xcd\xce\xcf\xd0\xd1\xd2\xd3\xd4\xd5\xd6\xd7\xd8\xd9\xda\xdb\xdc\xdd\xde\xdf\xe0\xe1\xe2\xe3\xe4\xe5\xe6\xe7\xe8\xe9\xea\xeb\xec\xed\xee\xef\xf0\xf1\xf2\xf3\xf4\xf5\xf6\xf7\xf8\xf9\xfa\xfb\xfc\xfd\xfe\xff", 256, 2);
-        NN l("\x0\x1\x2\x3\x4\x5\x6\x7\x8\x9\xa\xb\xc\xd\xe\xf\x10\x11\x12\x13\x14\x15\x16\x17\x18\x19\x1a\x1b\x1c\x1d\x1e\x1f\x20\x21\x22\x23\x24\x25\x26\x27\x28\x29\x2a\x2b\x2c\x2d\x2e\x2f\x30\x31\x32\x33\x34\x35\x36\x37\x38\x39\x3a\x3b\x3c\x3d\x3e\x3f\x40\x41\x42\x43\x44\x45\x46\x47\x48\x49\x4a\x4b\x4c\x4d\x4e\x4f\x50\x51\x52\x53\x54\x55\x56\x57\x58\x59\x5a\x5b\x5c\x5d\x5e\x5f\x60\x61\x62\x63\x64\x65\x66\x67\x68\x69\x6a\x6b\x6c\x6d\x6e\x6f\x70\x71\x72\x73\x74\x75\x76\x77\x78\x79\x7a\x7b\x7c\x7d\x7e\x7f\x80\x81\x82\x83\x84\x85\x86\x87\x88\x89\x8a\x8b\x8c\x8d\x8e\x8f\x90\x91\x92\x93\x94\x95\x96\x97\x98\x99\x9a\x9b\x9c\x9d\x9e\x9f\xa0\xa1\xa2\xa3\xa4\xa5\xa6\xa7\xa8\xa9\xaa\xab\xac\xad\xae\xaf\xb0\xb1\xb2\xb3\xb4\xb5\xb6\xb7\xb8\xb9\xba\xbb\xbc\xbd\xbe\xbf\xc0\xc1\xc2\xc3\xc4\xc5\xc6\xc7\xc8\xc9\xca\xcb\xcc\xcd\xce\xcf\xd0\xd1\xd2\xd3\xd4\xd5\xd6\xd7\xd8\xd9\xda\xdb\xdc\xdd\xde\xdf\xe0\xe1\xe2\xe3\xe4\xe5\xe6\xe7\xe8\xe9\xea\xeb\xec\xed\xee\xef\xf0\xf1\xf2\xf3\xf4\xf5\xf6\xf7\xf8\xf9\xfa\xfb\xfc\xfd\xfe\xff", 256, 8);
-        NN m("\x0\x1\x2\x3\x4\x5\x6\x7\x8\x9\xa\xb\xc\xd\xe\xf\x10\x11\x12\x13\x14\x15\x16\x17\x18\x19\x1a\x1b\x1c\x1d\x1e\x1f\x20\x21\x22\x23\x24\x25\x26\x27\x28\x29\x2a\x2b\x2c\x2d\x2e\x2f\x30\x31\x32\x33\x34\x35\x36\x37\x38\x39\x3a\x3b\x3c\x3d\x3e\x3f\x40\x41\x42\x43\x44\x45\x46\x47\x48\x49\x4a\x4b\x4c\x4d\x4e\x4f\x50\x51\x52\x53\x54\x55\x56\x57\x58\x59\x5a\x5b\x5c\x5d\x5e\x5f\x60\x61\x62\x63\x64\x65\x66\x67\x68\x69\x6a\x6b\x6c\x6d\x6e\x6f\x70\x71\x72\x73\x74\x75\x76\x77\x78\x79\x7a\x7b\x7c\x7d\x7e\x7f\x80\x81\x82\x83\x84\x85\x86\x87\x88\x89\x8a\x8b\x8c\x8d\x8e\x8f\x90\x91\x92\x93\x94\x95\x96\x97\x98\x99\x9a\x9b\x9c\x9d\x9e\x9f\xa0\xa1\xa2\xa3\xa4\xa5\xa6\xa7\xa8\xa9\xaa\xab\xac\xad\xae\xaf\xb0\xb1\xb2\xb3\xb4\xb5\xb6\xb7\xb8\xb9\xba\xbb\xbc\xbd\xbe\xbf\xc0\xc1\xc2\xc3\xc4\xc5\xc6\xc7\xc8\xc9\xca\xcb\xcc\xcd\xce\xcf\xd0\xd1\xd2\xd3\xd4\xd5\xd6\xd7\xd8\xd9\xda\xdb\xdc\xdd\xde\xdf\xe0\xe1\xe2\xe3\xe4\xe5\xe6\xe7\xe8\xe9\xea\xeb\xec\xed\xee\xef\xf0\xf1\xf2\xf3\xf4\xf5\xf6\xf7\xf8\xf9\xfa\xfb\xfc\xfd\xfe\xff", 256, 10);
-        NN n("\x0\x1\x2\x3\x4\x5\x6\x7\x8\x9\xa\xb\xc\xd\xe\xf\x10\x11\x12\x13\x14\x15\x16\x17\x18\x19\x1a\x1b\x1c\x1d\x1e\x1f\x20\x21\x22\x23\x24\x25\x26\x27\x28\x29\x2a\x2b\x2c\x2d\x2e\x2f\x30\x31\x32\x33\x34\x35\x36\x37\x38\x39\x3a\x3b\x3c\x3d\x3e\x3f\x40\x41\x42\x43\x44\x45\x46\x47\x48\x49\x4a\x4b\x4c\x4d\x4e\x4f\x50\x51\x52\x53\x54\x55\x56\x57\x58\x59\x5a\x5b\x5c\x5d\x5e\x5f\x60\x61\x62\x63\x64\x65\x66\x67\x68\x69\x6a\x6b\x6c\x6d\x6e\x6f\x70\x71\x72\x73\x74\x75\x76\x77\x78\x79\x7a\x7b\x7c\x7d\x7e\x7f\x80\x81\x82\x83\x84\x85\x86\x87\x88\x89\x8a\x8b\x8c\x8d\x8e\x8f\x90\x91\x92\x93\x94\x95\x96\x97\x98\x99\x9a\x9b\x9c\x9d\x9e\x9f\xa0\xa1\xa2\xa3\xa4\xa5\xa6\xa7\xa8\xa9\xaa\xab\xac\xad\xae\xaf\xb0\xb1\xb2\xb3\xb4\xb5\xb6\xb7\xb8\xb9\xba\xbb\xbc\xbd\xbe\xbf\xc0\xc1\xc2\xc3\xc4\xc5\xc6\xc7\xc8\xc9\xca\xcb\xcc\xcd\xce\xcf\xd0\xd1\xd2\xd3\xd4\xd5\xd6\xd7\xd8\xd9\xda\xdb\xdc\xdd\xde\xdf\xe0\xe1\xe2\xe3\xe4\xe5\xe6\xe7\xe8\xe9\xea\xeb\xec\xed\xee\xef\xf0\xf1\xf2\xf3\xf4\xf5\xf6\xf7\xf8\xf9\xfa\xfb\xfc\xfd\xfe\xff", 256, 16);
+        // wrong strings, donot crash
+        NN c("8812", 2), d("9999", 8), e("abcd", 10), f("xyz", 16), g("123\xff\xf0\xe0\x00\xab", 2), h("578298234\xff\xf0\xe0\x00\xab", 8), i("\xffxxx\xf0\xe0\x00\xab", 10), j("qqqqqqq\xff\xf0\xe0\x00\xab", 16);
+        NN k("\x1\x2\x3\x4\x5\x6\x7\x8\x9\xa\xb\xc\xd\xe\xf\x10\x11\x12\x13\x14\x15\x16\x17\x18\x19\x1a\x1b\x1c\x1d\x1e\x1f\x20\x21\x22\x23\x24\x25\x26\x27\x28\x29\x2a\x2b\x2c\x2d\x2e\x2f\x30\x31\x32\x33\x34\x35\x36\x37\x38\x39\x3a\x3b\x3c\x3d\x3e\x3f\x40\x41\x42\x43\x44\x45\x46\x47\x48\x49\x4a\x4b\x4c\x4d\x4e\x4f\x50\x51\x52\x53\x54\x55\x56\x57\x58\x59\x5a\x5b\x5c\x5d\x5e\x5f\x60\x61\x62\x63\x64\x65\x66\x67\x68\x69\x6a\x6b\x6c\x6d\x6e\x6f\x70\x71\x72\x73\x74\x75\x76\x77\x78\x79\x7a\x7b\x7c\x7d\x7e\x7f\x80\x81\x82\x83\x84\x85\x86\x87\x88\x89\x8a\x8b\x8c\x8d\x8e\x8f\x90\x91\x92\x93\x94\x95\x96\x97\x98\x99\x9a\x9b\x9c\x9d\x9e\x9f\xa0\xa1\xa2\xa3\xa4\xa5\xa6\xa7\xa8\xa9\xaa\xab\xac\xad\xae\xaf\xb0\xb1\xb2\xb3\xb4\xb5\xb6\xb7\xb8\xb9\xba\xbb\xbc\xbd\xbe\xbf\xc0\xc1\xc2\xc3\xc4\xc5\xc6\xc7\xc8\xc9\xca\xcb\xcc\xcd\xce\xcf\xd0\xd1\xd2\xd3\xd4\xd5\xd6\xd7\xd8\xd9\xda\xdb\xdc\xdd\xde\xdf\xe0\xe1\xe2\xe3\xe4\xe5\xe6\xe7\xe8\xe9\xea\xeb\xec\xed\xee\xef\xf0\xf1\xf2\xf3\xf4\xf5\xf6\xf7\xf8\xf9\xfa\xfb\xfc\xfd\xfe\xff\x0", 256, 2);
+        NN l("\x1\x2\x3\x4\x5\x6\x7\x8\x9\xa\xb\xc\xd\xe\xf\x10\x11\x12\x13\x14\x15\x16\x17\x18\x19\x1a\x1b\x1c\x1d\x1e\x1f\x20\x21\x22\x23\x24\x25\x26\x27\x28\x29\x2a\x2b\x2c\x2d\x2e\x2f\x30\x31\x32\x33\x34\x35\x36\x37\x38\x39\x3a\x3b\x3c\x3d\x3e\x3f\x40\x41\x42\x43\x44\x45\x46\x47\x48\x49\x4a\x4b\x4c\x4d\x4e\x4f\x50\x51\x52\x53\x54\x55\x56\x57\x58\x59\x5a\x5b\x5c\x5d\x5e\x5f\x60\x61\x62\x63\x64\x65\x66\x67\x68\x69\x6a\x6b\x6c\x6d\x6e\x6f\x70\x71\x72\x73\x74\x75\x76\x77\x78\x79\x7a\x7b\x7c\x7d\x7e\x7f\x80\x81\x82\x83\x84\x85\x86\x87\x88\x89\x8a\x8b\x8c\x8d\x8e\x8f\x90\x91\x92\x93\x94\x95\x96\x97\x98\x99\x9a\x9b\x9c\x9d\x9e\x9f\xa0\xa1\xa2\xa3\xa4\xa5\xa6\xa7\xa8\xa9\xaa\xab\xac\xad\xae\xaf\xb0\xb1\xb2\xb3\xb4\xb5\xb6\xb7\xb8\xb9\xba\xbb\xbc\xbd\xbe\xbf\xc0\xc1\xc2\xc3\xc4\xc5\xc6\xc7\xc8\xc9\xca\xcb\xcc\xcd\xce\xcf\xd0\xd1\xd2\xd3\xd4\xd5\xd6\xd7\xd8\xd9\xda\xdb\xdc\xdd\xde\xdf\xe0\xe1\xe2\xe3\xe4\xe5\xe6\xe7\xe8\xe9\xea\xeb\xec\xed\xee\xef\xf0\xf1\xf2\xf3\xf4\xf5\xf6\xf7\xf8\xf9\xfa\xfb\xfc\xfd\xfe\xff\x0", 256, 8);
+        NN m("\x1\x2\x3\x4\x5\x6\x7\x8\x9\xa\xb\xc\xd\xe\xf\x10\x11\x12\x13\x14\x15\x16\x17\x18\x19\x1a\x1b\x1c\x1d\x1e\x1f\x20\x21\x22\x23\x24\x25\x26\x27\x28\x29\x2a\x2b\x2c\x2d\x2e\x2f\x30\x31\x32\x33\x34\x35\x36\x37\x38\x39\x3a\x3b\x3c\x3d\x3e\x3f\x40\x41\x42\x43\x44\x45\x46\x47\x48\x49\x4a\x4b\x4c\x4d\x4e\x4f\x50\x51\x52\x53\x54\x55\x56\x57\x58\x59\x5a\x5b\x5c\x5d\x5e\x5f\x60\x61\x62\x63\x64\x65\x66\x67\x68\x69\x6a\x6b\x6c\x6d\x6e\x6f\x70\x71\x72\x73\x74\x75\x76\x77\x78\x79\x7a\x7b\x7c\x7d\x7e\x7f\x80\x81\x82\x83\x84\x85\x86\x87\x88\x89\x8a\x8b\x8c\x8d\x8e\x8f\x90\x91\x92\x93\x94\x95\x96\x97\x98\x99\x9a\x9b\x9c\x9d\x9e\x9f\xa0\xa1\xa2\xa3\xa4\xa5\xa6\xa7\xa8\xa9\xaa\xab\xac\xad\xae\xaf\xb0\xb1\xb2\xb3\xb4\xb5\xb6\xb7\xb8\xb9\xba\xbb\xbc\xbd\xbe\xbf\xc0\xc1\xc2\xc3\xc4\xc5\xc6\xc7\xc8\xc9\xca\xcb\xcc\xcd\xce\xcf\xd0\xd1\xd2\xd3\xd4\xd5\xd6\xd7\xd8\xd9\xda\xdb\xdc\xdd\xde\xdf\xe0\xe1\xe2\xe3\xe4\xe5\xe6\xe7\xe8\xe9\xea\xeb\xec\xed\xee\xef\xf0\xf1\xf2\xf3\xf4\xf5\xf6\xf7\xf8\xf9\xfa\xfb\xfc\xfd\xfe\xff\x0", 256, 10);
+        NN n("\x1\x2\x3\x4\x5\x6\x7\x8\x9\xa\xb\xc\xd\xe\xf\x10\x11\x12\x13\x14\x15\x16\x17\x18\x19\x1a\x1b\x1c\x1d\x1e\x1f\x20\x21\x22\x23\x24\x25\x26\x27\x28\x29\x2a\x2b\x2c\x2d\x2e\x2f\x30\x31\x32\x33\x34\x35\x36\x37\x38\x39\x3a\x3b\x3c\x3d\x3e\x3f\x40\x41\x42\x43\x44\x45\x46\x47\x48\x49\x4a\x4b\x4c\x4d\x4e\x4f\x50\x51\x52\x53\x54\x55\x56\x57\x58\x59\x5a\x5b\x5c\x5d\x5e\x5f\x60\x61\x62\x63\x64\x65\x66\x67\x68\x69\x6a\x6b\x6c\x6d\x6e\x6f\x70\x71\x72\x73\x74\x75\x76\x77\x78\x79\x7a\x7b\x7c\x7d\x7e\x7f\x80\x81\x82\x83\x84\x85\x86\x87\x88\x89\x8a\x8b\x8c\x8d\x8e\x8f\x90\x91\x92\x93\x94\x95\x96\x97\x98\x99\x9a\x9b\x9c\x9d\x9e\x9f\xa0\xa1\xa2\xa3\xa4\xa5\xa6\xa7\xa8\xa9\xaa\xab\xac\xad\xae\xaf\xb0\xb1\xb2\xb3\xb4\xb5\xb6\xb7\xb8\xb9\xba\xbb\xbc\xbd\xbe\xbf\xc0\xc1\xc2\xc3\xc4\xc5\xc6\xc7\xc8\xc9\xca\xcb\xcc\xcd\xce\xcf\xd0\xd1\xd2\xd3\xd4\xd5\xd6\xd7\xd8\xd9\xda\xdb\xdc\xdd\xde\xdf\xe0\xe1\xe2\xe3\xe4\xe5\xe6\xe7\xe8\xe9\xea\xeb\xec\xed\xee\xef\xf0\xf1\xf2\xf3\xf4\xf5\xf6\xf7\xf8\xf9\xfa\xfb\xfc\xfd\xfe\xff\x0", 256, 16);
     }{
         string_t s1("123123"), s2;
         NN a(s1), b(s2), c(s1, 0, 0, 10), d(s1, s1.len, s1.len, 12);
@@ -276,12 +283,6 @@ void test_construct()
         s = "";
         NN k(s, 10), l(s, 12), m(s, 39);
         assert(k == 0); assert(l == 0); assert(m == 0);
-    }{
-        NN a("-", 2); assert(a == 0);
-        NN b("-", 16); assert(b == 0);
-        NN c("-", 10); assert(c == 0);
-        NN d("-", 11); assert(d == 0);
-        NN e("-", 36); assert(e == 0);
     }{
         NN a; load(a, "101 0110101010101111 1110101010101010 1010101010111111 1111000111000001", 2);
         NN b(a, 0, 1); assert(b == 1);
@@ -307,16 +308,84 @@ void test_construct()
     }
 }
 
+void test_construct_from_ordinary()
+{
+    {
+        NN a(int(0)), b(int(1)), c(int(-1)), d(int(65535)), e(int(-65535)), f(int(INT_MAX)), g(int(INT_MIN));
+        assert(a == int(0)); assert(b == int(1)); assert(c == int(-1)); assert(d == int(65535)); assert(e == int(-65535)); assert(f == int(INT_MAX)); assert(g == int(INT_MIN));
+        NN ua((unsigned int)0), ub((unsigned int)1), uc((unsigned int)65535), ud((unsigned int)65536), ue((unsigned int)UINT_MAX);
+        assert(ua == (unsigned int)0); assert(ub == (unsigned int)1); assert(uc == (unsigned int)65535); assert(ud == (unsigned int)65536); assert(ue == (unsigned int)UINT_MAX);
+    }{
+        NN a(long(0)), b(long(1)), c(long(-1)), d(long(65535)), e(long(-65535)), f(long(LONG_MAX)), g(long(LONG_MIN));
+        assert(a == long(0)); assert(b == long(1)); assert(c == long(-1)); assert(d == long(65535)); assert(e == long(-65535)); assert(f == long(LONG_MAX)); assert(g == long(LONG_MIN));
+        NN ua((unsigned long)0), ub((unsigned long)1), uc((unsigned long)65535), ud((unsigned long)65536), ue((unsigned long)ULONG_MAX);
+        assert(ua == (unsigned long)0); assert(ub == (unsigned long)1); assert(uc == (unsigned long)65535); assert(ud == (unsigned long)65536); assert(ue == (unsigned long)ULONG_MAX);
+    }{
+        NN a((long long)0), b((long long)1), c((long long)-1), d((long long)65535), e((long long)-65535), f((long long)LLONG_MAX), g((long long)LLONG_MIN);
+        assert(a == (long long)0); assert(b == (long long)1); assert(c == (long long)-1); assert(d == (long long)65535); assert(e == (long long)-65535); assert(f == (long long)LLONG_MAX); assert(g == (long long)LLONG_MIN);
+        NN ua((unsigned long long)0), ub((unsigned long long)1), uc((unsigned long long)65535), ud((unsigned long long)65536), ue((unsigned long long)ULLONG_MAX);
+        assert(ua == (unsigned long long)0); assert(ub == (unsigned long long)1); assert(uc == (unsigned long long)65535); assert(ud == (unsigned long long)65536); assert(ue == (unsigned long long)ULLONG_MAX);   
+    }
+}
+
+void test_release()
+{
+    {
+        NN a; a.release(); assert(a.is_zero());
+        NN b("1234567890"); b.release(); assert(b.is_zero()); b.release(); assert(b.is_zero());
+    }{
+        NN a, b("123123123123");
+        a.~number_t();
+        assert(a == 0);
+        b.~number_t();
+        assert(b == 0 && b.cap == 0);
+    }
+}
+
+void test_reserve()
+{
+    {
+        NN a;
+        a.bits_reserve(0); assert(a == 0); assert(a.cap == 0);
+        a.bits_reserve(1); assert(a == 0); assert(a.cap == 2);
+        a.bits_reserve(3); assert(a == 0); assert(a.cap == 2);
+        a.bits_reserve(16); assert(a == 0); assert(a.cap == 2);
+        a.bits_reserve(17); assert(a == 0); assert(a.cap == 2);
+        NN b;
+        b.bits_reserve(32); assert(b == 0); assert(b.cap == 2);
+        b.bits_reserve(33); assert(b == 0); assert(b.cap == (UNITBITS == 16? 4: 2));
+    }{
+        NN a;
+        a.reserve(0); assert(a.cap == 0);
+        a.reserve(1); assert(a.cap == 2);
+        a.reserve(2); assert(a.cap == 2);
+        a.reserve(3); assert(a.cap == 4);
+        a.reserve(4); assert(a.cap == 4);
+        a.reserve(9); assert(a.cap == 10);
+        a.reserve(10); assert(a.cap == 10);
+    }{
+        NN a("-12345678901234567890");
+        a.bits_reserve(1000);
+        assert(a(10) == "-12345678901234567890");
+        assert(a.cap == (UNITBITS == 16? 64: 32));
+        a.reserve(100);
+        assert(a.cap == 100);
+        assert(a(10) == "-12345678901234567890");
+        a.reserve(1000);
+        assert(a.cap == 1000);
+        assert(a(10) == "-12345678901234567890");
+        a.reserve(3);
+        assert(a.cap == 1000);
+        assert(a(10) == "-12345678901234567890");
+    }
+}
+
 void test_assign()
 {
     {
         NN a;
         a.bits_reserve(1000);
-#if UNITBITS == 16
-        assert(a.cap == 64);
-#elif UNITBITS == 32
-        assert(a.cap == 32);
-#endif
+        assert(a.cap == (UNITBITS == 16? 64: 32));
         a = char(123); assert(a(10) == "123");
         a = short(123); assert(a(10) == "123");
         a = int(123); assert(a(10) == "123");
@@ -351,15 +420,6 @@ void test_assign()
         NN b; b = 0xabcdffffU; assert(b(16) == "abcdffff");
         NN c; c = (unsigned short)(0xabcd); assert(c(16) == "abcd");
     }{
-        NN a("12345678901234567890");
-        a.bits_reserve(1000);
-        assert(a(10) == "12345678901234567890");
-#if UNITBITS == 16
-        assert(a.cap == 64);
-#elif UNITBITS == 32
-        assert(a.cap == 32);
-#endif
-    }{
         NN a(123), b(456), c, d(111), e;
         a.assign("11111111111010101101010", 2);  assert(a.to_string(2) == "11111111111010101101010");
         b.assign("12312343453465651556567", 8);  assert(b.to_string(8) == "12312343453465651556567");
@@ -390,8 +450,6 @@ void test_assign()
         a.assign("1234567890", 3, 10); assert(a == 123);
         a.assign((char*)NULL); assert(a == 0);
         a.assign("1234567890"); assert(a == 1234567890);
-        a.assign(NULL); assert(a == 0);
-        a.assign((char*)NULL); assert(a == 0);
     }{
         NN a(123), b;
         a.assign("123123", 0); assert(a == 0);
@@ -428,13 +486,23 @@ void test_assign()
         g.assign(s1, 100, s1.len, 12); assert(g == 0);
         h.assign(s1, 100, 1000, 12); assert(h == 0);
         i.assign(s1, 3, 1000, 12); assert(i == 171);
-    }{
-        NN a, b, c, d, e;
-        a.assign("-", 2); assert(a == 0);
-        b.assign("-", 16); assert(b == 0);
-        c.assign("-", 10); assert(c == 0);
-        d.assign("-", 11); assert(d == 0);
-        e.assign("-", 36); assert(e == 0);
+    }
+    for (NN a, x = min_base(); x <= max_base(); x++)
+    {
+        a.assign("", x); assert(a == 0);
+        a.assign(NULL, x); assert(a == 0);
+        a.assign((char*)NULL, x); assert(a == 0);
+        a.assign("0", x); assert(a == 0);
+        a.assign("-0", x); assert(a == 0);
+        a.assign("0000", x); assert(a == 0);
+        a.assign("-0000", x); assert(a == 0);
+        a.assign("00000", x); assert(a == 0);
+        a.assign("-00000", x); assert(a == 0);
+        a.assign("00000000000000", x); assert(a == 0);
+        a.assign("-00000000000000", x); assert(a == 0);
+        a.assign("-", x); assert(a == 0);
+        a.assign("1", x); assert(a == 1);
+        a.assign("-1", x); assert(a == -1);
     }{
         NN a, b, c, d;
         load(a, "101 0110101010101111 1110101010101010 1010101010111111 1111000111000001", 2);
@@ -516,106 +584,115 @@ void test_abs()
 {
     {
         NN a, res;
-        abs(a, res);
-        assert(eq(res, 0));
-        res = abs(a);
-        assert(eq(res, 0));
-        set_abs(a);
-        assert(a.is_zero());
-    }
-    {
-        NN a(-3), res;
-        abs(a, res);
-        assert(eq(res, 3));
-        res = abs(a);
-        assert(eq(res, 3));
-        set_abs(a);
-        assert(eq(a, 3));
-    }
-    {
-        NN a("77777777777777777777", 8);
-        NN b("-77777777777777777777", 8);
-        NN res;
-        abs(a, res);
-        assert(cmp(a, res) == 0);
-        assert(cmp(res, b) != 0);
-        abs(b, res);
-        assert(cmp(b, res) != 0);
-        assert(cmp(res, a) == 0);
-        res = abs(a);
-        assert(cmp(a, res) == 0);
-        res = abs(b);
-        assert(cmp(res, a) == 0);
-    }
-    {
+        abs(a, a); assert(a == 0);
+        abs(a, res); assert(res == 0);
+        res = abs(a); assert(res == 0);
+        set_abs(a); assert(a == 0);
+        a.set_abs(); assert(a == 0);
+    }{
+        NN a("aaaabbbbccccddddeeee", 16);
+        NN b("-aaaabbbbccccddddeeee", 16), res;
+        abs(a, res); assert(res == a);
+        res.release();
+        abs(b, res); assert(res == a);
+        assert(a + b == 0);
+        res.release();
+        res = a.abs(); assert(res == a);
+        res.release();
+        res = b.abs(); assert(res == a);
+        assert(a + b == 0);
+
+        assert(set_abs(a) == a);
+        assert(b.set_abs() == a);
+        assert(a + b == 2 * a);
+    }{
+        NN a("aaaabbbbccccdddd", 16);
+        NN b("-aaaabbbbccccdddd", 16), res(P3);
+        abs(a, res); assert(res == a);
+        res.assign(P3);
+        abs(b, res); assert(res == a);
+        assert(a + b == 0);
+        res.assign(P3);
+        res = a.abs(); assert(res == a);
+        res.assign(P3);
+        res = b.abs(); assert(res == a);
+        assert(a + b == 0);
+
+        assert(a.set_abs() == a);
+        assert(set_abs(b) == a);
+        assert(a + b == 2 * a);
+    }{
         NN a("-1234567890000000000000");
-        NN b = a.abs();
-        assert(cmp(a, NN("-1234567890000000000000")) == 0);
-        assert(cmp(b, NN("1234567890000000000000")) == 0);
-        abs(a, a);
-        assert(cmp(a, NN("1234567890000000000000")) == 0);
-    }
-    {
-        NN a("-1234567890000000000000");
-        a.set_abs();
-        assert(cmp(a, NN("1234567890000000000000")) == 0);
-        NN b("-1234567890000000000000");
-        set_abs(b);
-        assert(cmp(b, NN("1234567890000000000000")) == 0);
+        NN exp("1234567890000000000000");
+        abs(a, a); assert(a == exp);
+        abs(a, a); assert(a == exp);
     }
 }
 
 void test_neg()
 {
     {
-        NN a, b(-3), c("3142341241234123412412"), res;
-        assert(eq(a.neg(), 0));
-        assert(eq(b.neg(), 3));
-        assert(eq(c.neg(), NN("-3142341241234123412412")));
-        assert(eq(neg(c), NN("-3142341241234123412412")));
-        neg(c, res);
-        assert(eq(res, NN("-3142341241234123412412")));
-    }
-    {
-        NN a, b(-3), c("3142341241234123412412"), res;
-        assert(eq(set_neg(a), 0));
-        assert(eq(set_neg(b), 3));
-        set_neg(c);
-        assert(eq(c, NN("-3142341241234123412412")));
+        NN a, res;
+        neg(a, a); assert(a == 0);
+        neg(a, res); assert(res == 0);
+        res = neg(a); assert(res == 0);
+        set_neg(a); assert(a == 0);
+        a.set_neg(); assert(a == 0);
+    }{
+        NN a("aaaabbbbccccddddeeee", 16);
+        NN b("-aaaabbbbccccddddeeee", 16), res;
+        neg(a, res); assert(res == b);
+        res.release();
+        neg(b, res); assert(res == a);
+        assert(a + b == 0);
+        res.release();
+        res = a.neg(); assert(res == b);
+        res.release();
+        res = b.neg(); assert(res == a);
+        assert(a + b == 0);
+
+        assert(set_neg(a) == b);
+        assert(b.set_neg() == -a);
+        assert(a + b == 0);
+    }{
+        NN a("aaaabbbbccccdddd", 16);
+        NN b("-aaaabbbbccccdddd", 16), res(P3);
+        neg(a, res); assert(res == b);
+        res.assign(P3);
+        neg(b, res); assert(res == a);
+        assert(a + b == 0);
+        res.assign(P3);
+        res = a.neg(); assert(res == b);
+        res.assign(P3);
+        res = b.neg(); assert(res == a);
+        assert(a + b == 0);
+
+        assert(a.set_neg() == b);
+        assert(set_neg(b) == -a);
+        assert(a + b == 0);
+    }{
+        NN a("-1234567890000000000000");
+        NN exp("1234567890000000000000");
+        neg(a, a); assert(a == exp);
+        neg(a, a); assert(a == -exp);
     }
 }
 
 void test_zero()
 {
-    NN a, b(0), c(0L), d(0UL), e(0ULL);
-    assert(a.is_zero());
-    assert(b.is_zero());
-    assert(c.is_zero());
-    assert(d.is_zero());
-    assert(e.is_zero());
- 
-    NN z;
-    add(a, b, z);
-    assert(z.is_zero());
-    sub(a, b, z);
-    assert(z.is_zero());
-    mul(a, b, z);
-    assert(z.is_zero());
- 
-    NN f("1111111111111111111111111111");
-    mul(f, b, z);
-    assert(z.is_zero());
-    sub(f, f, z);
-    assert(z.is_zero());
-
-    NN x0("00000000", 2);
-    assert(x0.is_zero());
-    NN x1("00000000", 8);
-    assert(x1.is_zero());
-    NN x2("00000000", 10);
-    assert(x2.is_zero());
-    NN x3("00000000", 16);
-    assert(x3.is_zero());
+    {
+        NN a, b(int(0)), c(long(0)), d((long long)0);
+        NN e((unsigned int)0), f((unsigned long)0), g((unsigned long long)0);
+        assert(a.is_zero()); assert(b.is_zero());
+        assert(c.is_zero()); assert(d.is_zero());
+        assert(e.is_zero()); assert(f.is_zero()); assert(g.is_zero());
+    }{
+        NN a, b(P0);
+        assert(a == 0);
+        assert(b != 0);
+        a.set_zero(); assert(a == 0);
+        b.set_zero(); assert(b == 0);
+    }
 }
 
 void test_string_conversion()
@@ -810,6 +887,8 @@ void test_mul()
         NN b;
         mul(a, a, b);
         assert(eq(b, NN("340282366920938463426481119284349108225")));
+        mul(a, a, a);
+        assert(eq(a, NN("340282366920938463426481119284349108225")));
     }
     {
         NN a("345234501298374"), b("-983757"), res;
@@ -869,36 +948,13 @@ void test_sqr()
 void test_kmul()
 {
     {
-        NN a("123456789"), b("123456789"), c;
-        kmul(a, b, c);
-        assert(eq(c, NN("15241578750190521")));
-    }
-    {
-        NN a("123456789645345454433565"), b("12345678912344577345"), c, d;
-        kmul(a, b, c);
-        mul(a, b, d);
-        assert(eq(c, d));
-    }
-    {
-        NN a, b, c, d;
-        for (int i = 0; i < 15; i++)
-        {
-            create_big(a, 150);
-            create_big(b, 150);
-            kmul(a, b, c);
-            mul(a, b, d);
-            assert(eq(c, d));
-            if (i & 1)
-            {
-                kmul(a, b, a);
-                assert(eq(a, d));
-            }
-            else
-            {
-                b.kmul(a);
-                assert(eq(b, d));
-            }
-        }
+        NN res;
+        kmul(0, 0, res); assert(res == 0);
+        kmul(1, 1, res); assert(res == 1);
+        kmul(0, 1, res); assert(res == 0);
+        kmul(1, 0, res); assert(res == 0);
+        kmul(-1, 2, res); assert(res == -2);
+        kmul(-2, -2, res); assert(res == 4);
     }
 }
 
@@ -910,8 +966,7 @@ void test_ksqr()
         assert(eq(res, NN("15241578750190521")));
         ksqr(b, res);
         assert(res.is_zero());
-    }
-    {
+    }{
         NN a("16158503039417698314384037344878694324680742803587455484472260145626181232823105094609582067234949516440380598200430713907558648260168592343606325063405368414664799634798770137573188975647227632527500574967342497869185120677904929055092794689043588162497814115391580237240765753927314957610808555481953218839399468746177681961280635985777116657480297919651011778729062233777172196274269454168545630726130747048979353490487284178367280004761561058965043465792519393822714983002996704343992871425325657995590580009663274930698402305145290537250908528951674988824793651618050147449672523224061216263968385221040105652224");
         NN c, d;
         ksqr(a, c);
@@ -921,18 +976,6 @@ void test_ksqr()
         a.set_neg();
         ksqr(a, d);
         assert(eq(c, d));
-    }
-    {
-        NN a, c, d;
-        for (int i = 0; i < 15; i++)
-        {
-            create_big(a, 150);
-            ksqr(a, c);
-            sqr(a, d);
-            assert(eq(c, d));
-            ksqr(a, a);
-            assert(eq(a, d));
-        }
     }
 }
 
@@ -1144,14 +1187,14 @@ void test_add()
     }
     {
         NN a("-123456789"), b("123456789"), c("123456789");
-        assert(add(b, a).is_zero());
-        assert(add(a, b).is_zero());
-        assert(add(a, c).is_zero());
+        assert(b + a == 0);
+        assert(a + b == 0);
+        assert(a + c == 0);
         NN d("-123456789"), e("1234"), f("1234567890000"), g;
-        assert(eq(add(d, e), NN("-123455555")));
-        assert(eq(add(d, f), NN("1234444433211")));
-        assert(eq(add(d, g), d));
-        assert(eq(add(g, d), d));
+        assert(eq(d + e, NN("-123455555")));
+        assert(eq(d + f, NN("1234444433211")));
+        assert(eq(d + g, d));
+        assert(eq(g + d, d));
     }
     {
         NN a("45634532785322123456"), b("674576854378");
@@ -1211,24 +1254,24 @@ void test_sub()
         a.sub(b); assert(eq(a, NN("567821896988087687911110816207110711082876879884")));
     }{
         NN a("123456"), b("-1");
-        assert(eq(sub(a, b), 123457));
-        assert(eq(sub(b, a), -123457));
-        assert(eq(sub(a, a), 0));
-        assert(eq(sub(b, b), 0));
+        assert(eq(a - b, 123457));
+        assert(eq(b - a, -123457));
+        assert(eq(a - a, 0));
+        assert(eq(b - b, 0));
 
         NN c("-123456"), d("-1234567");
-        assert(eq(sub(c, d), 1111111));
-        assert(eq(sub(d, c), -1111111));
+        assert(eq(c - d, 1111111));
+        assert(eq(d - c, -1111111));
 
         NN e, f("-1234567");
-        assert(eq(sub(e, f), 1234567));
-        assert(eq(sub(f, e), -1234567));
-        assert(eq(sub(f, f), 0));
-        assert(eq(sub(e, e), 0));
+        assert(eq(e - f, 1234567));
+        assert(eq(f - e, -1234567));
+        assert(eq(f - f, 0));
+        assert(eq(e - e, 0));
 
         NN g("-12345678901234567890");
         NN h("-12345678901234567890");
-        assert(eq(sub(g, h), 0));
+        assert(eq(g - h, 0));
     }{
         NN a("123456"), b("-1"), c;
         sub(a, b, c);
@@ -1238,10 +1281,10 @@ void test_sub()
         assert(eq(d, 246914));
     }{
         NN a("123456"), b("2342947290847209");
-        assert(eq(sub(a, b), NN("-2342947290723753")));
+        assert(eq(a - b, NN("-2342947290723753")));
         NN c("0"), d("2342947290847209"), e("-2342947290847209");
-        assert(eq(sub(c, d), NN("-2342947290847209")));
-        assert(eq(sub(c, e), d));
+        assert(eq(c - d, NN("-2342947290847209")));
+        assert(eq(c - e, d));
     }{
         NN a("123456");
         a -= 456;
@@ -1251,7 +1294,7 @@ void test_sub()
 
 void test_fun(number_t a)
 {
-    a.bit_set(5);
+    a.bit_set(5, 1);
 }
 
 void test_div()
@@ -1405,18 +1448,6 @@ void test_div()
         a.assign("1234123412412341234124");
         b.assign("231412341234123412341234123412412");
         div(a, b, b, a); assert(b == 0); assert(a = NN("1234123412412341234124"));
-    }
-    for (int i = 0; i < 2000; i++)
-    {
-        NN a, b, q, r;
-        create_big(a, rand() % 100);
-        create_big(b, rand() % 100);
-        if (chance(10)) a.neg();
-        if (chance(10)) b.neg();
-        if (div(a, b, q, r))
-        {
-            assert(b.mul(q).add(r) == a);
-        }
     }
 }
 
@@ -1641,6 +1672,67 @@ void test_not()
     }
 }
 
+void test_bit_remove()
+{
+#define TEST_BIT_REMOVE(x, y, res) load(a, s, 2); a.bit_remove(x, y); assert(a(2) == res);
+    {
+        NN a;
+        string_t s = "101 1001001010111110 1111100000000110 1001001010111110";  // 51 bits
+        TEST_BIT_REMOVE(0, 1, "10110010010101111101111100000000110100100101011111");
+        TEST_BIT_REMOVE(4, 13, "101100100101011111011111000000001101001110");
+        TEST_BIT_REMOVE(0, 15, "101100100101011111011111000000001101");
+        TEST_BIT_REMOVE(0, 16, "10110010010101111101111100000000110");
+        TEST_BIT_REMOVE(16, 17, "10110010010101111101111100000000111001001010111110");
+        TEST_BIT_REMOVE(32, 46, "1011011111000000001101001001010111110");
+        TEST_BIT_REMOVE(32, 47, "101111111000000001101001001010111110");
+        TEST_BIT_REMOVE(32, 48, "10111111000000001101001001010111110");
+        TEST_BIT_REMOVE(33, 42, "101100100011111000000001101001001010111110");
+        TEST_BIT_REMOVE(37, 50, "11111011111000000001101001001010111110");
+        TEST_BIT_REMOVE(48, 49, "10100100101011111011111000000001101001001010111110");
+        TEST_BIT_REMOVE(48, 50, "1100100101011111011111000000001101001001010111110");
+        TEST_BIT_REMOVE(48, 51, "100100101011111011111000000001101001001010111110");
+        TEST_BIT_REMOVE(48, 52, "100100101011111011111000000001101001001010111110");
+        TEST_BIT_REMOVE(50, 51, "1100100101011111011111000000001101001001010111110");
+        TEST_BIT_REMOVE(0, 51, "0");
+        TEST_BIT_REMOVE(37, 66, "1111011111000000001101001001010111110");
+    }{
+        NN a;
+        string_t s = "1001001010111110 1111100000000110 1001001010111110 1111100000000110";
+        TEST_BIT_REMOVE(15, 16, "100100101011111011111000000001101001001010111110111100000000110");
+        TEST_BIT_REMOVE(15, 17, "10010010101111101111100000000110100100101011111111100000000110");
+        TEST_BIT_REMOVE(5, 21, "100100101011111011111000000001101001001010100110");
+        TEST_BIT_REMOVE(5, 53, "1001001010100110");
+        TEST_BIT_REMOVE(8, 24, "100100101011111011111000000001101001001000000110");
+        TEST_BIT_REMOVE(7, 25, "1001001010111110111110000000011010010010000110");
+        TEST_BIT_REMOVE(8, 40, "10010010101111101111100000000110");
+        TEST_BIT_REMOVE(1, 31, "1001001010111110111110000000011010");
+        TEST_BIT_REMOVE(3, 22, "100100101011111011111000000001101001001010110");
+        TEST_BIT_REMOVE(13, 48, "10010010101111101100000000110");
+        TEST_BIT_REMOVE(16, 48, "10010010101111101111100000000110");
+        TEST_BIT_REMOVE(16, 51, "10010010101111111100000000110");
+        TEST_BIT_REMOVE(16, 64, "1111100000000110");
+        TEST_BIT_REMOVE(63, 64, "1001010111110111110000000011010010010101111101111100000000110");
+        TEST_BIT_REMOVE(0, 16, "100100101011111011111000000001101001001010111110");
+        TEST_BIT_REMOVE(0, 17, "10010010101111101111100000000110100100101011111");
+        TEST_BIT_REMOVE(0, 31, "100100101011111011111000000001101");
+        TEST_BIT_REMOVE(0, 32, "10010010101111101111100000000110");
+        TEST_BIT_REMOVE(0, 33, "1001001010111110111110000000011");
+        TEST_BIT_REMOVE(0, 48, "1001001010111110");
+        TEST_BIT_REMOVE(0, 63, "1");
+        TEST_BIT_REMOVE(0, 64, "0");
+        TEST_BIT_REMOVE(1, 64, "0");
+        TEST_BIT_REMOVE(2, 64, "10");
+        TEST_BIT_REMOVE(3, 64, "110");
+        TEST_BIT_REMOVE(3, 1000, "110");
+    }{
+        NN a;
+        a.bit_remove(0, 0); assert(a == 0);
+        a.bit_remove(0, 1); assert(a == 0);
+        a.bit_remove(0, 64); assert(a == 0);
+        a.bit_remove(111, 3333); assert(a == 0);
+    }
+}
+
 void test_pow()
 {
     {
@@ -1696,10 +1788,6 @@ void test_pom()
         NN a(1), b(0), c(1), res;
         pom(a, b, c, res);
         assert(eq(res, 0));
-    }{
-        NN a(123), b(1000), c(126), res;
-        a.pom(b, c);
-        assert(eq(a, 81));
     }{
         NN a(0), b(0), c(1), res;
         pom(a, b, c, res);
@@ -1799,7 +1887,83 @@ void test_bits()
         x = a[1] + a[2] - a[3] * a[4];
         assert(x == 1);
     }{
-        NN a(0x123FFabcdefULL); //100100011 1111111110101011 1100110111101111
+        NN a;
+        a.bit_set_one(127);  assert(a == NN("80000000000000000000000000000000", 16));
+        a.bit_set_one(128);  assert(a == NN("180000000000000000000000000000000", 16));
+        a.bit_set_one(5, 39); assert(a == NN("180000000000000000000007fffffffe0", 16));
+        a.release(); a.bit_set_one(3, 33); assert(a(2) == "111111111111111111111111111111000");
+        a.release(); a.bit_set_one(0, 128); assert(a == NN("ffffffffffffffffffffffffffffffff", 16));
+        a.bit_set(0, 129, 1); assert(a == NN("1ffffffffffffffffffffffffffffffff", 16));
+        a.set_zero(); a.bit_set(8, 15, true); assert(a == 0x7f00);
+        a.bit_set(0, 1, 1); assert(a == 0x7f01);
+        a.bit_set(3, 4, 1); assert(a == 0x7f09);
+        a.set_zero(); a.bit_set(8, 16, 1); assert(a == 0xff00);
+        a.set_zero(); a.bit_set(16, 32, 1); assert(a == 0xffff0000);
+        a.set_zero(); a.bit_set(16, 31, 1); assert(a == 0x7fff0000);
+        a.set_zero(); a.bit_set(39, 61, 1); assert(a == 0x1fffff8000000000);
+        a.set_zero(); a.bit_set(39, 63, 1); assert(a == 0x7fffff8000000000);
+    }{
+        NN a;
+        a.assign("ffffffffffffffffffffffffffffffff", 16);
+        a.bit_set(127, 128, 0); assert(a == NN("7fffffffffffffffffffffffffffffff", 16));
+        a.bit_set(0, 1, 0); assert(a == NN("7ffffffffffffffffffffffffffffffe", 16));
+        a.bit_set(5, 39, 0); assert(a == NN("7fffffffffffffffffffff800000001e", 16));
+        a.assign("ffffffffffffffffffffffffffffffff", 16);
+        a.bit_set_zero(32, 64); assert(a == NN("ffffffffffffffff00000000ffffffff", 16));
+        a.bit_set_zero(64, 128); assert(a == 0xffffffff);
+        a.bit_set_zero(0, 32); assert(a == 0);
+        a.bit_set_zero(0, 3200); assert(a == 0);
+        a.assign("11011111111111110011010101100001111111111111111", 2);
+        a.bit_set_zero(43, 47); assert(a(2) == "1111111111110011010101100001111111111111111");
+        a.bit_set_zero(11, 15); assert(a(2) == "1111111111110011010101100001000011111111111");
+        a.bit_set_zero(1, 42); assert(a(2) == "1000000000000000000000000000000000000000001");
+        a.bit_set_zero(1, 43); assert(a == 1);
+    }{
+        NN a;
+        a.assign("ffffffffffffffffffffffffffffffff", 16);
+        a.bit_set_flip(127, 128); assert(a == NN("7fffffffffffffffffffffffffffffff", 16));
+        a.bit_set(0, 1, -1); assert(a == NN("7ffffffffffffffffffffffffffffffe", 16));
+        a.bit_set(0, 1, -1); assert(a == NN("7fffffffffffffffffffffffffffffff", 16));
+        a.bit_set(5, 39, -1); assert(a == NN("7fffffffffffffffffffff800000001f", 16));
+        a.bit_set(5, 39, -1); assert(a == NN("7fffffffffffffffffffffffffffffff", 16));
+        a.assign("ffffffffffffffffffffffffffffffff", 16);
+        a.bit_set_flip(32, 64); assert(a == NN("ffffffffffffffff00000000ffffffff", 16));
+        a.bit_set_flip(64, 128); assert(a == 0xffffffff);
+        a.bit_set_flip(0, 32); assert(a == 0);
+        a.bit_set_flip(0, 33); assert(a == 0x1ffffffff);
+        a.assign("11011111111111110011010101100001111111111111111", 2);
+        a.bit_set_flip(0, a.bits_count()); assert(a(2) == "100000000000001100101010011110000000000000000");
+        a.set_zero();
+        a.bit_set_flip(62); assert(a == 0x4000000000000000);
+        a.bit_set_flip(62); assert(a == 0);
+        a.bit_set_flip(62, 64); assert(a == 0xc000000000000000);
+        a.bit_set_flip(61, 64); assert(a == 0x2000000000000000);
+    }{
+        NN a;
+        a.assign("1111111111111", 2); a.bit_insert(0, 1, 0); assert(a(2) == "11111111111110");
+        a.assign("1111111111111", 2); a.bit_insert(3, 7, 0); assert(a(2) == "11111111110000000111");
+        a.assign("1111111111111", 2); a.bit_insert(13, 1, 1); assert(a(2) == "11111111111111");
+        a.assign("1111111111111", 2); a.bit_insert(13, 1, 0); assert(a(2) == "1111111111111");
+        a.assign("1111111111111", 2); a.bit_insert(14, 16, 0); assert(a(2) == "1111111111111");
+        a.assign("1111111111111", 2); a.bit_insert(14, 1, 1); assert(a(2) == "101111111111111");
+        a.assign("1111111111111", 2); a.bit_insert(7, 16, 0); assert(a(2) == "11111100000000000000001111111");
+        a.assign("1111111111111", 2); a.bit_insert(7, 32, 0); assert(a(2) == "111111000000000000000000000000000000001111111");
+        a.assign("1111111111111", 2); a.bit_insert(7, 39, 0); assert(a(2) == "1111110000000000000000000000000000000000000001111111");
+        a.assign("1111111111111", 2); a.bit_insert(16, 32, 0); assert(a(2) == "1111111111111");
+        a.assign("1111111111111", 2); a.bit_insert(15, 32, 1); assert(a(2) == "11111111111111111111111111111111001111111111111");
+        a.assign("1111111111111", 2); a.bit_insert(16, 32, 1); assert(a(2) == "111111111111111111111111111111110001111111111111");
+        a.assign("1111111111111", 2); a.bit_insert(17, 32, 1); assert(a(2) == "1111111111111111111111111111111100001111111111111");
+        a.assign("1111111111111", 2); a.bit_insert(31, 32, 1); assert(a(2) == "111111111111111111111111111111110000000000000000001111111111111");
+        a.assign("1111111111111", 2); a.bit_insert(32, 32, 1); assert(a(2) == "1111111111111111111111111111111100000000000000000001111111111111");
+        a.assign("1111111111111", 2); a.bit_insert(33, 32, 1); assert(a(2) == "11111111111111111111111111111111000000000000000000001111111111111");
+        a.release(); a.bit_insert(0, 1, 0); assert(a == 0);
+        a.release(); a.bit_insert(0, 1, 1); assert(a == 1);
+        a.release(); a.bit_insert(32, 1, 1); assert(a == 0x100000000);
+        a.release(); a.bit_insert(17, 9, 1); assert(a(2) == "11111111100000000000000000");
+        a.set_zero(); a.bit_insert(63, 1, 1); assert(a == 0x8000000000000000);
+        a.set_zero(); a.bit_insert(17, 9, 1); assert(a(2) == "11111111100000000000000000");
+    }{
+        NN a(0x123FFabcdefULL); // 100100011 1111111110101011 1100110111101111
         const NN& ref = a;
         assert(a.bits_count() == 41);
         assert(a[0]); assert(a.bit_at(0)); assert(a[1]); assert(a.bit_at(1)); assert(ref[2]); assert(ref.bit_at(2));
@@ -1831,30 +1995,44 @@ void test_bits()
         assert(!a.bit_at(36)); assert(a.bit_at(37)); assert(!a.bit_at(38)); assert(!a.bit_at(39)); assert(ref[40]);
     }{
         NN a("111", 2);
-        for (int i = 0; i < 43; i++)
+        for (size_t i = 0; i < 43; i++)
         {
-            assert(a.tzbits_count() == i);
+            assert(a.tz_count() == i);
             assert(a.bits_count() == i + 3);
             a.shl(1); 
         }
-        NN b; assert(b.tzbits_count() == 0);
+        NN b; assert(b.tz_count() == 0);
     }{
         NN a;
         a[1] = a[3] = a[5] = a[7] = a[9] = 1; a[9] = 0; assert(a == 170);
         a[1] = a[3] = 0; assert(a == 160);
 
         a.assign("-ffffffff", 16);
-        a.bit_set(0); assert(a(16) == "-ffffffff");
+        a.bit_set(0, 1); assert(a(16) == "-ffffffff");
         a.bit_set(0, 0); assert(a(16) == "-fffffffe");
-        a.bit_set(1); assert(a(16) == "-fffffffe");
-        a.bit_set(32); assert(a(16) == "-1fffffffe");
-        a.bit_set(33); assert(a(16) == "-3fffffffe");
+        a.bit_set(1, 1); assert(a(16) == "-fffffffe");
+        a.bit_set(32, 1); assert(a(16) == "-1fffffffe");
+        a.bit_set(33, 1); assert(a(16) == "-3fffffffe");
         a.bit_set(33, 0); assert(a(16) == "-1fffffffe");
         a.bit_set(1000, 0); assert(a(16) == "-1fffffffe");
         a.bit_set(63, 1); assert(a(16) == "-80000001fffffffe");
         a.bit_set(64, 1); assert(a(16) == "-180000001fffffffe");
         a.bit_set(65, 1); assert(a(16) == "-380000001fffffffe");
         a.bit_set(0, 1); assert(a(16) == "-380000001ffffffff");
+
+        a.assign("1ffffffffffffffff", 16);
+        a.bit_set(64, 0); assert(a == 0xffffffffffffffff);
+    }{
+        assert(NN(0).pop_count() == 0);
+        assert(NN(1).pop_count() == 1);
+        assert(NN(2).pop_count() == 1);
+        assert(NN(3).pop_count() == 2);
+        assert(NN(4).pop_count() == 1);
+        assert(NN(0xff).pop_count() == 8);
+        assert(NN(0xffff).pop_count() == 16);
+        assert(NN(0xffffffff).pop_count() == 32);
+        assert((NN(0xffffffff)+1).pop_count() == 1);
+        assert((NN(0xffffffff)+2).pop_count() == 2);
     }
 }
 
@@ -1894,56 +2072,47 @@ void test_operators()
         --e; --e; --e; e--; e--; assert(e == -5);
         ++e; ++e; assert (e == -3); ++e; e++; e++; assert(e == 0);
         ++e; ++e; assert (e == 2); ++e; e++; e++; assert(e == 5);
-    }
-    {
+    }{
         NN a = (int)123, b = (short)-7, c = (char)-120, d = (long)780000, e = (long long)3;
         assert(a / b * c - d + e == -777957);
         assert(a + b - c * d / e == 31200116);
         assert(a * b / c * d / e == 1820000);
         assert(a - b - c - d - e == -779753);
         assert(a / b / c * d * e == 0);
-    }
-    {
+    }{
         NN a = 1345, b = 89984, c = 9999999, d = 'c';
         NN res = (a * ((a + b) * c) - d) * b * c * d;
         assert(res == NN("109428737608448376115036875264"));
         assert(res != NN("109428737608448376115036875265"));
-    }
-    {
+    }{
         NN a = 785345, b = 0x9989984cabcdeULL, c = short(8888), d = true;
         NN res = (a * b / c) * (b - d);
         assert(res == NN("644651315202522789465976218741175"));
-    }
-    {
+    }{
         NN a("abcdccccdddddeeeeef123456", 16), b = a % 1000, c = short(8888);
         NN res = a * b * b % c; 
         assert(res == 2984);
-    }
-    {
+    }{
         NN a("abcdccccdddddeeeeef123456", 16), b = 0xff0000, c = short(8888), d("222222222222222222222222111111111111111111111111");
         NN res = ((((a | b) ^ c) << 100) >> 9) & d; 
-        assert(res == NN("222222222210923702491943018864797904674232467456"));
-        ++a++;
+        assert(res == NN("222222222210923682169919333955995311930209206272"));
         b--;
         b -= 1234;
         res = (a + b - c % d) ^ ((a & b) | c);
-        assert(res == NN("850731737829703704754446876413"));
-    }
-    {
+        assert(res == NN("850731737829703704754446876279"));
+    }{
         NN a = 12345678;
         NN b = -a;
         NN c = +b;
         assert(a != b);
         assert(a + b == 0);
         assert(c == b);
-    }
-    {
+    }{
         NN a(123), b(456);
         assert(a < b); assert(a <= b); assert(a <= a); assert(a + b > a); assert(a + b > b);
         assert(a + b >= a); assert(b >= b); assert(a && b); assert(a || b); assert(!(a && 0)); assert(a || 0);
         assert(!(0 && b)); assert(0 || b);
-    }
-    {
+    }{
         NN a, b("14305ff8724375aaabb", 16), c(b), d(b), e(b), f(b), g(b), h(b), i(b), j(b), k(b);
         a %= 1234; assert(a == 0);
         a++; assert(a == 1); assert(a);
@@ -1961,12 +2130,11 @@ void test_operators()
         i -= 1234; assert(i == NN("5958730548487053288937"));
         j <<= 9; assert(j == NN("3050870040825371284567552"));
         k >>= 3; assert(k == NN("744841318560881661271"));
-    }
-    {
+    }{
         NN a = 123, b = a++; assert(b == 123 && a == 124);
         NN c = ++a; assert(c == 125 && a == 125);
-        a = ++a; assert(a == 126);
-        a = a++; assert(a == 127);
+        NN d = c-- + 123; assert(c == 124 && d == 248);
+        NN e = --c + 123; assert(c == 123 && e == 246);
     }
 }
 
@@ -2046,6 +2214,16 @@ void test_string_assignment()
         a.assign("1234567890");
         a.assign(a.dat); assert(a == "1234567890");
         a.assign(a.dat + 3); assert(a == "4567890");
+    }{
+        string_t a;
+        a.assign('a', 0); assert(a == "");
+        a.assign('a', 1); assert(a == "a");
+        a.assign('a', 2); assert(a == "aa");
+        a.assign('a', 3); assert(a == "aaa");
+        a.release();
+        a.assign('a', 16); assert(a == "aaaaaaaaaaaaaaaa");
+        a.assign('a', 8); assert(a == "aaaaaaaa");
+        a.assign('a', 0); assert(a == "");
     }
 }
 
@@ -2084,8 +2262,6 @@ void test_string_insert()
         b.release(); b.append("1"); assert(b == "1");
         b.prepend("a"); assert(b == "a1");
         b.append("b"); assert(b == "a1b");
-        b.prepend(NULL); assert(b == "a1b");
-        b.append(NULL); assert(b == "a1b");
         b.append('8', 3); assert(b == "a1b888");
         b.prepend('8', 3); assert(b == "888a1b888");
         b.insert(2, '7', 5); assert(b == "88777778a1b888");
@@ -2137,6 +2313,14 @@ void test_string_insert()
         string_t a("1234567890");
         a.append(a.dat + 5); assert(a == "123456789067890");
         a.append(a.dat + a.len); assert(a == "123456789067890");
+        string_t b;
+        b.append('a', 0); assert(b == "");
+        b.append('b', 1); assert(b == "b");
+        b.append('c', 2); assert(b == "bcc");
+        string_t c;
+        c.prepend('a', 0); assert(c == "");
+        c.prepend('b', 1); assert(c == "b");
+        c.prepend('c', 2); assert(c == "ccb");
     }
 }
 
@@ -2183,6 +2367,28 @@ void test_string_remove()
         string_t b("1234567890");
         b.remove_to_end(1000);
         assert(b == "1234567890");
+    }
+}
+
+void test_string_reverse()
+{
+    {
+        string_t s; s.reverse(); assert(s == "");
+        string_t t("1"); t.reverse(); assert(t == "1");
+        string_t u("12"); u.reverse(); assert(u == "21");
+        string_t v("123"); v.reverse(); assert(v == "321");
+        string_t w("1234"); w.reverse(); assert(w == "4321");
+    }{
+        string_t a;
+        a.reverse(0, 0); assert(a == ""); a.reverse(0, 1); assert(a == "");
+        a.assign("1"); a.reverse(0, 1); assert(a == "1");
+        a.assign("12"); a.reverse(0, 1); assert(a == "12");
+        a.assign("12"); a.reverse(1, 2); assert(a == "12");
+        a.assign("12"); a.reverse(0, 2); assert(a == "21");
+        a.assign("123"); a.reverse(0, 2); assert(a == "213");
+        a.assign("123"); a.reverse(0, 3); assert(a == "321");
+        a.assign("1234"); a.reverse(0, 10); assert(a == "4321");
+        a.assign("1234"); a.reverse(1, 4); assert(a == "1432");
     }
 }
 
@@ -2557,6 +2763,11 @@ void test_string_find()
         assert(s.find(4, "x") == string_t::npos);
         assert(s.find("def") == 3);
         assert(s.find("defg") == 3);
+        assert(s.find("") == 0);
+        assert(s.find(1, "") == 1);
+        assert(s.find(2, "") == 2);
+        assert(s.find(6, "") == 6);
+        assert(s.find(7, "") == string_t::npos);
         string_t t("bcde");
         assert(s.find(t) == 1);
         assert(s.find(1, t) == 1);
@@ -2576,14 +2787,43 @@ void test_string_find()
     }
 }
 
+void test_string_replace()
+{
+    {
+        string_t s("abcdefg");
+        assert(s.replace(0, 0, "xxx") == "xxxabcdefg");
+        assert(s.replace(0, 1, "yyy") == "yyyxxabcdefg");
+        assert(s.replace(0, 2, "zzz") == "zzzyxxabcdefg");
+        assert(s.replace(0, s.end_pos(), "ooo") == "ooo");
+        assert(s.replace(1000, 2000, "uuu") == "ooouuu");
+        assert(s.replace(3, 3, "xxx") == "oooxxxuuu");
+        assert(s.replace(3, 6, "") == "ooouuu");
+
+        s.assign("abcdefg");
+        assert(s.replace(6, 7, 'x', 1) == "abcdefx");
+        assert(s.replace(7, 7, 'y', 1) == "abcdefxy");
+        assert(s.replace(2, 5, 'x', 0) == "abfxy");
+        assert(s.replace(0, 5, 'x', 0) == "");
+        assert(s.replace(0, 5, 'x', 3) == "xxx");
+
+        s.assign("abcdefg");
+        assert(s.replace(0, 5, string_t('x')) == "xfg");
+        assert(s.replace(0, 5, string_t('x'), 0, 0) == "");
+        assert(s.replace(0, 0, string_t("xxx"), 1, 2) == "x");
+        assert(s.replace(0, 1, string_t("aaa"), 0, 3) == "aaa");
+    }
+}
+
 void test_string()
 {
     test_string_assignment();
     test_string_reserve();
     test_string_insert();
     test_string_remove();
+    test_string_reverse();
     test_string_strip();
     test_string_find();
+    test_string_replace();
     test_string_load();
     test_string_dump();
 
@@ -2602,10 +2842,7 @@ void test_string()
 
     string_t e("1234567890", 3); assert(e == "123");
     string_t f("1234567890", 0); assert(f == "");
-    string_t g(NULL, 123); assert(!g.valid()); assert(g == "");
-
     string_t h(e); assert(h == e && h == "123");
-    string_t i(g); assert(i == g && !i.valid());
 
     string_t o("abcd");
     assert(o[0] == 'a'); assert(o[1] == 'b');
@@ -2696,8 +2933,15 @@ void test_string()
         string_t d(0); assert(d == "");
         number_t x(123);
         string_t e(x);  assert(e.capacity() == 123);
+    }{
+        std::map<string_t, string_t> strmap;
+        strmap["aaa"] = "aaaaaa";
+        strmap["bbb"] = "bbbbbb";
+        strmap["ccc"] = "cccccc";
+        assert(strmap.find("bbb") != strmap.end());
+        assert(strmap.find("ddd") == strmap.end());
+        assert(strmap.find("bbb")->second == "bbbbbb");
     }
-
     reset_leading();
 }
 
@@ -2835,7 +3079,7 @@ void test_sub_small()
         a.sub_unit(4); assert(a == -5);
         b.sub_unit(1); assert(b == -124);
         a.set_one(); a.shl(128); a.sub_unit(123);
-        assert(a == NN("340282366920938463463374607431768211333"));
+        assert(a(10) == "340282366920938463463374607431768211333");
     }{
         NN a(118446);
         a.sub_unit(32452); assert(a == 85994);
@@ -2904,77 +3148,67 @@ void test_mul_small()
         a.mul_unit(32452); a.mul_unit(5648); a.mul_unit(57); a.mul_unit(4);
         a.mul_unit(56756); a.mul_unit(332); a.mul_unit(8976); a.mul_unit(993);
         a.mul_unit(4321); a.mul_unit(8907); a.mul_unit(1);
-        assert(a == NN("270127424034073692837664953532416"));
-        a.mul_unit(0); assert(a == NN("0"));
-        mul_unit(a, 12345, a); assert(a == NN("0"));
-        sub_unit(a, 12345, a); assert(a == NN("-12345"));
-        mul_unit(a, 12345, a); assert(a == NN("-152399025"));
-
-        NN z;
-        z.mul_unit(123); z.mul_unit(456); z.mul_unit(7890);
-        assert(z.is_zero());
-        mul_unit(a, 12345, z); assert(z == NN("-1881365963625"));
-        mul_unit(a, 0, z); assert(z.is_zero());
+        assert(a(10) == "270127424034073692837664953532416");
+        a.set_neg();
+        a.mul_unit(1); assert(a(10) == "-270127424034073692837664953532416");
+        a.mul_unit(888); assert(a(10) == "-239873152542257439239846478736785408");
+        a.mul_unit(0); assert(a == 0);
+        a.mul_unit(12345); assert(a == 0);
+        a.release(); a.mul_unit(12345); assert(a == 0);
+        a.release(); a.mul_unit(0); assert(a == 0);
+        a.release(); a.mul_unit(1); assert(a == 0);
     }{
-        NN a("1234567890"), b("-1234567890"), c, d(-1234);
-        a.mul_unit(1234); assert(a == NN("1523456776260"));
-        b.mul_unit(1234); assert(b == NN("-1523456776260"));
-        c.mul_unit(1234); assert(c == 0);
-        d.mul_unit(1234); assert(d == -1522756);
-    }{
-        NN a;
-        a.set_one();
-        for (unit_t i = 1; i < 32; i++)
-        {
-            a.mul_unit(i);
-        }
-        NN b(1);
+        NN a(1), b(1);
+        for (unit_t i = 1; i < 32; i++) a.mul_unit(i);
         b.bits_reserve(1000);
-        for (unit_t i = 1; i < 32; i++)
-        {
-            b.mul_unit(i);
-        }
-        assert(a == b);
-        assert(b == NN("8222838654177922817725562880000000"));
+        for (unit_t i = 1; i < 32; i++) b.mul_unit(i);
+        assert(a == b && b(10) == "8222838654177922817725562880000000");
     }{
         NN a("1");
-        a.mul(65538);
-        assert(a(10) == "65538");
-        NN b("23424623456345623452345");
-        b.mul(65538);
-        assert(b(10) == "1535202972081979469819786610");
-#if UNITBITS == 32
-        NN c("23424623456345623452345");
-        c.mul(0xffffaaafafafaaaaULL);
-        assert(c(10) == "432105836612120073429292480918188622354650");
-#elif UNITBITS == 16
-		NN c("23424623456345623452345");
-        c.mul(0xabcdef00);
-        assert(c(10) == "67519134650570625039039228000000");
-#endif
-		NN e(0);
-		e.mul(0xffffaaa);
-		assert(e(10) == "0");
+        a.mul((int)1234);
+        a.mul((long)567);
+        a.mul((long long)7981);
+        a.mul((unsigned int)65538);
+        a.mul((unsigned long)9875658);
+        a.mul((unsigned long long)30535);
+        assert(a(10) == "110360250962757471388232520");
     }{
         NN a; a.mul_sword(123); assert(a == 0);
-        a.assign(1); a.mul_sword(123); assert(a == 123);
-        a.assign(1); a.mul_sword(-123); assert(a == -123);
-        a.assign(-1); a.mul_sword(-123); assert(a == 123);
-        a.assign(-655365); a.mul_sword(-655365); assert(a == 429503283225);
+        a = 1; a.mul_sword(123); assert(a == 123);
+        a = 1; a.mul_sword(-123); assert(a == -123);
+        a = -1; a.mul_sword(-123); assert(a == 123);
+        a = -655365; a.mul_sword(-655365); assert(a == 429503283225);
         a.mul_word(65536); assert(a == 28147927169433600ULL);
-        a.assign(-65536); a.mul_word(65536); assert(a == -4294967296);
+        a = -65536; a.mul_word(65536); assert(a == -4294967296);
     }{
         NN a, b;
         mul_unit(a, 123, b); assert(b == 0);
         mul_unit(a, 123, a); assert(a == 0);
-        a.assign(1111); mul_unit(a, 0, a); assert(a == 0);
+        a = 1111; mul_unit(a, 0, a); assert(a == 0);
         a.release();
         mul_unit(a, 0, a); assert(a == 0);
         a.release();
         a.mul_unit(123); assert(a == 0);
         a.mul_unit(0); assert(a == 0);
-        a.assign(1111); a.mul_unit(0); assert(a == 0);
+        a = 1111; a.mul_unit(0); assert(a == 0);
     }
+#if UNITBITS == 32
+    {
+        NN a("ffffffffffffffff", 16), b;
+        mul_unit(a, 0xffffffff, b);
+        assert(b(16) == "fffffffeffffffff00000001");
+        mul_unit(a, 0xffffffff, a);
+        assert(a(16) == "fffffffeffffffff00000001");
+    }
+#elif UNITBITS == 16
+    {
+        NN a("ffffffffffffffff", 16), b;
+        mul_unit(a, 0xffff, b);
+        assert(b(16) == "fffeffffffffffff0001");
+        mul_unit(a, 0xffff, a);
+        assert(a(16) == "fffeffffffffffff0001");
+    }
+#endif
 }
 
 void test_div_small()
@@ -3014,17 +3248,20 @@ void test_div_small()
         a.assign(0); a.div_sword(-1234); assert(a == 0);
         a.assign(1); a.div_sword(-1234); assert(a == 0);
         a.assign(437454245000ULL);
+        assert(!a.absrem_unit(1));
         assert(!a.absrem_unit(50));
         assert(a.absrem_unit(12) == 8);
         assert(!a.absrem_unit(20));
         assert(a.absrem_unit(12345) == 10010);
         assert(!a.absrem_unit(5));
+
         a.set_zero();
         assert(a.absrem_unit(12) == 0);
         assert(a.absrem_unit(12345) == 0);
         a.release();
         assert(a.absrem_unit(12) == 0);
         assert(a.absrem_unit(12345) == 0);
+        assert(a.absrem_unit(UDM(1)) == 0);
         assert(a.absrem_unit(UDM(12)) == 0);
         assert(a.absrem_unit(UDM(12345)) == 0);
     }{
@@ -3073,6 +3310,11 @@ void test_div_small()
         assert(!a.div_unit(UDM(5))); assert(a == 87490849000ULL);
         assert(!a.div_unit(UDM(20)));
         assert(!a.div_unit(UDM(50)));
+    }{
+        NN a, b = 123;
+        div_unit(a, 3, b); assert(b == 0);
+        div_unit(a, UDM(3), b); assert(b == 0);
+        div_unit(a, UDM(3), a); assert(a == 0);
     }
 }
 
@@ -3108,7 +3350,7 @@ void test_mod_small()
         a.mod_word(3); assert(a == 0);
         a.mod_sword(33399); assert(a == 0);
 
-        a.mod_unit(0);
+        a.mod_unit(0);  // don't crash
         a.mod(123456);
         mod(a, int(0), a);
         a.mod(long(0));
@@ -3120,6 +3362,7 @@ void test_mod_small()
         NN a("335456123445434567097887489567346758"), b;
         mod_unit(b, UDM(1), b); assert(b == 0);
         mod_unit(a, UDM(3), b); assert(b == 2);
+        mod_unit(a, UDM(4), b); assert(b == 2);
         mod_unit(a, UDM(377), b); assert(b == 114);
         mod_unit(a, UDM(1024), b); assert(b == 70);
         mod_unit(a, UDM(32768), b); assert(b == 20550);
@@ -3127,6 +3370,14 @@ void test_mod_small()
         a.assign(4096); a.mod_unit(UDM(32)); assert(a.is_zero());
         a.assign(64); a.mod_unit(UDM(64)); assert(a.is_zero());
         a.assign(65); a.mod_unit(UDM(64)); assert(a.is_one());
+    }{
+        NN a, b = 123;
+        mod_unit(a, 3, b); assert(b == 0);
+        mod_unit(a, UDM(3), b); assert(b == 0);
+        mod_unit(a, UDM(3), a); assert(a == 0);
+        NN c, d;
+        c.mod_unit(123); assert(c == 0);
+        d.mod_unit(UDM(123)); assert(d == 0);
     }
 }
 
@@ -3309,68 +3560,382 @@ void test_basic_type_conversion()
 void test_prime()
 {
     {
+        assert(!prime_test_roughly(-2));
+        assert(!prime_test_roughly(-1));
         assert(!prime_test_roughly(0));
         assert(!prime_test_roughly(1));
-
         assert(prime_test_roughly(2));
         assert(prime_test_roughly(3));
         assert(!prime_test_roughly(4));
         assert(prime_test_roughly(5));
-
         assert(prime_test_roughly(233));
         assert(prime_test_roughly(239));
-
         assert(!prime_test_roughly(561)); // Carmichael
         assert(!prime_test_roughly(1105));
         assert(!prime_test_roughly(1729));
-        assert(prime_test_roughly(19937)); // prime
-        assert(prime_test_roughly(54503));
-        assert(prime_test_roughly(54517));
-        assert(prime_test_roughly(54521));
+        assert(prime_test_roughly(54503)); // prime
+
+		assert(prime_test_roughly(P0)); assert(!prime_test_roughly(P0 - 2));
+		assert(prime_test_roughly(P1)); assert(!prime_test_roughly(P1 - 2));
+        assert(prime_test_roughly(P2)); assert(!prime_test_roughly(P2 - 2));
+        assert(prime_test_roughly(P3)); assert(!prime_test_roughly(P3 - 2));
+        assert(prime_test_roughly(P4)); assert(!prime_test_roughly(P4 - 2));
+        assert(prime_test_roughly(P5)); assert(!prime_test_roughly(P5 - 2));
+        assert(prime_test_roughly(P6)); assert(!prime_test_roughly(P6 - 2));
+        assert(prime_test_roughly(P7)); assert(!prime_test_roughly(P7 - 2));
+        assert(prime_test_roughly(P8)); assert(!prime_test_roughly(P8 - 2));
     }{
         NN next;
         prime_next_roughly(-8, next); assert(next == 2);
+        prime_next_roughly(-1, next); assert(next == 2);
         prime_next_roughly(0, next); assert(next == 2);
         prime_next_roughly(1, next); assert(next == 2);
         prime_next_roughly(2, next); assert(next == 3);
         prime_next_roughly(3, next); assert(next == 5);
+        prime_next_roughly(8, next); assert(next == 11);
+        prime_next_roughly(232, next); assert(next == 233);
         prime_next_roughly(233, next); assert(next == 239);
         prime_next_roughly(239, next); assert(next == 241);
         prime_next_roughly(74093, next); assert(next == 74099);
+        next = 3;
+        prime_next_roughly(next, next); assert(next == 5);
+        next = 7314076133279565663;
+        prime_next_roughly(next, next); assert(next == 7314076133279565667);
     }{
         NN prev;
+        prime_prev_roughly(-2, prev); // should not crash or be endless loop
+        prime_prev_roughly(-1, prev);
+        prime_prev_roughly(0, prev);
+        prime_prev_roughly(1, prev);
+        prime_prev_roughly(2, prev);
         prime_prev_roughly(3, prev); assert(prev == 2);
         prime_prev_roughly(4, prev); assert(prev == 3);
-        prime_prev_roughly(239, prev); assert(prev == 233);
+        prime_prev_roughly(238, prev); assert(prev == 233);
         prime_prev_roughly(983, prev); assert(prev == 977);
-        prime_prev_roughly(74093, prev); assert(prev == 74077);
+        prime_prev_roughly(74092, prev); assert(prev == 74077);
+        prev = 3;
+        prime_prev_roughly(prev, prev); assert(prev == 2);
+        prev = 7314076133279565669;
+        prime_prev_roughly(prev, prev); assert(prev == 7314076133279565667);
+    }{
+        assert(!MR_prime_test(-2, 3));
+        assert(!MR_prime_test(-1, 3));
+        assert(!MR_prime_test(0, 3));
+        assert(!MR_prime_test(1, 3));
+        assert(MR_prime_test(2, 16));
+        assert(MR_prime_test(3, 16));
+        assert(!MR_prime_test(4, 16));
+        assert(MR_prime_test(5, 16));
+        assert(!MR_prime_test(6, 16));
+        assert(MR_prime_test(7, 16));
+        assert(!MR_prime_test(8, 16));
+        assert(!MR_prime_test(9, 16));
+        assert(MR_prime_test(11, 16));
+        assert(MR_prime_test(P0, 16));
+        assert(MR_prime_test(P1, 16));
+        assert(MR_prime_test(P2, 16));
+        assert(MR_prime_test(P3, 16));
+        assert(!MR_prime_test(P0 * P1, 4));
+        assert(!MR_prime_test(P2 + 1, 4));
+        assert(!MR_prime_test(P3 + 2, 4));
     }
 }
 
-bool chance(int n)
+void __test_rand(RNG& rng)
 {
-    return rand() % n == 1;
-}
-
-void random(number_t& a)
-{
-    if (a.len)
+    NN a;
+    int times = 128;
+    int n0 = 0, n1 = 0, n2 = 0, n3 = 0, n4 = 0;
+    for (int i = 0; i < times; i++)
     {
-        int i = 0;
-        while (i < a.len)
+        assert(rand(0, rng, a));
+        assert(a.bits_count() == 0);
+
+        assert(rand(1, rng, a));
+        assert(a.bits_count() <= 1);
+        if (a.bits_count() == 1) n0++;
+
+        assert(rand(7, rng, a));
+        assert(a.bits_count() <= 7);
+        if (a.bits_count() == 7) n1++;
+
+        assert(rand(16, rng, a));
+        assert(a.bits_count() <= 16);
+        if (a.bits_count() == 16) n2++;
+
+        assert(rand(128, rng, a));
+        assert(a.bits_count() <= 128);
+        if (a.bits_count() == 128) n3++;
+
+        assert(rand(233, rng, a));
+        assert(a.bits_count() <= 233);
+        if (a.bits_count() == 233) n4++;
+    }
+    assert(n0 < times && 3 * n0 > times);
+    assert(n1 < times && 3 * n1 > times);
+    assert(n2 < times && 3 * n2 > times);
+    assert(n3 < times && 3 * n3 > times);
+    assert(n4 < times && 3 * n4 > times);
+
+    int n, N = 0;
+    for (int i = 0; i < times; i++)
+    {
+        n = 0;
+        for (int j = 0; j < times; j++)
         {
-            a.dat[i++] = (unit_t)rand();
+            if (rng.chance(8))
+            {
+                n++;
+            }
         }
-        if (a.dat[a.len - 1] == 0)
+        N += n;
+    }
+    int d = N / times - times / 8;
+    assert(d < 3 && d > -3);
+}
+
+void test_rand()
+{
+    byte_t buf1[3], buf2[32], buf3[37];
+    {
+        LCG_t lcg;
+        assert(lcg.valid());
+        assert(lcg.gen_bytes(buf1 + 1, 2));
+        assert(lcg.gen_bytes(buf2 + 1, 31));
+        assert(lcg.gen_bytes(buf3 + 1, 36));
+    }{
+        XLCG_t xlcg;
+        assert(xlcg.valid());
+        assert(xlcg.gen_bytes(buf1 + 1, 2));
+        assert(xlcg.gen_bytes(buf2 + 1, 31));
+        assert(xlcg.gen_bytes(buf3 + 1, 36));
+    }{
+        XORSP_t xorsp;
+        assert(xorsp.valid());
+        assert(xorsp.gen_bytes(buf1 + 1, 2));
+        assert(xorsp.gen_bytes(buf2 + 1, 31));
+        assert(xorsp.gen_bytes(buf3 + 1, 36));
+    }{
+        CRNG_t crng;
+        assert(crng.valid());
+        assert(crng.gen_bytes(buf1 + 1, 2));
+        assert(crng.gen_bytes(buf2 + 1, 31));
+        assert(crng.gen_bytes(buf3 + 1, 36));
+    }{
+        LCG_t lcg;
+        XLCG_t xlcg;
+        XORSP_t xorsp;
+        CRNG_t crng;
+        NN n;
+
+        assert(rand(0, lcg, true, n));
+        assert(rand(0, xlcg, true, n));
+        assert(rand(0, xorsp, true, n));
+        assert(rand(0, crng, true, n));
+        assert(rand(1, lcg, true, n));
+        assert(rand(1, xlcg, true, n));
+        assert(rand(1, xorsp, true, n));
+        assert(rand(1, crng, true, n));
+        assert(rand(64, lcg, true, n));
+        assert(rand(64, xlcg, true, n));
+        assert(rand(64, xorsp, true, n));
+        assert(rand(64, crng, true, n));
+        assert(rand(129, lcg, true, n));
+        assert(rand(129, xlcg, true, n));
+        assert(rand(129, xorsp, true, n));
+        assert(rand(129, crng, true, n));
+    }{
+        LCG_t lcg;
+        XLCG_t xlcg;
+        XORSP_t xorsp;
+        CRNG_t crng;
+
+        __test_rand(lcg);
+        __test_rand(xlcg);
+        __test_rand(xorsp);
+        __test_rand(crng);
+    }
+    // avoid compile warning for release mode
+    buf1[0] = buf2[0] = buf3[0] = 0;
+}
+
+void test_gcd()
+{
+	{
+		NN res;
+        assert(!gcd(0, 0, res));  // (0, 0) is illegal
+        gcd(0, 1, res); assert(res == 1);
+        gcd(2, 0, res); assert(res == 2);
+        gcd(0, P1, res); assert(res == P1);
+        gcd(P1, 0, res); assert(res == P1);
+        gcd(1, 1, res); assert(res == 1);
+        gcd(1, P1, res); assert(res == 1);
+        gcd(P1, 1, res); assert(res == 1);
+        gcd(P2, P2, res); assert(res == P2);
+        gcd(P1, P2, res); assert(res == 1);
+        gcd(P2, P1, res); assert(res == 1);
+		gcd(2, 1, res); assert(res == 1);
+		gcd(2, 2, res); assert(res == 2);
+		gcd(3, 4, res); assert(res == 1);
+		gcd(7, -3, res); assert(res == 1);
+        gcd(21, 33, res); assert(res == 3);
+        gcd(21, 77, res); assert(res == 7);
+		gcd(-1024, 512, res); assert(res == 512);
+	}{
+		NN a(19937), b(19937), c(19937), g;
+		a.pow(3), b.pow(7);
+		gcd(a, b, g); assert(g == a);
+		gcd(b, c, g); assert(g == 19937);
+		c.mul(54521);
+		gcd(b, c, g); assert(g == 19937);
+	}{
+		NN a("-12697125487235487234542523908753461770189653496751023887959238045623489523489712");
+		NN b("845724375209348564239023485239084752349085723465735409865349087634987289347592368"), g;
+		gcd(a, b, g); assert(g == 48);
+		b.assign(P3);
+		gcd(a, b, g); assert(g == 1);
+	}{
+		NN a(P3), b(P4), g;
+		gcd(a, b, g); assert(g == 1);
+		a.mul(P5); b.mul(P5);
+		gcd(a, b, g); assert(g == P5);
+		a.mul(P6); b.mul(P6);
+		gcd(a, b, g); assert(g == P5 * P6);
+		a.mul(P7); b.mul(P7);
+		gcd(a, b, g); assert(g == P5 * P6 * P7);
+    }{
+        NN x, y, g;
+        gcd_ext(49, 14, x, y, g);
+        assert(g == 7);
+        assert(x == 1);
+        assert(y == -3);
+        gcd_ext(14, 49, x, y, g);
+        assert(g == 7);
+        assert(x == -3);
+        assert(y == 1);
+
+        gcd_ext(0, 1, x, y, g);
+        assert(g == 1);
+        assert(y == 1);
+        gcd_ext(1, 0, x, y, g);
+        assert(g == 1);
+        assert(x == 1);
+        gcd_ext(1, 1, x, y, g);
+        assert(g == 1);
+        assert(x == 0);
+        assert(y == 1);
+    }{
+        NN a(P3), b(P4), x, y, g;
+        gcd_ext(a, b, x, y, g); assert(g == 1); assert(a * x + b * y == g);
+        a.mul(P5); b.mul(P5);
+        gcd_ext(a, b, x, y, g); assert(g == P5); assert(a * x + b * y == g);
+        a.mul(P6); b.mul(P6);
+        gcd_ext(a, b, x, y, g); assert(g == P5 * P6); assert(a * x + b * y == g);
+    }
+}
+
+void test_inv()
+{
+    {
+        NN x;
+        assert(!inv(1, 0, x));
+        assert(!inv(1, 1, x));
+        assert(!inv(3, 3, x));
+        assert(!inv(1024, 768, x));
+        inv(2, 3, x); assert(x == 2);
+        inv(3, 2, x); assert(x == 1);
+        inv(3, 7, x); assert(x == 5);
+        inv(4, 21, x); assert(x == 16);
+    }{
+        NN x;
+        inv(P1, P2, x); assert(x * P1 % P2 == 1);
+        inv(P2, P3, x); assert(x * P2 % P3 == 1);
+        inv(P3, P4, x); assert(x * P3 % P4 == 1);
+        inv(P4, P5, x); assert(x * P4 % P5 == 1);
+        inv(P5, P6, x); assert(x * P5 % P6 == 1);
+    }
+}
+
+void random_prime(size_t bits, RNG& rng, NN& out)
+{
+    while (1)
+    {
+        rand(bits, rng, out);
+        prime_next_roughly(out, out);
+        if (out.bits_count() > 2 * bits / 3 && MR_prime_test(out, 16))
         {
-            a.dat[a.len - 1] = 1;
+            break;
         }
     }
 }
 
-void create_big(NN& x, int size)
+void __test_rsa(const NN& message)
 {
-    x.set_zero();
-    x.bit_set_one(size * sizeof(unit_t) * 8);
-    random(x);
+    CRNG_t crng;
+    NN p, q, n, phi, e, d;
+    NN encrypted, decrypted;
+
+    random_prime(128, crng, p);
+    random_prime(128, crng, q);
+    random_prime(32, crng, e);  //<e, n> the public key
+
+    n = p * q;
+    phi = (p - 1) * (q - 1);
+    assert(inv(e, phi, d));  //<d, n> the private key
+
+    assert(pom(message, e, n, encrypted));
+    assert(pom(encrypted, d, n, decrypted));
+
+    assert(encrypted != message);
+    assert(decrypted == message);
+}
+
+void test_rsa()
+{
+    NN message;
+    for (int i = 0; i < 32;)
+    {
+        rand(64, message);
+        if (message.bits_count() > 2)
+        {
+            __test_rsa(message);
+            i++;
+        }
+    }
+}
+
+void test_jacobi()
+{
+    assert(jacobi(1, 1) == 1);
+    assert(jacobi(2, 1) == 1);
+    assert(jacobi(1, 3) == 1);
+    assert(jacobi(7, 7) == 0);
+    assert(jacobi(13, 5) == -1);
+    assert(jacobi(29, 3) == -1);
+    assert(jacobi(28, 7) == 0);
+    assert(jacobi(5, 13) == -1);
+    assert(jacobi(19, 31) == 1);
+    assert(jacobi(30, 57) == 0);
+    assert(jacobi(30, 59) == -1);
+    assert(jacobi(1001, 9907) == -1);
+    assert(jacobi(9, 0xbb08fdf) == 1);
+    assert(jacobi(12, 0x1026345) == 0);
+    assert(jacobi(0, NN("ea8fc24caacba8dc493", 16)) == 0);
+    assert(jacobi(NN("74bca9105ad9e19e655dc83ad1b", 16), NN("21320da4eac5830b733", 16)) == 0);
+    assert(jacobi(NN("f750aca0a137924ef4b2aab1a2cbefa", 16), NN("63a013e8fab525b6054d7d56df", 16)) == 1);
+    assert(jacobi(NN("e626f178bf93c191cf00128efc3", 16), NN("72c640ba7c2dc4a699ff4f959c5", 16)) == -1);
+    assert(jacobi(NN("3735667b1959162447e835d6974d", 16), NN("c99c0b75a0024aa128e6902de9f0789bf535ecce90ef748cb", 16)) == -1);
+    assert(jacobi(NN("b04fa0ad83823227929f51620466e240fbc0422737da5907e", 16), NN("7e9f72b8f9afcf640f8edc4435bf857f4ccbb944b", 16)) == 1);
+}
+
+void test_lcm()
+{
+    NN res;
+    lcm(0, 0, res); assert(res == 0);
+    lcm(1, 1, res); assert(res == 1);
+    lcm(1, 0, res); assert(res == 0);
+    lcm(4, 2, res); assert(res == 4);
+    lcm(3, 6, res); assert(res == 6);
+    lcm(45, 30, res); assert(res == 90);
+    lcm(P0, P1, res); assert(res == P0 * P1);
 }

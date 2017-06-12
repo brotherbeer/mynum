@@ -1,6 +1,6 @@
 ![logo](https://github.com/brotherbeer/mydocument/blob/master/mynum/mynum-logo.png?raw=true)
 
-Multiprecision binary number — mynum is a portable library for big integer arithmetic, it aims to provide convenience for the research of number theory, cryptology and other fields. [\[中文版\]](https://github.com/brotherbeer/mydocument/blob/master/mynum/README-ch.md)
+What is mynum? Multiprecision binary number — mynum — is a portable C++ library for big integer arithmetic, it aims to provide convenience for the research of number theory, cryptology and other fields. [\[中文版\]](https://github.com/brotherbeer/mydocument/blob/master/mynum/README-ch.md)
 
 Mynum is currently only available on the LITTLE-ENDIAN machines.
 
@@ -19,30 +19,34 @@ Documents:
  * [Division](https://github.com/brotherbeer/mydocument/blob/master/mynum/Division.md)
  * [Modulo operation](https://github.com/brotherbeer/mydocument/blob/master/mynum/Modulo-operation.md)
  * [Exponentiation](https://github.com/brotherbeer/mydocument/blob/master/mynum/Exponentiation.md)
- * [Modular Exponentiation](https://github.com/brotherbeer/mydocument/blob/master/mynum/Modular-exponentiation.md)
+ * [Modular exponentiation](https://github.com/brotherbeer/mydocument/blob/master/mynum/Modular-exponentiation.md)
+ * [Number theoretic functions](https://github.com/brotherbeer/mydocument/blob/master/mynum/Number-theory.md)
+ * [Random number functions](https://github.com/brotherbeer/mydocument/blob/master/mynum/Random-number.md)
  * [Comparison](https://github.com/brotherbeer/mydocument/blob/master/mynum/Comparison.md)
  * [Bitwise operation](https://github.com/brotherbeer/mydocument/blob/master/mynum/Bitwise-operation.md)
- * [Other-utils](https://github.com/brotherbeer/mydocument/blob/master/mynum/Other-utils.md)
+ * [Other utils](https://github.com/brotherbeer/mydocument/blob/master/mynum/Other-utils.md)
 
-The efficiency of mynum is not inferior to GMP and other well-known library too much, but the interfaces are much simpler.
-Compared to the built-in big integer libaraies of java, python, etc., in some ways, mynum is even more efficient.
+Mynum is a pure C++ library, coupled with the intrinsic technology of modern compiler, ensuring efficient computing and making the interface easy-using as the primary concept.
 
 No restrictions on the dissemination and modification of the source code. The author hopes mynum will be useful, but dose not make any warranty.
 
 [mynumheaderfile]: https://github.com/brotherbeer/mynum/blob/master/mynum.h
 [mynumcppfile]: https://github.com/brotherbeer/mynum/blob/master/mynum.cpp
-[myoperatorheaderfile]: https://github.com/brotherbeer/mynum/blob/master/operators.h
+[mytheoryheaderfile]: https://github.com/brotherbeer/mynum/blob/master/mytheory.h
+[mytheorycppfile]: https://github.com/brotherbeer/mynum/blob/master/mytheory.cpp
+[myoperatorheaderfile]: https://github.com/brotherbeer/mynum/blob/master/myoperators.h
 [testcppfile]: https://github.com/brotherbeer/mynum/blob/master/test.cpp
 
 **Installation**
+Mynum has 5 files:
 
-[mynum.h][mynumheaderfile] and [mynum.cpp][mynumcppfile] are the essential files mynum required, and other files are the expansion of the core functions.
+ * [mynum.cpp][mynumcppfile] implements the elementary arithmetic and string formatting IO functions, the header file is [mynum.h][mynumheaderfile] 
+ * [mytheory.cpp][mytheoryheaderfile] implements the number theoretic functions, such as modular exponentiation, GCD function, the header file is [mytheory.h][mymytheoryheaderfile] 
+ * [myoperators.h][myoperatorheaderfile] overloads the associated C++ operators
 
-Include [mynum.h][mynumheaderfile] and [mynum.cpp][mynumcppfile] into your project, and `#include "mynum.h"` in whichever file you need big integer arithmetic, and the namespace is `mynum`.
+Copy these files to your porject, and #include "mynum.h", "mytheory.h" or "myoperators.h" in whichever file you need big integer arithmetic, and the namespace is `mynum`.
 
-[myoperators.h][myoperatorheaderfile] overloaded the associated C++ operators, if you want to use the operators to do the calculations, please `#include "myoperators.h"`
-
-[test.cpp][testcppfile] contained the examples and test cases
+ * [test.cpp][testcppfile] contains the examples and test cases
 
 The source code is currently applicable to g++, MSVC(2008 and above versions), clang. see [\[the compilation\]](https://github.com/brotherbeer/mydocument/blob/master/mynum/compilation.md)
 

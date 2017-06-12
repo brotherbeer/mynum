@@ -1,6 +1,6 @@
 ![logo](https://github.com/brotherbeer/mydocument/blob/master/mynum/mynum-logo.png?raw=true)
 
-What is mynum? Multiprecision binary number — mynum — is a portable C++ library for big integer arithmetic, it aims to provide convenience for the research of number theory, cryptology and other fields. [\[中文版\]](https://github.com/brotherbeer/mydocument/blob/master/mynum/README-ch.md)
+Multiprecision binary number — mynum — is a portable C++ library for big integer arithmetic, it aims to provide convenience for the research of number theory, cryptology and other fields. [\[中文版\]](https://github.com/brotherbeer/mydocument/blob/master/mynum/README-ch.md)
 
 Mynum is currently only available on the LITTLE-ENDIAN machines.
 
@@ -39,9 +39,9 @@ No restrictions on the dissemination and modification of the source code. The au
 
 **Installation**
 
-Mynum has 5 files:
+Essential files:
 
- * [mynum.cpp][mynumcppfile] implements the elementary arithmetic and string formatting IO functions, the header file is [mynum.h][mynumheaderfile] 
+ * [mynum.cpp][mynumcppfile] implements the elementary arithmetic and string releated functions, the header file is [mynum.h][mynumheaderfile] 
  * [mytheory.cpp][mytheorycppfile] implements the number theoretic functions, such as GCD function, the header file is [mytheory.h][mytheoryheaderfile] 
  * [myoperators.h][myoperatorheaderfile] overloads the associated C++ operators
 

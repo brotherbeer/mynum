@@ -38,13 +38,14 @@ No restrictions on the dissemination and modification of the source code. The au
 [testcppfile]: https://github.com/brotherbeer/mynum/blob/master/test.cpp
 
 **Installation**
+
 Mynum has 5 files:
 
  * [mynum.cpp][mynumcppfile] implements the elementary arithmetic and string formatting IO functions, the header file is [mynum.h][mynumheaderfile] 
- * [mytheory.cpp][mytheoryheaderfile] implements the number theoretic functions, such as modular exponentiation, GCD function, the header file is [mytheory.h][mymytheoryheaderfile] 
+ * [mytheory.cpp][mytheorycppfile] implements the number theoretic functions, such as GCD function, the header file is [mytheory.h][mytheoryheaderfile] 
  * [myoperators.h][myoperatorheaderfile] overloads the associated C++ operators
 
-Copy these files to your porject, and #include "mynum.h", "mytheory.h" or "myoperators.h" in whichever file you need big integer arithmetic, and the namespace is `mynum`.
+Copy these files into your porject, and include "mynum.h", "mytheory.h" or "myoperators.h" in whichever file you need big integer arithmetic, and the namespace is `mynum`.
 
  * [test.cpp][testcppfile] contains the examples and test cases
 

@@ -240,9 +240,6 @@ typedef _LCG_t<0x5851f42d4c957f2d, 0x11> LCG_t;
 typedef _XLCG_t<0x5851f42d4c957f2d, 0x11> XLCG_t;
 #endif
 
-// Vigna, Sebastiano (April 2014). "Further scramblings of Marsaglia's xorshift generators"
-// http://vigna.di.unimi.it/ftp/papers/xorshiftplus.pdf
-
 struct XORSP_t: public RNG  // XOR Shift Plus generator
 {
     typedef unsigned long long state_t;

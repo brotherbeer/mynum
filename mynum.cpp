@@ -395,16 +395,6 @@ void number_t::fill_unused_capacity(unit_t v)
     }
 }
 
-number_t& number_t::halve()
-{
-    return shr(1);
-}
-
-number_t& number_t::twice()
-{
-    return shl(1);
-}
-
 string_t& number_t::to_bin_string(string_t& res) const
 {
     return __to_bin_string(res);

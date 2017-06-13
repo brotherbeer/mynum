@@ -254,9 +254,6 @@ struct number_t: public _base_number_t  // bignum class
     size_t pop_count() const;
     size_t bits_count() const;
 
-    number_t& halve();
-    number_t& twice();
-
     bool is_even() const { return !is_odd(); }
     bool is_not(const number_t& another) const { return this != &another; }
     bool is_neg() const  { return len < 0; }

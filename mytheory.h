@@ -6,11 +6,12 @@
 
 namespace mynum {
 
-int jacobi(const number_t& a, const number_t& m);
+int jacobi(const number_t& a, const number_t& b);
 
 int gcd(const number_t& a, const number_t& b, number_t& res);
 int gcd_ext(const number_t& a, const number_t& b, number_t& x, number_t& y, number_t& g);
-void lcm(const number_t& a, const number_t&b, number_t& res);
+
+void lcm(const number_t& a, const number_t& b, number_t& res);
 
 int pom(const number_t& a, const number_t& b, const number_t& c, number_t& res);
 
@@ -114,9 +115,12 @@ word_t rand_word();
 bool chance(size_t);
 
 bool rand(size_t maxbits, number_t& n);
-bool rand(size_t maxbits, RNG& rng, number_t& n);
 bool rand(size_t maxbits, bool holdmsb, number_t& n);
+bool rand(size_t minbits, size_t maxbits, number_t& n);
+bool rand(size_t maxbits, RNG& rng, number_t& n);
 bool rand(size_t maxbits, RNG& rng, bool holdmsb, number_t& n);
+bool rand(size_t minbits, size_t maxbits, RNG& rng, number_t& n);
+
 bool rand(size_t length, const string_t& chars, string_t& s);
 bool rand(size_t length, const string_t& chars, RNG& rng, string_t& s);
 

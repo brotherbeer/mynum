@@ -392,6 +392,11 @@ bool rand(size_t maxbits, bool holdmsb, number_t& n)
     return rand(maxbits, default_RNG(), holdmsb, n);
 }
 
+bool rand(size_t minbits, size_t maxbits, number_t& n)
+{
+    return rand(minbits, maxbits, default_RNG(), n);
+}
+
 bool rand(size_t maxbits, RNG& rng, bool holdmsb, number_t& n)
 {
     if (!holdmsb)
@@ -409,6 +414,20 @@ bool rand(size_t maxbits, RNG& rng, bool holdmsb, number_t& n)
         {
             return true;
         }
+    }
+    return false;
+}
+
+bool rand(size_t minbits, size_t maxbits, RNG& rng, number_t& n)
+{
+    if (minbits < maxbits)
+    {
+        size_t bits = minbits + rng.gen() % (maxbits - minbits + 1);
+        return rand(bits, rng, n);
+    }
+    else if (minbits == maxbits)
+    {
+        return rand(maxbits, rng, true, n);
     }
     return false;
 }
